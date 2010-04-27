@@ -1,0 +1,10 @@
+ASYNC_DELEGATE#0="Attempting to Call Async Delegate";
+ASYNC_RESPONSE#0="Received Async Response";
+SEARCH_ASYNC#0="Fetching Async: {0}";
+SEARCH_ERROR#0="Error searching";
+SEARCH_SYNC#0="Fetching Sync: {0}";
+XML_ERROR_CODE#0="Error Code = {0,number,integer}";
+XML_ERROR_MESSAGE#0="Error Message = {0}";
+XML_ERROR_PARAM#0="Error Parameter = {0}";
+XML_REFLECT_CLASSNOTIMPLEMENTED#0="The class at index {0} does has not been implemented yet. Element Name: {1}";
+XML_REFLECT_NOCLASS#0="No constructor accepts the specified dictionary.";

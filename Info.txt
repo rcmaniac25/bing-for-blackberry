@@ -1,0 +1,4 @@
+TODO:
+//Nothing
+
+As of 4/13/2010 11:19PM every source type available in the Bing 2.2 API is implemented.
