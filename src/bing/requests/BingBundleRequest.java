@@ -17,13 +17,16 @@ public class BingBundleRequest extends BingRequest
 {
 	private Vector requests;
 	
-	private BingBundleRequest()
+	/**
+	 * Initialize the bundle with a list of requests.
+	 */
+	public BingBundleRequest()
 	{
 		requests = new Vector();
 	}
 	
 	/**
-	 * Initialize the bundle with a nil terminated list of requests
+	 * Initialize the bundle with a list of requests.
 	 * @param requests A list of BingRequest objects
 	 */
 	public BingBundleRequest(BingRequest[] requests)
@@ -55,7 +58,7 @@ public class BingBundleRequest extends BingRequest
 		StringBuffer sources = new StringBuffer();
 		
 		boolean first = true;
-		Enumeration en = super.attrDict.elements();
+		Enumeration en = this.requests.elements();
 		while(en.hasMoreElements())
 		{
 			BingRequest request = (BingRequest)en.nextElement();
@@ -77,7 +80,7 @@ public class BingBundleRequest extends BingRequest
 	{
 		StringBuffer options = new StringBuffer(super.requestOptions());
 		
-		Enumeration en = super.attrDict.elements();
+		Enumeration en = this.requests.elements();
 		while(en.hasMoreElements())
 		{
 			BingRequest request = (BingRequest)en.nextElement();

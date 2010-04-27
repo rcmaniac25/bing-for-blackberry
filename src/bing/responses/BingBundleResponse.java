@@ -7,6 +7,8 @@
  */
 package bing.responses;
 
+import bing.results.BingResult;
+
 /**
  * A bundle response object holds one or many other response objects.
  */
@@ -19,5 +21,26 @@ public class BingBundleResponse extends BingResponse
 	public void addResponse(BingResponse response)
 	{
 		super.results.addElement(response);
+	}
+	
+	/**
+	 * Get the responses that this Response object holds.
+	 * @return Array of Response objects. Empty if the search returned no results.
+	 */
+	public BingResponse[] responses()
+	{
+		BingResponse[] res = new BingResponse[this.results.size()];
+		this.results.copyInto(res);
+		return res;
+	}
+	
+	/**
+	 * Because this is a bundle response it does not return BingResults, it returns BingResponses. Use {@link #responses()}
+	 * to get the bundled responses.
+	 * @return Returns null.
+	 */
+	public BingResult[] results()
+	{
+		return null;
 	}
 }
