@@ -53,68 +53,59 @@
 <code>Bing bing = new Bing(&quot;MY_APP_ID&quot;);</code>
 <h3>Performing a Basic Single Source Type Query</h3>
 <p>To perform a basic web search, you first must instantiate a request object, set any parameters, and then perform the search using the Bing object.</p>
-<code>BingWebRequest request = new BingWebRequest();<br />
-    request.setFileType(&quot;pdf&quot;);<br />
-    <br />
-  
-// Performs a synchronous request<br />
-    BingWebResponse response = (BingWebResponse)bing.search(&quot;Bing API&quot;, request);<br />
-    <br />
-  
+<code>BingWebRequest request = new BingWebRequest();
+request.setFileType(&quot;pdf&quot;);
+
+// Performs a synchronous request
+BingWebResponse response = (BingWebResponse)bing.search(&quot;Bing API&quot;, request);
+ 
 // Do something interesting with the results...</code><h3>Querying Multiple Source Types at Once</h3>
 <p>With the Bing API, it is possible to search multiple source types using a single HTTP request. In the Bing 
     BlackBerry SDK, this is called a BundleRequest because it bundles together other request objects. To perform a bundle request, create individual request objects and then add them to a BundleRequest object.</p>
-<code>BingWebRequest webRequest = new BingWebRequest();<br />
-BingImageRequest imageRequest = new BingImageRequest();<br />
-    <br />
-    imageRequest.setFilters(&quot;Size:Width:320&quot;); // Set request specific options<br />
-    <br />
-    BingBundleRequest bundle = new BingBundleRequest();<br />
-    bundle.addRequest(webRequest);<br />
-    bundle.addRequest(imageRequest);<br />
-    <br />
-    BingBundleResponse response = (BingBundleResponse)bing.search(&quot;Bing API&quot;, 
-    bundle);<br />
-    <br />
-    BingResponse[] responses = response.responses();<br />
-    for(int i = 0; i &lt; responses.length; i++)<br />
-    {<br />
-&nbsp;&nbsp;&nbsp; BingResponse singleResponse = responses[i];<br />
-&nbsp;&nbsp;&nbsp; BingResult[] results = singleResponse.results();<br />
-&nbsp;&nbsp;&nbsp; for(int k = 0; k &lt; results.length; k++)<br />
-&nbsp;&nbsp;&nbsp; {<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BingResult result = results[k];<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Do something interesting with the 
-    results...<br />
-&nbsp;&nbsp;&nbsp; }<br />
-    }</code><p>Alternatively, you can also pass a list of several requests into the BingBundleRequest initializer. This can provide more concise code.</p>
-<code>BingBundleRequest bundle = new BingBundleRequest(new BingRequest[]{ request1, request2, request3 
-    });</code>
+<code>BingWebRequest webRequest = new BingWebRequest();
+BingImageRequest imageRequest = new BingImageRequest();
+
+imageRequest.setFilters(&quot;Size:Width:320&quot;); // Set request specific options
+
+BingBundleRequest bundle = new BingBundleRequest();
+bundle.addRequest(webRequest);
+bundle.addRequest(imageRequest);
+
+BingBundleResponse response = (BingBundleResponse)bing.search(&quot;Bing API&quot;, bundle);
+
+BingResponse[] responses = response.responses();
+for(int i = 0; i &lt; responses.length; i++)
+{
+    BingResponse singleResponse = responses[i];
+    BingResult[] results = singleResponse.results();
+    for(int k = 0; k &lt; results.length; k++)
+    {
+        BingResult result = results[k];
+        // Do something interesting with the results...
+    }
+}</code><p>Alternatively, you can also pass a list of several requests into the BingBundleRequest initializer. This can provide more concise code.</p>
+<code>BingBundleRequest bundle = new BingBundleRequest(new BingRequest[]{ request1, request2, request3 });</code>
 <p>Note that when using a bundle, only the top level request options (version, 
     market, etc.) within the Bundle will be respected. The top level request options 
     of all requests passed into the bundle will be removed. Because of this, it is 
     suggested that you create new request objects for each BingBundleRequest object.</p>
-<h4>Parsing Results From a Bundle Responseponse</h4>For BingBundleResponse objects, the results function will return null, instead 
-    use the responses function, it will return an array of BingResponse objects each corresponding to a single source type. An example of how to access individual results from each response can be seen in the previous code example.</p>
-<h3>Performing Asynchronous Requestsuests</h3>In some cases it may be desirable to perform an asynchronous search. Asynchronous 
+<h4>Parsing Results From a Bundle Response</h4>For BingBundleResponse objects, the results function will return null, instead 
+    use the responses function, it will return an array of BingResponse objects each corresponding to a single source type. An example of how to access individual results from each response can be seen in the previous code example.<h3>Performing Asynchronous Requests</h3>In some cases it may be desirable to perform an asynchronous search. Asynchronous 
     requests are especially useful when creating a BlackBerry application. To perform an asynchronous search, pass in a delegate object that implements the BingAsyncRequestNotification informal interface to the search(String,BingRequest,BingAsyncRequestNotification) method. Everything else is exactly the same.</p>
-<code>public class MySampleDelegate implements BingAsyncRequestNotification<br />
-    {<br />
-&nbsp;&nbsp;&nbsp; public void receiveBingResponse(BingResponse response)<br />
-&nbsp;&nbsp;&nbsp; {<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Do something interesting with the 
-    results...<br />
-&nbsp;&nbsp;&nbsp; }<br />
-    }<br />
-    <br />
-&nbsp;...
-  
-    <br />
-    <br />
-    MySampleDelegate myDelegate = new MySampleDelegate();<br />
-    BingWebRequest webRequest = new BingWebRequest();<br />
-    <br />
-    bing.search("Bing API", webRequest, myDelegate);</code><h2>Handling Errors</h2>
+<code>public class MySampleDelegate implements BingAsyncRequestNotification
+{
+    public void receiveBingResponse(BingResponse response)
+    {
+        // Do something interesting with the results...
+    }
+}
+
+...
+
+MySampleDelegate myDelegate = new MySampleDelegate();
+BingWebRequest webRequest = new BingWebRequest();
+
+bing.search("Bing API", webRequest, myDelegate);</code><h2>Handling Errors</h2>
 <p>If an error is encountered while querying the API, a null value will be returned instead of a BingResponse object. The most common cause for this is an invalid Application ID. However, an error can also be caused by setting an invalid parameter in one of the BingRequest objects.</p>
 <p>For more detailed error messages, compile the Bing Library in with the BING_DEBUG 
     which can be set in the Bing Library&#39;s BlackBerry_App_Descriptor.xml.</p>
