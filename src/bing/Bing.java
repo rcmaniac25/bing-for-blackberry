@@ -24,7 +24,7 @@ import bing.responses.*;
  */
 public class Bing
 {
-	public static final String BING_URL = "http://api.bing.net/xml.aspx?";
+	private static final String BING_URL = "http://api.bing.net/xml.aspx?";
 	
 	private net.rim.device.api.i18n.ResourceBundle _resources;
 	
@@ -187,7 +187,9 @@ public class Bing
 	public synchronized String requestUrl(final String query, BingRequest request)
 	{
 		StringBuffer requestURL = new StringBuffer(format("{0}xmltype=attributebased&AppId={1}&Query={2}&Sources={3}", 
-				new Object[]{ BING_URL, this.appId, replace(query, " ", "%20"), request.sourceType() }));
+				new Object[]{ BING_URL, this.appId, encodeUrl(query), request.sourceType() }));
+		
+		//replace(query, " ", "%20")
 		
 		String requestOptions = request.requestOptions();
 		if (requestOptions != null)
@@ -195,6 +197,55 @@ public class Bing
 			requestURL.append(requestOptions);
 		}
 		return requestURL.toString();
+	}
+	
+	private static final String URL_UNRESERVED = 
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+		"abcdefghijklmnopqrstuvwxyz" +
+		"0123456789-_.~";
+	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
+	
+	//requestUrl formats the URL, this encodes it so it is formatted in a manner that can be interpreted properly
+	private String encodeUrl(String url)
+	{
+		byte[] bytes = null;
+		try
+		{
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			DataOutputStream dos = new DataOutputStream(bos);
+			dos.writeUTF(url);
+			bytes = bos.toByteArray();
+		}
+		catch (IOException e)
+		{
+			// ignore
+		}
+		if(bytes != null)
+		{
+			StringBuffer buf = new StringBuffer();
+			int len = bytes.length;
+			for(int i = 2; i < len; i++)
+			{
+				byte b = bytes[i];
+				/*
+				if(b == '%')
+				{
+					buf.append((char)b);
+					buf.append((char)bytes[i++]);
+					buf.append((char)bytes[i++]);
+				}
+				else*/if(URL_UNRESERVED.indexOf(b) >= 0)
+				{
+					buf.append((char)b);
+				}
+				else
+				{
+					buf.append('%').append(HEX[(b >> 4) & 0x0f]).append(HEX[b & 0x0f]);
+				}
+			}
+			return buf.toString();
+		}
+		return "";
 	}
 	
 	private static String replace(String source, String oldValue, String newValue)
