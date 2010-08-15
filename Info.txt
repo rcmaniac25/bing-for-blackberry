@@ -1,7 +1,5 @@
 TODO:
-Add support for Universal Search (should present an option to "search with <dev supplied name here>" and the ability for the developer to customize
-	the search options so that they can selectively choose what searches to perform and what to return. The option should only appear if the dev
-	wants it to).
+*none*
 
 As of 4/13/2010 11:19PM every source type available in the Bing 2.2 API is implemented.
 

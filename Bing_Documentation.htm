@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
    "http://www.w3.org/TR/html4/strict.dtd">
 
 <html lang="en">
@@ -135,7 +135,34 @@ bing.search("Bing API", webRequest, myDelegate);</code><h2>Handling Errors</h2>
     <li>Video Request</li>
     <li>Web Request</li>
 </ul>
-<p>Each of the available source type result objects has its properties defined in the <a href="http://msdn.microsoft.com/en-us/library/dd250847.aspx">Bing API Documentationation</a></p>The properties of the result objects can be easily accessed using dot notation (ex: myWebResultObject.url).</p>
+<p>Each of the available source type result objects has its properties defined in the <a href="http://msdn.microsoft.com/en-us/library/dd250847.aspx">Bing API Documentationation</a></p>The properties of the result objects can be easily accessed using dot notation (ex: myWebResultObject.getUrl()).</p>
+<h2>Unified Search</h2><p>As of BlackBerry OS 6.0, a new search API has been implemented known as Unified Search. This API allows users and developers to search the web, 3rd party apps and data, and the BlackBerry handheld itself for information.</p>
+<p><b>bbing</b> has a Unified Search implementation built in as of 2.2.1, this allows for simple setup and cleanup of what is known as an <a href="http://www.blackberry.com/developers/docs/6.0.0api/net/rim/device/api/unifiedsearch/searchables/ExternalSearchProvider.html">ExternalSearchProvider</a>.
+This creates a single search icon that allways appears when a search is performed, when the icon is selected the &quot;External Search Provider&quot; performs its search and returns the results on its own UI.</p>
+<p>Using <b>bbing</b>, the developer creates a SearchProviderOptions and registers it with UnifiedSearch. That's it, <b>bbing</b> does the rest.</p>
+<h3>Creating a SearchProviderOptions</h3>
+<p>This is very easy. SearchProviderOptions is a special wrapper around a callback called SearchCallback. Implement SearchCallback, pass it into a SearchProviderOptions and this step is done.</p>
+<code>SearchProviderOptions options = new SearchProviderOptions(new new SearchCallback()
+{
+    //SearchCallback implementation
+});</code>
+<p>The options provider should be saved because it will be used to register and unregister your search system.</p>
+<h3>Registering SearchProviderOptions</h3>
+<p>This is very easy:</p>
+<code>UnifiedSearch.registerSearchProvider(options);</code>
+<p>That's it! Before this when you did a search nothing showed up. Now if you do a search, a icon appears that can be selected and (if a search UI has been implemented) the UI with the results is displayed</p>
+<p><strong>Note:</strong> One element of SearchCallback is a function called <i>updated</i>. This function can be used to alert registerSearchProvider that the name and/or icon of the provider has been updated. This does not automatically occur, if the name or icon get updated the devloper can call registerSearchProvider again and pass in the same SearchProviderOptions. As long as the options provider is not in use it will be updated with the new icon and name.</p>
+<p>Also remeber to unregister your SearchProviderOptions when it is no longer needed. Failing to unregister your SearchProviderOptions can cause unpredictable operations to occur or multiple search options to appear when a search is performed.</p>
+<p>To create a singleton search implementation, follow the following developer article &quot;<a href="http://docs.blackberry.com/en/developers/deliverables/17953/Ensure_device_runs_single_instance_1214527_11.jsp">Ensure that a device runs a single instance of your application</a>&quot; adapting the code so that instead of the operation occuring at search time it occurs at register time.</p>
+<h3>Unregistering SearchProviderOptions</h3>
+<p>This is extremely easy again:</p>
+<code>UnifiedSearch.unregisterSearchProvider(options);</code>
+<h3>Other Unified Search notes</h3>
+<p>A couple small requirements for using Unified Search exist:
+<ol>
+    <li>Application signing is required. If no signing is desired then use the define <i>NO_SIGNING</i>. This will disable the need for application signing but will also disable Unified Search support.</li>
+    <li>Requires OS/API 6.0 or higher. This is a given, luckily Unified Search support is determined internally. It determine is Unified Search is supported at runtim call UnifiedSearch.isSupported().</li>
+</ol>
 <h2>Happy Bing-ing!</h2>
 </body>
 </html>
