@@ -6,7 +6,9 @@
  */
 package bing.blackberry.unifiedsearch;
 
+//#ifndef BlackBerrySDK4.5.0 | BlackBerrySDK4.6.0 | BlackBerrySDK4.6.1 | BlackBerrySDK4.7.0
 import net.rim.device.api.ui.image.Image;
+//#endif
 
 import bing.Bing;
 import bing.BingAsyncRequestNotification;
@@ -49,11 +51,13 @@ public interface SearchCallback extends BingAsyncRequestNotification
 	 */
 	long getContentType();
 	
+//#ifndef BlackBerrySDK4.5.0 | BlackBerrySDK4.6.0 | BlackBerrySDK4.6.1 | BlackBerrySDK4.7.0
 	/**
 	 * Get the search icon. This will appear when the user does a search.
 	 * @return The icon that represents the search.
 	 */
 	Image getImage();
+//#endif
 	
 	/**
 	 * The search name. This will appear when the user does a search. Format is "Search <search callback name>".

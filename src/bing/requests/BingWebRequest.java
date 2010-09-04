@@ -12,9 +12,9 @@ package bing.requests;
  */
 public class BingWebRequest extends BingRequest
 {
-	public static final String WEB_SEARCH_OPTIONS_SEPERATOR = BingRequest.OPTION_SEPERATOR;
-	public static final String WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING = "DisableHostCollapsing";
-	public static final String WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS = "DisableQueryAlterations";
+	public static String WEB_SEARCH_OPTIONS_SEPERATOR = BingRequest.OPTION_SEPERATOR;
+	public static String WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING = "DisableHostCollapsing";
+	public static String WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS = "DisableQueryAlterations";
 	
 	public String sourceType()
 	{

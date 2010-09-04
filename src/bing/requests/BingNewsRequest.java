@@ -12,8 +12,8 @@ package bing.requests;
  */
 public class BingNewsRequest extends BingRequest
 {
-	public static final String NEWS_SORT_OPTIONS_DATE = "Date";
-	public static final String NEWS_SORT_OPTIONS_RELEVANCE = "Relevance";
+	public static String NEWS_SORT_OPTIONS_DATE = "Date";
+	public static String NEWS_SORT_OPTIONS_RELEVANCE = "Relevance";
 	
 	public String requestOptions()
 	{

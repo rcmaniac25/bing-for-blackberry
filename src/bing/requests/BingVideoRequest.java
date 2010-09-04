@@ -12,18 +12,18 @@ package bing.requests;
  */
 public class BingVideoRequest extends BingRequest
 {
-	public static final String VIDEO_SORT_OPTION_DATE = "Date";
-	public static final String VIDEO_SORT_OPTION_RELEVANCE = "Relevance";
+	public static String VIDEO_SORT_OPTION_DATE = "Date";
+	public static String VIDEO_SORT_OPTION_RELEVANCE = "Relevance";
 	
-	public static final String VIDEO_FILTERS_SEPERATOR = BingRequest.OPTION_SEPERATOR;
-	public static final String VIDEO_FILTERS_DURATION_SHORT = "Duration:Short";
-	public static final String VIDEO_FILTERS_DURATION_MEDIUM = "Duration:Medium";
-	public static final String VIDEO_FILTERS_DURATION_LONG = "Duration:Long";
-	public static final String VIDEO_FILTERS_ASPECT_STANDARD = "Aspect:Standard";
-	public static final String VIDEO_FILTERS_ASPECT_WIDESCREEN = "Aspect:Widescreen";
-	public static final String VIDEO_FILTERS_RESOLUTION_LOW = "Resolution:Low";
-	public static final String VIDEO_FILTERS_RESOLUTION_MEDIUM = "Resolution:Medium";
-	public static final String VIDEO_FILTERS_RESOLUTION_HIGH = "Resolution:High";
+	public static String VIDEO_FILTERS_SEPERATOR = BingRequest.OPTION_SEPERATOR;
+	public static String VIDEO_FILTERS_DURATION_SHORT = "Duration:Short";
+	public static String VIDEO_FILTERS_DURATION_MEDIUM = "Duration:Medium";
+	public static String VIDEO_FILTERS_DURATION_LONG = "Duration:Long";
+	public static String VIDEO_FILTERS_ASPECT_STANDARD = "Aspect:Standard";
+	public static String VIDEO_FILTERS_ASPECT_WIDESCREEN = "Aspect:Widescreen";
+	public static String VIDEO_FILTERS_RESOLUTION_LOW = "Resolution:Low";
+	public static String VIDEO_FILTERS_RESOLUTION_MEDIUM = "Resolution:Medium";
+	public static String VIDEO_FILTERS_RESOLUTION_HIGH = "Resolution:High";
 	
 	public String requestOptions()
 	{

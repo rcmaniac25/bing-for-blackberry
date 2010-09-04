@@ -3,6 +3,8 @@ TODO:
 
 As of 4/13/2010 11:19PM every source type available in the Bing 2.2 API is implemented.
 
+Strings follow the guidelines listed in "http://docs.blackberry.com/en/developers/deliverables/3299/JDE_4.5_Fundamentals_Guide.pdf" which state not to use static final for Strings because then Strings need to be loaded multiple times and multiple instances of the same String exist.
+
 Defines:
 BING_DEBUG - Some debug output, optional search error returns. If search error returns are enabled then if an error occurs it will return an object 
 	that has detailed error information.

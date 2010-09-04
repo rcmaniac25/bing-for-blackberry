@@ -1,4 +1,4 @@
-//#preprocess
+//#preprocessor
 
 /**
  * (c) 2009 Microsoft corp.
@@ -24,7 +24,7 @@ import bing.responses.*;
  */
 public class Bing
 {
-	private static final String BING_URL = "http://api.bing.net/xml.aspx?";
+	private static String BING_URL = "http://api.bing.net/xml.aspx?";
 	
 	private net.rim.device.api.i18n.ResourceBundle _resources;
 	
@@ -199,7 +199,7 @@ public class Bing
 		return requestURL.toString();
 	}
 	
-	private static final String URL_UNRESERVED = 
+	private static String URL_UNRESERVED = 
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +
 		"0123456789-_.~";

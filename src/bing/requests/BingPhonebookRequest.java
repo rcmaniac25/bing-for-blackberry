@@ -12,9 +12,9 @@ package bing.requests;
  */
 public class BingPhonebookRequest extends BingRequest
 {
-	public static final String PHONEBOOK_SORT_OPTION_DEFAULT = "Default";
-	public static final String PHONEBOOK_SORT_OPTION_DISTANCE = "Distance";
-	public static final String PHONEBOOK_SORT_OPTION_RELEVANCE = "Relevance";
+	public static String PHONEBOOK_SORT_OPTION_DEFAULT = "Default";
+	public static String PHONEBOOK_SORT_OPTION_DISTANCE = "Distance";
+	public static String PHONEBOOK_SORT_OPTION_RELEVANCE = "Relevance";
 	
 	public String requestOptions()
 	{

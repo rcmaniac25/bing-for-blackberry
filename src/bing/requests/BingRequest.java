@@ -20,20 +20,20 @@ import java.util.Hashtable;
  */ 
 public abstract class BingRequest
 {
-	public static final String DEFAULT_SEARCH_MARKET = "en-US";
-	public static final String DEFAULT_API_VERSION = "2.2";
+	public static String DEFAULT_SEARCH_MARKET = "en-US";
+	public static String DEFAULT_API_VERSION = "2.2";
 	
-	public static final String OPTION_SEPERATOR = "+";
+	public static String OPTION_SEPERATOR = "+";
 	
-	public static final String ADULT_OPTIONS_OFF = "Off";
-	public static final String ADULT_OPTIONS_MODERATE = "Moderate";
-	public static final String ADULT_OPTIONS_STRICT = "Strict";
+	public static String ADULT_OPTIONS_OFF = "Off";
+	public static String ADULT_OPTIONS_MODERATE = "Moderate";
+	public static String ADULT_OPTIONS_STRICT = "Strict";
 	
-	public static final String SEARCH_OPTIONS_SEPERATOR = OPTION_SEPERATOR;
-	public static final String SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION = "DisableLocationDetection";
-	public static final String SEARCH_OPTIONS_ENABLE_HIGHLIGHTING = "EnableHighlighting";
+	public static String SEARCH_OPTIONS_SEPERATOR = OPTION_SEPERATOR;
+	public static String SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION = "DisableLocationDetection";
+	public static String SEARCH_OPTIONS_ENABLE_HIGHLIGHTING = "EnableHighlighting";
 	
-	private static final String DOUBLE_FORMAT = ",number";
+	private static String DOUBLE_FORMAT = ",number";
 	
 	protected Hashtable attrDict;
 	

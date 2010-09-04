@@ -1,4 +1,4 @@
-//#preprocess
+//#preprocessor
 
 /**
  * (c) 2009 Microsoft corp.
