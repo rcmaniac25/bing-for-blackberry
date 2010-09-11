@@ -9,7 +9,10 @@
 package bing.blackberry.unifiedsearch;
 
 //#ifndef BlackBerrySDK4.5.0 | BlackBerrySDK4.6.0 | BlackBerrySDK4.6.1 | BlackBerrySDK4.7.0 | BlackBerrySDK5.0.0 | NO_SIGNING
+import net.rim.device.api.system.Bitmap;
+import net.rim.device.api.system.EncodedImage;
 import net.rim.device.api.ui.image.Image;
+import net.rim.device.api.ui.image.ImageFactory;
 import net.rim.device.api.unifiedsearch.registry.RegistrationToken;
 import net.rim.device.api.unifiedsearch.searchables.ExternalSearchProvider;
 //#endif
@@ -54,7 +57,36 @@ public class SearchProviderOptions
 		
 		public Image getProviderIcon()
 		{
-			return SearchProviderOptions.this.callback.getImage();
+			//Not efficient but gets the job done in the easiest way possible for the developer.
+			Object img = SearchProviderOptions.this.callback.getImage();
+			if(img instanceof Image)
+			{
+				return (Image)img;
+			}
+			else if(img instanceof Bitmap)
+			{
+				return ImageFactory.createImage((Bitmap)img);
+			}
+			else if(img instanceof EncodedImage)
+			{
+				return ImageFactory.createImage((EncodedImage)img);
+			}
+			else if(img instanceof javax.microedition.lcdui.Image)
+			{
+				javax.microedition.lcdui.Image jImg = (javax.microedition.lcdui.Image)img;
+				
+				int w = jImg.getWidth();
+				int h = jImg.getHeight();
+				int[] rgbData = new int[w * h];
+				jImg.getRGB(rgbData, 0, w, 0, 0, w, h);
+				
+				Bitmap map = new Bitmap(w, h);
+				map.createAlpha(Bitmap.ALPHA_BITDEPTH_8BPP); //Not the most efficient but probably more efficient then going through entire image to check for alpha.
+				map.setARGB(rgbData, 0, w, 0, 0, w, h);
+				
+				return ImageFactory.createImage(map);
+			}
+			return null;
 		}
 		
 		public String getProviderName()
