@@ -1,0 +1,10 @@
+ASYNC_DELEGATE#0="El intento de llamada Delegado Async";
+ASYNC_RESPONSE#0="Recibido Async respuesta";
+SEARCH_ASYNC#0="Captación de Async: {0}";
+SEARCH_ERROR#0="Error de búsqueda";
+SEARCH_SYNC#0="Captación de sincronización: {0}";
+XML_ERROR_CODE#0="Código de error = {0,number,integer}";
+XML_ERROR_MESSAGE#0="Mensaje de error = {0}";
+XML_ERROR_PARAM#0="Error de parámetro = {0}";
+XML_REFLECT_CLASSNOTIMPLEMENTED#0="La clase en el índice {0} no se ha implementado todavía. Nombre del elemento: {1}";
+XML_REFLECT_NOCLASS#0="Ningún constructor acepta el diccionario especificado.";

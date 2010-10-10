@@ -48,7 +48,8 @@ public abstract class BingResponse
 		{
 			return null;
 		}
-		return new String(this.query);
+		//return new String(this.query); //Same reasons as Bing.getAppID()
+		return this.query;
 	}
 	
 	public synchronized void setQuery(String query)
@@ -62,7 +63,8 @@ public abstract class BingResponse
 		{
 			return null;
 		}
-		return new String(this.alteredQuery);
+		//return new String(this.alteredQuery); //Same reasons as Bing.getAppID()
+		return this.alteredQuery;
 	}
 	
 	public synchronized void setAlteredQuery(String alteredQuery)
@@ -76,7 +78,8 @@ public abstract class BingResponse
 		{
 			return null;
 		}
-		return new String(this.alterationOverrideQuery);
+		//return new String(this.alterationOverrideQuery); //Same reasons as Bing.getAppID()
+		return this.alterationOverrideQuery;
 	}
 	
 	public synchronized void setAlterationOverrideQuery(String alterationOverrideQuery)

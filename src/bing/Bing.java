@@ -73,7 +73,8 @@ public class Bing
 		{
 			return null;
 		}
-		return new String(this.appId);
+		//return new String(this.appId); //Don't use, it's not recommended, somewhat poor code, and since String is immutable it is pointless to copy the String if it can't be changed anyway.
+		return this.appId;
 	}
 	
 	/**
@@ -248,6 +249,7 @@ public class Bing
 		return "";
 	}
 	
+	/*
 	private static String replace(String source, String oldValue, String newValue)
 	{
 		StringBuffer buffer = new StringBuffer();
@@ -270,6 +272,7 @@ public class Bing
 		
 		return buffer.toString();
 	}
+	*/
 	
 	public int hashCode()
 	{

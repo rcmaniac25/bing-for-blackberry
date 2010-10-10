@@ -15,9 +15,9 @@ import net.rim.device.api.ui.image.Image;
 import net.rim.device.api.ui.image.ImageFactory;
 import net.rim.device.api.unifiedsearch.registry.RegistrationToken;
 import net.rim.device.api.unifiedsearch.searchables.ExternalSearchProvider;
-//#endif
 import bing.Bing;
 import bing.requests.BingRequest;
+//#endif
 
 /**
  * Options for customized Unified Search integration.

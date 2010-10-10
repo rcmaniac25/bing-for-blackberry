@@ -1,0 +1,10 @@
+ASYNC_DELEGATE#0="Tentative d'appel à un délégué asynchrone";
+ASYNC_RESPONSE#0="Reçu Async réponse";
+SEARCH_ASYNC#0="Async Récupération: {0}";
+SEARCH_ERROR#0="Erreur de recherche";
+SEARCH_SYNC#0="Récupérer Sync: {0}";
+XML_ERROR_CODE#0="Code d'erreur = {0,number,integer}";
+XML_ERROR_MESSAGE#0="Message d'erreur = {0}";
+XML_ERROR_PARAM#0="Erreur de paramètre = {0}";
+XML_REFLECT_CLASSNOTIMPLEMENTED#0="La classe à l'index {0} ne s'est pas encore été implémenté. Nom de l'élément: {1}";
+XML_REFLECT_NOCLASS#0="Aucun constructeur accepte le dictionnaire spécifié.";
