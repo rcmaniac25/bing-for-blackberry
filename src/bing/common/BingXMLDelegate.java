@@ -35,7 +35,7 @@ public final class BingXMLDelegate extends DefaultHandler
 //#endif
 	
 	//-------ONLY THING THAT SHOULD BE EDITED--------------------
-	/* As of Component Pack 5.0.0.25 there is no reflection capability available on the BlackBerry platform. To get around this problem a fixed list that acts like
+	/* As of Component Pack 6.0.0.29 there is no reflection capability available on the BlackBerry platform. To get around this problem a fixed list that acts like
 	 * reflection has been created.
 	 * 
 	 * 1. To add new SourceTypes create the source types (previously defined SourceTypes can be used as templates and examples).

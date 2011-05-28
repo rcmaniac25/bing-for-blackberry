@@ -20,7 +20,7 @@ public final class UnifiedSearch
 	private UnifiedSearch(){}
 	
 	//Do this so that if future updates to the unified search system the updates can be determined and kept track of.
-//#ifdef BlackBerrySDK6.0.0
+//#ifndef BlackBerrySDK4.5.0 | BlackBerrySDK4.6.0 | BlackBerrySDK4.6.1 | BlackBerrySDK4.7.0 | BlackBerrySDK5.0.0
 	static final int unifiedSearchVersion = 1;
 //#else
 	static final int unifiedSearchVersion = 0;
