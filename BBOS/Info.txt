@@ -1,5 +1,6 @@
 TODO:
-*none*
+Update Strings so that readonly Strings are readonly (though not really final... if possible)
+Update Bing.java so that Connection class and additional parameters (such as BIS/BES support) can be used
 
 As of 4/13/2010 11:19PM every source type available in the Bing 2.2 API is implemented.
 
@@ -12,4 +13,4 @@ Official UN Language support added on 10/10/10 (Used Google Translate).
 Defines:
 BING_DEBUG - Some debug output, optional search error returns. If search error returns are enabled then if an error occurs it will return an object 
 	that has detailed error information.
-NO_SIGNING - Signing is required to access some functions like UnifiedSearch
+NO_SIGNING - Signing is required to access some functions like UnifiedSearch, otherwise RRT signing is required

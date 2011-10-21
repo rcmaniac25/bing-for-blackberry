@@ -12,3 +12,7 @@ Bing_ObjectiveC_SDK
 deliverables
 doc
 iPhoneBingImagesDemo
+copy.bat
+*.so
+*.o
+*Device
