@@ -10,6 +10,7 @@
 #include "bing.h"
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <bps/bps.h>
 
 #if !defined(BOOL)
@@ -28,6 +29,8 @@
 
 typedef struct BING_S
 {
+	pthread_mutex_t mutex;
+
 	char* appId;
 #if defined(BING_DEBUG)
 	BOOL errorRet;
@@ -37,8 +40,9 @@ typedef struct BING_S
 typedef struct BING_SYSTEM_S
 {
 	int domainID;
+	pthread_mutex_t mutex;
 
-	int count;
+	int bingInstancesCount;
 	bing** bingInstances;
 } bing_system;
 
@@ -52,10 +56,30 @@ void initialize()
 		memset(&bingSystem, 0, sizeof(bing_system));
 
 		bingSystem.domainID = bps_register_domain();
-		bingSystem.count = 0;
+		bingSystem.bingInstancesCount = 0;
 		bingSystem.bingInstances = NULL;
+		pthread_mutex_init(&bingSystem.mutex, NULL);
 
 		initialized = TRUE;
+	}
+}
+
+//TODO: Not sure how this will be called
+void shutdown()
+{
+	if(initialized)
+	{
+		if(bingSystem.bingInstancesCount > 0)
+		{
+			//TODO: GO through all services and free them
+			bingSystem.bingInstancesCount = 0;
+			free(bingSystem.bingInstances);
+			bingSystem.bingInstances = NULL;
+		}
+
+		pthread_mutex_destroy(&bingSystem.mutex);
+
+		initialized = FALSE;
 	}
 }
 
@@ -66,10 +90,30 @@ int bing_get_domain()
 	return bingSystem.domainID;
 }
 
+int findFreeIndex()
+{
+	int i;
+	if(bingSystem.domainID != -1)
+	{
+		if(bingSystem.bingInstances != NULL)
+		{
+			for(i = 0; i < bingSystem.bingInstancesCount; i++)
+			{
+				if(bingSystem.bingInstances[i] == NULL)
+				{
+					return i;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 unsigned int create_bing(const char* application_ID)
 {
 	int appIdLen;
 	int ret = 0; //Zero is reserved for bad
+	int loc;
 	bing* bingI;
 	bing** in;
 
@@ -77,7 +121,7 @@ unsigned int create_bing(const char* application_ID)
 
 	if(bingSystem.domainID != -1)
 	{
-		//TODO: Need to lock
+		pthread_mutex_lock(&bingSystem.mutex);
 
 		//Reallocate the instance length
 		if(bingSystem.bingInstances == NULL)
@@ -86,33 +130,43 @@ unsigned int create_bing(const char* application_ID)
 		}
 		else
 		{
-			in = realloc(bingSystem.bingInstances, (bingSystem.count + 1) * sizeof(bing*));
+			in = realloc(bingSystem.bingInstances, (bingSystem.bingInstancesCount + 1) * sizeof(bing*));
 		}
 		if(in != NULL)
 		{
 			//Reset instances
+			in[bingSystem.bingInstancesCount - 1] = NULL;
 			bingSystem.bingInstances = in;
-			bingSystem.count++;
+			bingSystem.bingInstancesCount++;
+
+			//Find a free index
+			loc = findFreeIndex();
 
 			//Create Bing instance
-			in[bingSystem.count - 1] = bingI = (bing*)malloc(sizeof(bing));
+			in[loc] = bingI = (bing*)malloc(sizeof(bing));
 
 			if(bingI == NULL)
 			{
 				//Didn't work, revert
-				if(bingSystem.count > 1)
+				if(bingSystem.bingInstancesCount > 1)
 				{
-					in = realloc(bingSystem.bingInstances, (bingSystem.count - 1) * sizeof(bing*));
+					bingSystem.bingInstancesCount--;
+					if(loc == bingSystem.bingInstancesCount) //At end of instances, free up some space
+					{
+						in = realloc(bingSystem.bingInstances, bingSystem.bingInstancesCount * sizeof(bing*));
 
-					bingSystem.bingInstances = in;
-					bingSystem.count--;
+						if(in != NULL)
+						{
+							bingSystem.bingInstances = in;
+						}
+					}
 				}
 				else
 				{
 					free(bingSystem.bingInstances);
 
 					bingSystem.bingInstances = NULL;
-					bingSystem.count = 0;
+					bingSystem.bingInstancesCount = 0;
 				}
 			}
 			else
@@ -133,11 +187,13 @@ unsigned int create_bing(const char* application_ID)
 				bingI->errorRet = DEFAULT_ERROR_RET;
 #endif
 
-				ret = bingSystem.count;
+				pthread_mutex_init(&bingI->mutex, NULL);
+
+				ret = bingSystem.bingInstancesCount;
 			}
 		}
 
-		//TODO: Need to unlock
+		pthread_mutex_unlock(&bingSystem.mutex);
 	}
 	return ret;
 }
@@ -151,53 +207,40 @@ void free_bing(unsigned int bingID)
 
 	if(bingSystem.domainID != -1 && bingID > 0)
 	{
-		//TODO: Need to lock
+		pthread_mutex_lock(&bingSystem.mutex);
 
-		if(bingSystem.count >= bingID)
+		if(bingSystem.bingInstancesCount >= bingID)
 		{
 			bingI = bingSystem.bingInstances[bingID - 1];
 
 			//Free the system
-			if(bingSystem.count == 1)
+			if(bingSystem.bingInstancesCount == 1)
 			{
 				free(bingSystem.bingInstances);
 
 				bingSystem.bingInstances = NULL;
-				bingSystem.count = 0;
+				bingSystem.bingInstancesCount = 0;
 			}
 			else
 			{
-				bingSystem.count--;
-				in = (bing**)malloc(sizeof(bing*) * bingSystem.count);
-
-				if(in != NULL) //Hopefully this is always true, otherwise a memory leak will occur and it won't be pretty
-				{
-					if(bingID == 1)
-					{
-						memcpy(in, bingSystem.bingInstances, sizeof(bing*) * bingSystem.count);
-					}
-					else
-					{
-						memcpy(in, bingSystem.bingInstances, sizeof(bing*) * (bingID - 1));
-						memcpy(in + (bingID - 1), bingSystem.bingInstances + bingID, sizeof(bing*) * (bingSystem.count - (bingID - 1)));
-					}
-
-					free(bingSystem.bingInstances);
-
-					bingSystem.bingInstances = in;
-				}
+				bingSystem.bingInstancesCount--;
+				bingSystem.bingInstances[bingID - 1] = NULL;
 			}
 
+			pthread_mutex_lock(&bingI->mutex);
+
 			free(bingI->appId);
+
+			pthread_mutex_destroy(&bingI->mutex);
+
 			free(bingI);
 		}
 
-		//TODO: Need to unlock
+		pthread_mutex_unlock(&bingSystem.mutex);
 	}
 }
 
-#if defined(BING_DEBUG)
-void set_error_return(unsigned int bingID, int error)
+bing* retrieveBing(unsigned int bingID)
 {
 	bing* bingI = NULL;
 
@@ -205,87 +248,122 @@ void set_error_return(unsigned int bingID, int error)
 
 	if(bingSystem.domainID != -1 && bingID > 0)
 	{
-		//TODO: Need to lock
+		pthread_mutex_lock(&bingSystem.mutex);
 
-		if(bingSystem.count >= bingID)
+		if(bingSystem.bingInstancesCount >= bingID)
 		{
 			bingI = bingSystem.bingInstances[bingID - 1];
 		}
 
-		//TODO: Need to unlock
+		pthread_mutex_unlock(&bingSystem.mutex);
 	}
+
+	return bingI;
+}
+
+#if defined(BING_DEBUG)
+
+int set_error_return(unsigned int bingID, int error)
+{
+	bing* bingI = retrieveBing(bingID);
 
 	if(bingI != NULL)
 	{
 		bingI->errorRet = error;
+
+		return TRUE;
 	}
+	return FALSE;
 }
 
 int get_error_return(unsigned int bingID)
 {
 	int res = FALSE;
+	bing* bingI = retrieveBing(bingID);
 
-	initialize(); //This shouldn't be here but put it here for safety
-
-	if(bingSystem.domainID != -1 && bingID > 0)
+	if(bingI != NULL)
 	{
-		//TODO: Need to lock
-
-		if(bingSystem.count >= bingID)
-		{
-			res = bingSystem.bingInstances[bingID - 1]->errorRet;
-		}
-
-		//TODO: Need to unlock
+		res = bingI->errorRet;
 	}
 
 	return res;
 }
+
 #endif
 
-const char* get_app_ID(unsigned int bingID)
-{
-	const char* res = NULL;
-
-	initialize(); //This shouldn't be here but put it here for safety
-
-	if(bingSystem.domainID != -1 && bingID > 0)
-	{
-		//TODO: Need to lock
-
-		if(bingSystem.count >= bingID)
-		{
-			res = bingSystem.bingInstances[bingID - 1]->appId;
-		}
-
-		//TODO: Need to unlock
-	}
-
-	return res;
-}
-
-void set_app_ID(unsigned int bingID, const char* appId)
+const char* get_app_ID(unsigned int bingID, char* buffer, int* len)
 {
 	bing* bingI;
-
-	initialize(); //This shouldn't be here but put it here for safety
-
-	if(bingSystem.domainID != -1 && bingID > 0)
+	if(len != NULL)
 	{
-		//TODO: Need to lock
+		bingI= retrieveBing(bingID);
 
-		if(bingSystem.count >= bingID)
+		if(bingI != NULL)
 		{
-			bingI = bingSystem.bingInstances[bingID - 1];
+			pthread_mutex_lock(&bingI->mutex);
 
-			free(bingI->appId);
-			bingI->appId = (char*)malloc(strlen(appId) + 1);
+			if(buffer == NULL)
+			{
+				len[0] = strlen(bingI->appId) + 1;
+			}
+			else if(len[0] >= (strlen(bingI->appId) + 1))
+			{
+				strcpy(buffer, bingI->appId);
+			}
+			else
+			{
+				buffer = NULL;
+			}
+
+			pthread_mutex_unlock(&bingI->mutex);
+		}
+		else
+		{
+			buffer = NULL;
+		}
+	}
+	else
+	{
+		buffer = NULL;
+	}
+
+	return buffer;
+}
+
+int set_app_ID(unsigned int bingID, const char* appId)
+{
+	bing* bingI;
+	int size;
+	int res = FALSE;
+	char* preApp;
+
+	if(appId != NULL && (size = strlen(appId) + 1) > 1)
+	{
+		bingI= retrieveBing(bingID);
+
+		if(bingI != NULL)
+		{
+			pthread_mutex_lock(&bingI->mutex);
+
+			preApp = bingI->appId;
+
+			bingI->appId = (char*)malloc(size);
 			if(bingI->appId != NULL)
 			{
 				bingI->appId = strcpy(bingI->appId, appId);
-			}
-		}
 
-		//TODO: Need to unlock
+				free(preApp);
+
+				res = TRUE;
+			}
+			else
+			{
+				bingI->appId = preApp;
+			}
+
+			pthread_mutex_unlock(&bingI->mutex);
+		}
 	}
+
+	return res;
 }

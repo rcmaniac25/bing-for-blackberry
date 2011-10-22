@@ -44,10 +44,6 @@ public abstract class BingResponse
 	
 	public synchronized String getQuery()
 	{
-		if(this.query == null)
-		{
-			return null;
-		}
 		//return new String(this.query); //Same reasons as Bing.getAppID()
 		return this.query;
 	}
@@ -59,10 +55,6 @@ public abstract class BingResponse
 	
 	public synchronized String getAlteredQuery()
 	{
-		if(this.alteredQuery == null)
-		{
-			return null;
-		}
 		//return new String(this.alteredQuery); //Same reasons as Bing.getAppID()
 		return this.alteredQuery;
 	}
@@ -74,10 +66,6 @@ public abstract class BingResponse
 	
 	public synchronized String getAlterationOverrideQuery()
 	{
-		if(this.alterationOverrideQuery == null)
-		{
-			return null;
-		}
 		//return new String(this.alterationOverrideQuery); //Same reasons as Bing.getAppID()
 		return this.alterationOverrideQuery;
 	}
@@ -93,7 +81,7 @@ public abstract class BingResponse
 	}
 	
 	/**
-	 * Add a single result to this reponse.
+	 * Add a single result to this response.
 	 * @param result The BingResult object to add.
 	 */
 	public void addResult(BingResult result)

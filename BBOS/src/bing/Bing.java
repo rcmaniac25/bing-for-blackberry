@@ -69,10 +69,6 @@ public class Bing
 	 */
 	public synchronized String getAppID()
 	{
-		if(this.appId == null)
-		{
-			return null;
-		}
 		//return new String(this.appId); //Don't use, it's not recommended, somewhat poor code, and since String is immutable it is pointless to copy the String if it can't be changed anyway.
 		return this.appId;
 	}
