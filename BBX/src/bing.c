@@ -4,7 +4,7 @@
  * This software is distributed under Microsoft Public License (MSPL)
  * see http://opensource.org/licenses/ms-pl.html
  *
- * @author Vincent Simonetti
+ * Author: Vincent Simonetti
  */
 
 #include "bing.h"
@@ -291,43 +291,26 @@ int get_error_return(unsigned int bingID)
 
 #endif
 
-const char* get_app_ID(unsigned int bingID, char* buffer, int* len)
+int get_app_ID(unsigned int bingID, char* buffer)
 {
-	bing* bingI;
-	if(len != NULL)
+	bing* bingI = retrieveBing(bingID);
+	int ret = -1;
+
+	if(bingI != NULL)
 	{
-		bingI= retrieveBing(bingID);
+		pthread_mutex_lock(&bingI->mutex);
 
-		if(bingI != NULL)
+		ret = strlen(bingI->appId) + 1;
+
+		if(buffer != NULL)
 		{
-			pthread_mutex_lock(&bingI->mutex);
-
-			if(buffer == NULL)
-			{
-				len[0] = strlen(bingI->appId) + 1;
-			}
-			else if(len[0] >= (strlen(bingI->appId) + 1))
-			{
-				strcpy(buffer, bingI->appId);
-			}
-			else
-			{
-				buffer = NULL;
-			}
-
-			pthread_mutex_unlock(&bingI->mutex);
+			strcpy(buffer, bingI->appId);
 		}
-		else
-		{
-			buffer = NULL;
-		}
-	}
-	else
-	{
-		buffer = NULL;
+
+		pthread_mutex_unlock(&bingI->mutex);
 	}
 
-	return buffer;
+	return ret;
 }
 
 int set_app_ID(unsigned int bingID, const char* appId)

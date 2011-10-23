@@ -12,7 +12,7 @@
 #define BING_H_
 
 #include <sys/cdefs.h>
-#include <process.h>
+#include <stdlib.h>
 
 __BEGIN_DECLS
 
@@ -89,7 +89,8 @@ void free_bing(unsigned int bing);
  * @param error A boolean integer indicating if error cases should be returned.
  * 	Zero is false, non-zero is true.
  *
- * @return Nothing is returned.
+ * @return A boolean integer indicating if the value was set or not. Zero is false,
+ * 	non-zero is true.
  */
 int set_error_return(unsigned int bing, int error);
 
@@ -117,17 +118,11 @@ int get_error_return(unsigned int bing);
  *
  * @param bing The unique Bing ID for each application ID.
  * @param buffer The buffer to copy the application ID to. If this is NULL, then
- * 	the application ID length (plus NULL char) is copied into the len parameter.
- * @param len The length of the allocated buffer. If this is NULL, no operation
- * 	will take place. If buffer is NULL, then this will be set to the application
- * 	ID length. If buffer is not null but len states that it is not big enough to
- * 	hold the application ID, then it the operation fails and NULL will be
- * 	returned by the function.
+ * 	the application ID length (plus NULL char) is returned.
  *
- * @return A copy of the buffer parameter. If the buffer is not NULL and an error
- * 	occurs, then this will be NULL.
+ * @return The length of the application ID, or -1 if an error occurred.
  */
-const char* get_app_ID(unsigned int bing, char* buffer, int* len);
+int get_app_ID(unsigned int bing, char* buffer);
 
 /**
  * @brief Set a Bing service's application ID.
@@ -235,7 +230,7 @@ const char* request_url(unsigned int bing, const char* query, bing_request_t req
  * Request functions
  */
 
-enum
+typedef enum
 {
 	BING_REQUEST_UNKNOWN,
 
@@ -257,7 +252,7 @@ enum
 	BING_REQUEST_TRANSLATION,
 	BING_REQUEST_VIDEO,
 	BING_REQUEST_WEB
-};
+} REQUEST_TYPE;
 
 //TODO
 
@@ -267,7 +262,7 @@ void free_request(bing_request_t request);
  * Response functions
  */
 
-enum
+typedef enum
 {
 	BING_RESPONSE_UNKNOWN,
 
@@ -289,7 +284,7 @@ enum
 	BING_RESPONSE_TRANSLATION,
 	BING_RESPONSE_VIDEO,
 	BING_RESPONSE_WEB
-};
+} RESPONSE_TYPE;
 
 //TODO
 
@@ -299,7 +294,7 @@ void free_response(bing_response_t response);
  * Result functions
  */
 
-enum
+typedef enum
 {
 	BING_RESULT_UNKNOWN,
 
@@ -321,10 +316,304 @@ enum
 	BING_RESULT_TRANSLATION,
 	BING_RESULT_VIDEO,
 	BING_RESULT_WEB
-};
+} RESULT_TYPE;
 
-//TODO
+typedef enum
+{
+	//All values are strings unless otherwise noted.
+
+	RESULT_FIELD_UNKNOWN,
+
+	//64bit integer
+	RESULT_FIELD_RANK,
+	RESULT_FIELD_POSITION,
+	RESULT_FIELD_TITLE,
+	RESULT_FIELD_DESCRIPTION,
+	RESULT_FIELD_DISPLAY_URL,
+	RESULT_FIELD_ADLINK_URL
+} RESULT_FIELD;
+
+//Standard operations
+
+/**
+ * @brief Get the Bing result type.
+ *
+ * The @c result_get_type() functions allows developers to retrieve the
+ * type of Bing result that is passed in.
+ *
+ * @param result The Bing result to get the type of.
+ *
+ * @return The Bing result type, or BING_RESULT_UNKNOWN if NULL is passed in.
+ */
+RESULT_TYPE result_get_type(bing_result_t result);
+
+/**
+ * @brief Get a value from a Bing result.
+ *
+ * The @c result_get_*() functions allows developers to retrieve values from
+ * a Bing result. All values are self contained and will be copied to
+ * the value parameter.
+ *
+ * In the case of string and array, the return type is the amount of data,
+ * in bytes. If value is NULL then nothing is copied.
+ *
+ * For array types, the actual data is copied, not pointers to the data.
+ *
+ * @param result The Bing result to retrieve data from.
+ * @param field The field to get the data of. If the field doesn't support
+ * 	the data type that the function specifies or the field isn't
+ * 	supported, then the function fails.
+ * @param value The value to copy data into. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing result.
+ *
+ * @return A boolean value which is non-zero for a successful data retrieval,
+ * 	otherwise zero on error or invalid field. Note that for array and string
+ * 	types, the length of the data in bytes is returned.
+ */
+
+int result_get_64bit_int(bing_result_t result, RESULT_FIELD field, long long* value);
+int result_get_string(bing_result_t result, RESULT_FIELD field, char* value);
+int result_get_double(bing_result_t result, RESULT_FIELD field, double* value);
+int result_get_boolean(bing_result_t result, RESULT_FIELD field, int* value);
+int result_get_array(bing_result_t result, RESULT_FIELD field, void** value);
+
+//Custom operations
+
+/**
+ * @brief Get a custom value from a Bing result.
+ *
+ * The @c result_custom_get_*() functions allows developers to retrieve
+ * values from a Bing result. All values are self contained and will be
+ * copied to the value parameter. These are the same functions as
+ * result_get_* but with the actual field name passed. These functions
+ * work on all result types but allow for retrieval of custom result
+ * values.
+ *
+ * In the case of string and array, the return type is the amount of data,
+ * in bytes. If value is NULL then nothing is copied.
+ *
+ * For array types, the actual data is copied, not pointers to the data.
+ *
+ * @param result The Bing result to retrieve data from.
+ * @param field The field name to get the data of. If the field doesn't
+ * 	support the data type that the function specifies or the field isn't
+ * 	supported, then the function fails.
+ * @param value The value to copy data into. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing result.
+ *
+ * @return A boolean value which is non-zero for a successful data retrieval,
+ * 	otherwise zero on error or invalid field. Note that for array and string
+ * 	types, the length of the data in bytes is returned.
+ */
+
+int result_custom_get_64bit_int(bing_result_t result, const char* field, long long* value);
+int result_custom_get_string(bing_result_t result, const char* field, char* value);
+int result_custom_get_double(bing_result_t result, const char* field, double* value);
+int result_custom_get_boolean(bing_result_t result, const char* field, int* value);
+int result_custom_get_array(bing_result_t result, const char* field, void** value);
+
+/**
+ * @brief Set a custom value for a Bing result.
+ *
+ * The @c result_custom_set_*() functions allows developers to set
+ * values to a custom Bing result. If the result is not the custom type
+ * then the function will fail. All values are self contained and will be
+ * copied from the value parameter.
+ *
+ * In the case of string and array, the entire data amount is copied
+ * using strlen for string or the size parameter for array.
+ *
+ * For array types, the actual data is copied, not pointers to the data.
+ *
+ * If the field does not exist then it will be created, if and only if
+ * value is not NULL. If the value is NULL and the field exists, it will
+ * be removed.
+ *
+ * If the result has been made immutable, then this function will fail.
+ *
+ * @param result The Bing result to set data to.
+ * @param field The field name to get the data of. If the field already
+ * 	exists, the data will be replaced. If the field doesn't exist and
+ * 	the value is not NULL, then the field will be created. If the field
+ * 	exists and the value is NULL, the field is removed.
+ * @param value The value to copy data from. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing result.
+ * 	If this is NULL then no effect occurs unless the field exists, in which
+ * 	case the field is removed.
+ * @param size The size of the array data in bytes, so if an array of 3 int
+ * 	are passed in, size would be (sizeof(int) * 3).
+ *
+ * @return A boolean value which is non-zero for a successful data set,
+ * 	otherwise zero on error.
+ */
+
+int result_custom_set_64bit_int(bing_result_t result, const char* field, long long* value);
+int result_custom_set_string(bing_result_t result, const char* field, const char* value);
+int result_custom_set_double(bing_result_t result, const char* field, double* value);
+int result_custom_set_boolean(bing_result_t result, const char* field, int* value);
+int result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
+
+/**
+ * @brief Create a custom Bing result.
+ *
+ * The @c result_custom_create() functions allows developers to create
+ * custom Bing results. These results will remain with the Bing response
+ * until the Bing response if freed.
+ *
+ * Results are mutable by default so result_custom_set_* functions can be used
+ * to modify them.
+ *
+ * The result is automatically added to the Bing response which will manage it's
+ * memory.
+ *
+ * @param resultResponse The Bing response to have a Bing result added to.
+ * 	If this is NULL or the response is of any type other then BING_RESPONSE_CUSTOM
+ * 	then the function will fail.
+ * @param result A pointer to where the returned result. Though it is not
+ * 	necessary for this to be set (it can be NULL), the developer must go through
+ * 	all response results to find the mutable one which was created.
+ *
+ * @return A boolean value which is non-zero for a successful operation,
+ * 	otherwise zero on error.
+ */
+int result_custom_create(bing_response_t resultResponse, bing_result_t* result);
+
+/**
+ * @brief Get if the Bign result is mutable or not.
+ *
+ * The @c result_is_mutable() functions allows developers to determine
+ * if a result is mutable or not.
+ *
+ * @param result The custom Bing result to determine if it is
+ * 	mutable or not.
+ *
+ * @return A boolean value which is non-zero for a successful operation,
+ * 	otherwise zero on error, NULL result, or a standard Bing result type
+ * 	(not BING_RESPONSE_CUSTOM).
+ */
+int result_is_mutable(bing_result_t result);
+
+/**
+ * @brief Finish creating a custom Bing result.
+ *
+ * The @c result_custom_creation_done() functions allows developers to
+ * set the custom Bing result as done in creation and makes the result
+ * immutable so result_custom_set_* functions will fail.
+ *
+ * @param result The custom Bing result to make immutable.
+ *
+ * @return A boolean value which is non-zero for a successful operation,
+ * 	otherwise zero on error.
+ */
+int result_custom_creation_done(bing_result_t result);
 
 __END_DECLS
+
+#if defined (__cplusplus) || defined(__CPLUSPLUS__)
+
+#if !defined(_CPP_LIB_DECL)
+#define _CPP_LIB_DECL extern "C++" {
+#endif
+
+_CPP_LIB_DECL
+
+namespace bing_cpp //Not really the greatest name, but getting errors compiling otherwise.
+{
+	/**
+	 * A Bing service object that can be used to search using Microsoft's Bing services.
+	 */
+	class bing_service
+	{
+		unsigned int ID;
+
+	public:
+		/**
+		 * @brief Create a new Bing service.
+		 *
+		 * The @cpp bing_service() constructor allows developers to allocate a Bing service object to
+		 * perform search operations using Microsoft's Bing services.
+		 *
+		 * @param application_ID The application ID which allows a developer to access
+		 * 	Microsoft Bing services. If this string is not NULL, it is copied for use by
+		 * 	the service. So the developer can free the memory when he is done.
+		 */
+		bing_service(const char* application_ID);
+
+		/**
+		 * @brief Destroy and free a Bing service.
+		 *
+		 * The @cpp ~bing_service() destructor allows developers to free a Bing service object.
+		 */
+		~bing_service();
+
+#if defined(BING_DEBUG)
+
+		/**
+		 * @brief Set if the internal parser should return on search errors.
+		 *
+		 * The @cpp set_error_return() function allows a developer to explicitly handle errors
+		 * that might show up from the service. Examples of such are bad Application IDs,
+		 * unsupported search requests, etc.
+		 *
+		 * If this is set to a non-zero value (true), then it will return a special response
+		 * that specifies error information. If it is a zero value (false) and an error
+		 * occurs, it will simply stop execution and clean up the IO connections.
+		 *
+		 * @param error A boolean indicating if error cases should be returned.
+		 *
+		 * @return A boolean indicating if the value was set or not.
+		 */
+		bool error_return(bool error);
+
+		/**
+		 * @brief Get if the internal parser should return on search errors.
+		 *
+		 * If this is set to a non-zero value (true), then it will return a special response
+		 * that specifies error information. If it is a zero value (false) and an error
+		 * occurs, it will simply stop execution and clean up the IO connections.
+		 *
+		 * @return A boolean indicating if error cases should be returned.
+		 */
+		bool error_return();
+
+#endif
+
+		/**
+		 * @brief Get a Bing service's application ID.
+		 *
+		 * The @cpp app_ID() function allows developers to get the service's current
+		 * application ID.
+		 *
+		 * @param buffer The buffer to copy the application ID to. If this is NULL, then
+		 * 	the application ID length (plus NULL char) is returned.
+		 *
+		 * @return The length of the application ID, or -1 if an error occurred.
+		 */
+		int app_ID(char* buffer);
+
+		/**
+		 * @brief Set a Bing service's application ID.
+		 *
+		 * The @cpp app_ID() function allows developers to set the service's
+		 * application ID. Allowing for different IDs to be used for different
+		 * searches.
+		 *
+		 * @param appId The application ID to set. Only if this is not NULL and
+		 * 	has a non-zero length (not including NULL char) will the app ID be
+		 * 	copied to the Bing service. If an error occurs with copying then the
+		 * 	original app ID remains unchanged. The ID is copied so the developer
+		 * 	can free the data when the function returns.
+		 *
+		 * @return A boolean value specifying if the function completed successfully.
+		 */
+		bool app_ID(const char* appId);
+
+		//TODO
+	};
+};
+
+__END_DECLS
+
+#endif
 
 #endif /* BING_H_ */
