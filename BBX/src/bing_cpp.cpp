@@ -1,5 +1,5 @@
 /*
- * bing.cpp
+ * bing_cpp.cpp
  *
  * This software is distributed under Microsoft Public License (MSPL)
  * see http://opensource.org/licenses/ms-pl.html
@@ -7,7 +7,7 @@
  * Author: Vincent Simonetti
  */
 
-#include "bing.h";
+#include "bing_internal.h"
 
 #if defined (__cplusplus) || defined(__CPLUSPLUS__)
 

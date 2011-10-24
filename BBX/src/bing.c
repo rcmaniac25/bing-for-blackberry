@@ -7,11 +7,7 @@
  * Author: Vincent Simonetti
  */
 
-#include "bing.h"
-#include <string.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <bps/bps.h>
+#include "bing_internal.h"
 
 #if !defined(BOOL)
 #define BOOL int
