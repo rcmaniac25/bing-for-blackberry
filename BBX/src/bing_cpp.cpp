@@ -13,21 +13,6 @@
 
 using namespace bing_cpp;
 
-#if !defined(BOOL)
-#define BOOL int
-
-#if !defined(TRUE)
-#define TRUE 1
-#endif
-
-#if !defined(FALSE)
-#define FALSE 0
-#endif
-#endif
-
-#define BOOL_TO_CPP_BOOL(x) (x) != FALSE
-#define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
-
 //bing_service
 
 bing_service::bing_service(const char* application_ID)

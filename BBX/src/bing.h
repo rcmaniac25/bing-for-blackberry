@@ -16,6 +16,8 @@
 
 __BEGIN_DECLS
 
+#define BING_VERSION 2.2
+
 /*
  * Structures
  */
@@ -54,7 +56,15 @@ typedef struct _bing_search_tag
 	const char* value;
 } bing_search_tag_s, *bing_search_tag_t;
 
+/*
+ * Function delegates
+ */
+
 typedef void (*receive_bing_response_func) (bing_response_t response);
+typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
+typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary);
+typedef int (*result_creation_func)(const char* name, bing_result_t result, data_dictionary_t dictionary);
+typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result);
 
 /*
  * Dictionary functions
@@ -616,54 +626,125 @@ int response_get_news_related_searches(bing_response_t response, bing_related_se
 //Custom functions
 
 /**
- * @brief Get data from a custom Bing response.
+ * @brief Get a custom value from a Bing response.
  *
- * The @c response_custom_get_data() function allows developers to get custom
- * data from a custom Bing response.
+ * The @c response_custom_get_*() functions allows developers to retrieve
+ * values from a Bing response. All values are self contained and will be
+ * copied to the value parameter. These functions work on all response
+ * types but allow for retrieval of custom result values.
  *
- * @param response The Bing response to get the data from.
- * @param name The name associated with the data.
- * @param size The size of the data.
- * @param data The data that should be copied to.
+ * In the case of string and array, the return type is the amount of data,
+ * in bytes. If value is NULL then nothing is copied.
+ *
+ * For array types, the actual data is copied, not pointers to the data.
+ * Also note that if array elements contain arrays, buffers, or strings
+ * themselves that these will be allocated internally and will be freed
+ * when the result is freed (which happens when the response is freed).
+ *
+ * @param response The Bing response to retrieve data from.
+ * @param field The field name to get the data of. If the field doesn't
+ * 	support the data type that the function specifies or the field isn't
+ * 	supported, then the function fails.
+ * @param value The value to copy data into. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing result.
  *
  * @return A boolean value which is non-zero for a successful data retrieval,
- * 	otherwise zero on error, missing field, zero size, or null data pointer.
+ * 	otherwise zero on error or invalid field. Note that for array and string
+ * 	types, the length of the data in bytes is returned.
  */
-int response_custom_get_data(bing_response_t response, const char* name, size_t size, void* data);
+
+int response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value);
+int response_custom_get_string(bing_response_t response, const char* field, char* value);
+int response_custom_get_double(bing_response_t response, const char* field, double* value);
+int response_custom_get_boolean(bing_response_t response, const char* field, int* value);
+int response_custom_get_array(bing_response_t response, const char* field, void* value);
 
 /**
- * @brief Set data from a custom Bing response.
+ * @brief Set a custom value for a Bing response.
  *
- * The @c response_custom_set_data() function allows developers to set custom
- * data to a custom Bing response.
+ * The @c response_custom_set_*() functions allows developers to set
+ * values to a custom Bing response. If the result is not the custom type
+ * then the function will fail. All values are self contained and will be
+ * copied from the value parameter.
  *
- * If the field already exists, it is replaced.
+ * In the case of string and array, the entire data amount is copied
+ * using strlen for string or the size parameter for array.
  *
- * @param response The Bing response to set the data to.
- * @param name The name that should be associated with the data.
- * @param size The size of the data.
- * @param data The data that should be copied from.
+ * For array types, the actual data is copied, not pointers to the data.
+ * Also note that if array elements contain arrays, buffers, or strings
+ * themselves that these will be copied as well and the copies will be
+ * freed when the response is freed.
  *
- * @return A boolean value which is non-zero for a successful data setting,
- * 	otherwise zero on error, zero size, or null data pointer.
+ * If the field does not exist then it will be created, if and only if
+ * value is not NULL. If the value is NULL and the field exists, it will
+ * be removed.
+ *
+ * @param response The Bing response to set data to.
+ * @param field The field name to get the data of. If the field already
+ * 	exists, the data will be replaced. If the field doesn't exist and
+ * 	the value is not NULL, then the field will be created. If the field
+ * 	exists and the value is NULL, the field is removed.
+ * @param value The value to copy data from. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing response.
+ * 	If this is NULL then no effect occurs unless the field exists, in which
+ * 	case the field is removed.
+ * @param size The size of the array data in bytes, so if an array of 3 int
+ * 	are passed in, size would be (sizeof(int) * 3).
+ *
+ * @return A boolean value which is non-zero for a successful data set,
+ * 	otherwise zero on error.
  */
-int response_custom_set_data(bing_response_t response, const char* name, size_t size, const void* data);
 
-//TODO: Function to get custom data fields available
+int response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value);
+int response_custom_set_string(bing_response_t response, const char* field, const char* value);
+int response_custom_set_double(bing_response_t response, const char* field, double* value);
+int response_custom_set_boolean(bing_response_t response, const char* field, int* value);
+int response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size);
 
-/* TODO
-register a response creator
--name (only non-standard)
--creation callback
---name
---*response
---*dictionary of data
--additional data
---*response
---*dictionary of data
-free a response creator
--name (only custom)
+/**
+ * @brief Register a new response creator.
+ *
+ * The @c result_register_result_creator() function allows developers to
+ * register a set of callbacks and a name for a, as of now, unsupported
+ * Bing response.
+ *
+ * The creation function is provided the internally allocated response,
+ * the name the response is associated with, and a dictionary with all
+ * the attributes that were passed with result.
+ *
+ * Some responses can actually contain additional data. That's where
+ * the additional data function comes in. When additional data
+ * is loaded, this function gets called so the data can be handled in
+ * whatever manner is deemed appropriate.
+ *
+ * @param name The name associated with the response. Only unsupported
+ * 	names can be registered. For example, the name "web:Web"
+ * 	is for a web response type. If this was passed in, it would fail.
+ * 	Names are the XML names that returned by the Bing service.
+ * @param creation_func The function that handles any data passed in to
+ * 	a response. This function is required.
+ * @param additional_func The function that handles any additional
+ * 	data that are passed in to another response. This is optional.
+ * 	If this is NULL and additional data is found, it is ignored.
+ *
+ * @return A boolean value which is non-zero for a successful registration,
+ * 	otherwise zero on error.
  */
+int response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func);
+
+/**
+ * @brief Unregister a response creator.
+ *
+ * The @c response_unregister_response_creator() function allows developers to
+ * unregister a set of response creator callbacks.
+ *
+ * @param name The name associated with the response. This is the same
+ * 	as the name passed into response_register_response_creator.
+ *
+ * @return A boolean value which is non-zero for a successful registration,
+ * 	otherwise zero on error.
+ */
+int response_unregister_response_creator(const char* name);
 
 /*
  * Result functions
@@ -872,8 +953,6 @@ int result_custom_get_array(bing_result_t result, const char* field, void* value
  * value is not NULL. If the value is NULL and the field exists, it will
  * be removed.
  *
- * If the result has been made immutable, then this function will fail.
- *
  * @param result The Bing result to set data to.
  * @param field The field name to get the data of. If the field already
  * 	exists, the data will be replaced. If the field doesn't exist and
@@ -896,20 +975,52 @@ int result_custom_set_double(bing_result_t result, const char* field, double* va
 int result_custom_set_boolean(bing_result_t result, const char* field, int* value);
 int result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
 
-/* TODO
-register a result creator
--name (only non-standard)
--creation callback
---name
---*result
---*dictionary of data
--additional results callback
---name
---*result
---*new result
-free a result creator
--name (only custom)
+/**
+ * @brief Register a new result creator.
+ *
+ * The @c result_register_result_creator() function allows developers to
+ * register a set of callbacks and a name for a, as of now, unsupported
+ * Bing result.
+ *
+ * The creation function is provided the internally allocated result,
+ * the name the result is associated with, and a dictionary with all
+ * the attributes that were passed with result.
+ *
+ * Some results can actually contain additional results. That's where
+ * the additional result function comes in. When an additional result
+ * is loaded, this function gets called so the result can be handled in
+ * whatever manner is deemed appropriate. The name passed in is the
+ * name of the additional result. Results registered with this function
+ * can be additional results.
+ *
+ * @param name The name associated with the result. Only unsupported
+ * 	names can be registered. For example, the name "web:WebResult"
+ * 	is for a web result type. If this was passed in, it would fail.
+ * 	Names are the XML names that returned by the Bing service.
+ * @param creation_func The function that handles any data passed in to
+ * 	a result. This function is required.
+ * @param additional_func The function that handles any additional
+ * 	results that are passed in to another result. This is optional.
+ * 	If this is NULL and an additional result is found, it is ignored.
+ *
+ * @return A boolean value which is non-zero for a successful registration,
+ * 	otherwise zero on error.
  */
+int result_register_result_creator(const char* name, result_creation_func creation_func, result_additional_result_func additional_func);
+
+/**
+ * @brief Unregister a result creator.
+ *
+ * The @c result_unregister_result_creator() function allows developers to
+ * unregister a set of result creator callbacks.
+ *
+ * @param name The name associated with the result. This is the same
+ * 	as the name passed into result_register_result_creator.
+ *
+ * @return A boolean value which is non-zero for a successful registration,
+ * 	otherwise zero on error.S
+ */
+int result_unregister_result_creator(const char* name);
 
 __END_DECLS
 

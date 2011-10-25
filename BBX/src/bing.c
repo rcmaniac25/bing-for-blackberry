@@ -9,54 +9,20 @@
 
 #include "bing_internal.h"
 
-#if !defined(BOOL)
-#define BOOL int
-
-#if !defined(TRUE)
-#define TRUE 1
-#endif
-
-#if !defined(FALSE)
-#define FALSE 0
-#endif
-#endif
-
-#define DEFAULT_ERROR_RET TRUE
-
-typedef struct BING_S
-{
-	pthread_mutex_t mutex;
-
-	char* appId;
-#if defined(BING_DEBUG)
-	BOOL errorRet;
-#endif
-} bing;
-
-typedef struct BING_SYSTEM_S
-{
-	int domainID;
-	pthread_mutex_t mutex;
-
-	int bingInstancesCount;
-	bing** bingInstances;
-} bing_system;
-
-static bing_system bingSystem;
-static BOOL initialized = FALSE;
+static volatile BOOL initialized = FALSE;
 
 void initialize()
 {
 	if(!initialized)
 	{
+		initialized = TRUE; //Set this first so if another thread tries to initialize it, it doesn't work
+
 		memset(&bingSystem, 0, sizeof(bing_system));
 
 		bingSystem.domainID = bps_register_domain();
 		bingSystem.bingInstancesCount = 0;
 		bingSystem.bingInstances = NULL;
 		pthread_mutex_init(&bingSystem.mutex, NULL);
-
-		initialized = TRUE;
 	}
 }
 
@@ -75,7 +41,7 @@ void shutdown()
 
 		pthread_mutex_destroy(&bingSystem.mutex);
 
-		initialized = FALSE;
+		initialized = FALSE; //Set this last so that it only know's it's uninitialized after everything has been freed
 	}
 }
 
@@ -225,6 +191,7 @@ void free_bing(unsigned int bingID)
 
 			pthread_mutex_lock(&bingI->mutex);
 
+			//TODO: Free all responses created for this that have not been freed already
 			free(bingI->appId);
 
 			pthread_mutex_destroy(&bingI->mutex);
