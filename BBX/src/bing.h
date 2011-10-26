@@ -12,6 +12,8 @@
 #define BING_H_
 
 #include <sys/cdefs.h>
+#include <bps/bps.h>
+
 #include <stdlib.h>
 
 __BEGIN_DECLS
@@ -56,11 +58,40 @@ typedef struct _bing_search_tag
 	const char* value;
 } bing_search_tag_s, *bing_search_tag_t;
 
+typedef enum
+{
+	BING_SOURCETYPE_UNKNOWN,
+
+	//A custom source type
+	BING_SOURCETYPE_CUSTOM,
+
+	//A bundled source type (not used for result)
+	BING_SOURCETYPE_BUNDLE,
+
+	//A error result (only used for result)
+	BING_RESULT_ERROR,
+
+	//Standard source types
+	BING_SOURCETYPE_AD,
+	BING_SOURCETYPE_IMAGE,
+	BING_SOURCETYPE_INSTANT_ANWSER,
+	BING_SOURCETYPE_MOBILE_WEB,
+	BING_SOURCETYPE_NEWS,
+	BING_SOURCETYPE_PHONEBOOK,
+	BING_SOURCETYPE_RELATED_SEARCH,
+	BING_SOURCETYPE_SPELL,
+	BING_SOURCETYPE_TRANSLATION,
+	BING_SOURCETYPE_VIDEO,
+	BING_SOURCETYPE_WEB
+} SOURCE_TYPE;
+
 /*
  * Function delegates
  */
 
 typedef void (*receive_bing_response_func) (bing_response_t response);
+typedef const char* (*request_get_options_func)(bing_request_t request);
+typedef void (*request_finish_get_options_func)(bing_request_t request, const char* options);
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
 typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary);
 typedef int (*result_creation_func)(const char* name, bing_result_t result, data_dictionary_t dictionary);
@@ -112,7 +143,22 @@ int dictionary_get_element_names(data_dictionary_t dict, char** names);
  */
 int bing_get_domain();
 
-//TODO: So an event shows up with the same domain... How does one get the response from it?
+/**
+ * @brief Get the Bing response located within an Event.
+ *
+ * The @c bing_event_get_response() function allows developers to retrieve
+ * the Bing response from an event.
+ *
+ * The event does not free the Bing response unless it is never retrieved.
+ * If it was retrieved, then it is up to the developer to free it.
+ *
+ * @param event The event to retrieve the response from.
+ * @param response A pointer to a Bing response which will store the
+ * 	actual response that can be used.
+ *
+ * @return Nothing is returned.
+ */
+void bing_event_get_response(bps_event_t* event, bing_response_t* response);
 
 /*
  * Bing search system
@@ -305,43 +351,171 @@ const char* request_url(unsigned int bing, const char* query, const bing_request
 
 typedef enum
 {
-	BING_REQUEST_UNKNOWN,
+	//All values are strings unless otherwise noted.
 
-	//A custom request
-	BING_REQUEST_CUSTOM,
+	REQUEST_FIELD_UNKNOWN,
 
-	//A bundled request
-	BING_REQUEST_BUNDLE,
+	REQUEST_FIELD_VERSION,
+	REQUEST_FIELD_MARKET,
+	REQUEST_FIELD_ADULT,
+	REQUEST_FIELD_OPTIONS,
+	//double
+	REQUEST_FIELD_LATITUDE,
+	//double
+	REQUEST_FIELD_LONGITUDE,
+	REQUEST_FIELD_LANGUAGE,
+	//double
+	REQUEST_FIELD_RADIUS,
+	//64bit integer
+	REQUEST_FIELD_PAGE_NUMBER,
+	//64bit integer
+	REQUEST_FIELD_AD_UNIT_ID,
+	//64bit integer
+	REQUEST_FIELD_PROPERTY_ID,
+	//64bit integer
+	REQUEST_FIELD_CHANNEL_ID,
+	//64bit integer
+	REQUEST_FIELD_MAINLINE_AD_COUNT,
+	//64bit integer
+	REQUEST_FIELD_SIDEBAR_AD_COUNT,
+	//64bit integer
+	REQUEST_FIELD_COUNT,
+	//64bit integer
+	REQUEST_FIELD_OFFSET,
+	REQUEST_FIELD_FILTERS,
+	REQUEST_FIELD_MOBILE_WEB_OPTIONS,
+	REQUEST_FIELD_CATEGORY,
+	REQUEST_FIELD_LOCATION_OVERRIDE,
+	REQUEST_FIELD_SORT_BY,
+	REQUEST_FIELD_FILE_TYPE,
+	REQUEST_FIELD_LOC_ID,
+	REQUEST_FIELD_SOURCE_LANGUAGE,
+	REQUEST_FIELD_TARGET_LANGUAGE,
+	REQUEST_FIELD_WEB_OPTIONS
+} REQUEST_FIELD;
 
-	//Standard requests
-	BING_REQUEST_AD,
-	BING_REQUEST_IMAGE,
-	BING_REQUEST_INSTANT_ANWSER,
-	BING_REQUEST_MOBILE_WEB,
-	BING_REQUEST_NEWS,
-	BING_REQUEST_PHONEBOOK,
-	BING_REQUEST_RELATED_SEARCH,
-	BING_REQUEST_SPELL,
-	BING_REQUEST_TRANSLATION,
-	BING_REQUEST_VIDEO,
-	BING_REQUEST_WEB
-} REQUEST_TYPE;
+//Helper functions to make the end result better, from http://stackoverflow.com/questions/195975/how-to-make-a-char-string-from-a-c-macros-value
+#define STR_VALUE(arg) #arg
+#define VALUE_NAME(name) STR_VALUE(name)
+
+#define DEFAULT_SEARCH_MARKET "en-US"
+#define DEFAULT_API_VERSION VALUE_NAME(BING_VERSION)
+
+#define OPTION_SEPERATOR "+"
+
+//Used for the REQUEST_FIELD_ADULT field
+#define ADULT_OPTIONS_OFF "Off"
+#define ADULT_OPTIONS_MODERATE "Moderate"
+#define ADULT_OPTIONS_STRICT "Strict"
+
+//Used for the REQUEST_FIELD_OPTIONS field (separated with SEARCH_OPTIONS_SEPERATOR)
+#define SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION "DisableLocationDetection"
+#define SEARCH_OPTIONS_ENABLE_HIGHLIGHTING "EnableHighlighting"
+
+//Used for the REQUEST_FIELD_MOBILE_WEB_OPTIONS field (separated with MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
+#define MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define MOBILE_WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
+#define MOBILE_WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
+
+//Used for the REQUEST_FIELD_SORT_BY field when used on a news source type
+#define NEWS_SORT_OPTIONS_DATE "Date"
+#define NEWS_SORT_OPTIONS_RELEVANCE "Relevance"
+
+//Used for the REQUEST_FIELD_SORT_BY field when used on a phonebook source type
+#define PHONEBOOK_SORT_OPTION_DEFAULT "Default"
+#define PHONEBOOK_SORT_OPTION_DISTANCE "Distance"
+#define PHONEBOOK_SORT_OPTION_RELEVANCE "Relevance"
+
+//Used for the REQUEST_FIELD_SORT_BY field when used on a video source type
+#define VIDEO_SORT_OPTION_DATE "Date"
+#define VIDEO_SORT_OPTION_RELEVANCE "Relevance"
+
+//Used for the REQUEST_FIELD_FILTERS field (separated with VIDEO_FILTERS_SEPERATOR). You cannot include more than one value for duration in the same request.
+#define VIDEO_FILTERS_SEPERATOR OPTION_SEPERATOR
+#define VIDEO_FILTERS_DURATION_SHORT "Duration:Short"
+#define VIDEO_FILTERS_DURATION_MEDIUM "Duration:Medium"
+#define VIDEO_FILTERS_DURATION_LONG "Duration:Long"
+#define VIDEO_FILTERS_ASPECT_STANDARD "Aspect:Standard"
+#define VIDEO_FILTERS_ASPECT_WIDESCREEN "Aspect:Widescreen"
+#define VIDEO_FILTERS_RESOLUTION_LOW "Resolution:Low"
+#define VIDEO_FILTERS_RESOLUTION_MEDIUM "Resolution:Medium"
+#define VIDEO_FILTERS_RESOLUTION_HIGH "Resolution:High"
+
+//Used for the REQUEST_FIELD_WEB_OPTIONS field (separated with MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
+#define WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
+#define WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
 
 //Standard functions
 
 /**
- * @brief Get the Bing request type.
+ * @brief Get the Bing request source type.
  *
- * The @c request_get_type() functions allows developers to retrieve the
- * type of Bing request that is passed in.
+ * The @c request_get_source_type() functions allows developers to retrieve the
+ * source type of Bing request that is passed in.
  *
- * @param request The Bing request to get the type of.
+ * @param request The Bing request to get the source type of.
  *
- * @return The Bing request type, or BING_REQUEST_UNKNOWN if NULL is passed in.
+ * @return The Bing request source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-REQUEST_TYPE request_get_type(bing_request_t request);
+SOURCE_TYPE request_get_source_type(bing_request_t request);
 
-//TODO: Figure out data functions necessary
+/**
+ * @brief Create a standard Bing request.
+ *
+ * The @c request_create_request() functions allows developers to create a new
+ * Bing request that can be used to search.
+ *
+ * @param source_type The sourcetype that the new Bing request should be. The
+ * 	BING_RESULT_ERROR type and BING_SOURCETYPE_UNKNOWN type are not valid and
+ * 	will cause the function to fail.
+ * @param request A pointer to the newly created Bing request.
+ *
+ * @return A boolean value which is non-zero for a successful creation,
+ * 	otherwise zero on error, invalid source types, or NULL request pointer.
+ */
+int request_create_request(SOURCE_TYPE source_type, bing_request_t* request);
+
+/**
+ * @brief Check if the Bing request type is supported.
+ *
+ * The @c request_is_field_supported() functions allows developers to determine
+ * if a field is supported.
+ *
+ * @param request The Bing request to check for a field.
+ * @param field The field to check for.
+ *
+ * @return A boolean value which is non-zero if the field is supported
+ * 	within the specified Bing request, otherwise zero on error or NULL request.
+ */
+int request_is_field_supported(bing_request_t request, REQUEST_FIELD field);
+
+/**
+ * @brief Get a value from a Bing request.
+ *
+ * The @c request_get_*() functions allows developers to retrieve values from
+ * a Bing request. All values are self contained and will be copied to
+ * the value parameter.
+ *
+ * In the case of string, the return type is the amount of data, in bytes. If
+ * value is NULL then nothing is copied.
+ *
+ * @param request The Bing request to retrieve data from.
+ * @param field The field to get the data of. If the field doesn't support
+ * 	the data type that the function specifies or the field isn't
+ * 	supported, then the function fails.
+ * @param value The value to copy data into. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing request.
+ *
+ * @return A boolean value which is non-zero for a successful data retrieval,
+ * 	otherwise zero on error or invalid field. Note that for string types, the
+ * 	length of the data in bytes is returned.
+ */
+
+int request_get_64bit_int(bing_request_t request, REQUEST_FIELD field, long long* value);
+int request_get_string(bing_request_t request, REQUEST_FIELD field, char* value);
+int request_get_double(bing_request_t request, REQUEST_FIELD field, double* value);
 
 /**
  * @brief Free a Bing request from memory.
@@ -357,58 +531,131 @@ void free_request(bing_request_t request);
 
 //Custom functions
 
-//TODO: Figure out data functions necessary
-
-/* TODO
-register a request creator
--source type (only non-standard)
--options callback
---*request
-free a request creator
--source type (only custom)
+/**
+ * @brief Check if the Bing request type is supported.
+ *
+ * The @c request_is_field_supported() functions allows developers to determine
+ * if a field is supported.
+ *
+ * @param request The Bing request to check for a field.
+ * @param field The field string to check for.
+ *
+ * @return A boolean value which is non-zero if the field is supported
+ * 	within the specified Bing request, otherwise zero on error, NULL request,
+ * 	or NULL field string.
  */
+int request_custom_is_field_supported(bing_request_t request, const char* field);
+
+/**
+ * @brief Get a custom value from a Bing request.
+ *
+ * The @c request_custom_get_*() functions allows developers to retrieve
+ * values from a Bing request. All values are self contained and will be
+ * copied to the value parameter. These are the same functions as
+ * request_get_* but with the actual field name passed. These functions
+ * work on all result types but allow for retrieval of custom result
+ * values.
+ *
+ * In the case of string, the return type is the amount of data, in bytes.
+ * If value is NULL then nothing is copied.
+ *
+ * @param request The Bing request to retrieve data from.
+ * @param field The field name to get the data of. If the field doesn't
+ * 	support the data type that the function specifies or the field isn't
+ * 	supported, then the function fails.
+ * @param value The value to copy data into. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing request.
+ *
+ * @return A boolean value which is non-zero for a successful data retrieval,
+ * 	otherwise zero on error or invalid field. Note that for string types, the
+ * 	length of the data in bytes is returned.
+ */
+
+int request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value);
+int request_custom_get_string(bing_request_t request, const char* field, char* value);
+int request_custom_get_double(bing_request_t request, const char* field, double* value);
+
+/**
+ * @brief Set a custom value for a Bing request.
+ *
+ * The @c request_custom_set_*() functions allows developers to set
+ * values to a custom Bing request. If the result is not the custom type
+ * then the function will fail. All values are self contained and will be
+ * copied from the value parameter.
+ *
+ * In the case of string, the entire data amount is copied using strlen for
+ * string or the size parameter for array.
+ *
+ * If the field does not exist then it will be created, if and only if
+ * value is not NULL. If the value is NULL and the field exists, it will
+ * be removed.
+ *
+ * @param request The Bing request to set data to.
+ * @param field The field name to get the data of. If the field already
+ * 	exists, the data will be replaced. If the field doesn't exist and
+ * 	the value is not NULL, then the field will be created. If the field
+ * 	exists and the value is NULL, the field is removed.
+ * @param value The value to copy data from. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing request.
+ * 	If this is NULL then no effect occurs unless the field exists, in which
+ * 	case the field is removed.
+ *
+ * @return A boolean value which is non-zero for a successful data set,
+ * 	otherwise zero on error.
+ */
+
+int request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value);
+int request_custom_set_string(bing_request_t request, const char* field, const char* value);
+int request_custom_set_double(bing_request_t request, const char* field, double* value);
+
+/**
+ * @brief Create a custom request.
+ *
+ * The @c request_create_custom_request() function allows developers to
+ * create a custom Bing request.
+ *
+ * Requests contain a callback function to get the options to be written
+ * to the Bing service, and a callback function to free the options string.
+ *
+ * @param source_type The source type of the custom request. Only
+ * 	non-standard request source types can be created. For example the
+ * 	source type "web" would cause the function to fail as it is the
+ * 	source type for web requests.
+ * @param request A pointer to a location where the source request will
+ * 	be created.
+ * @param get_options_func An optional function pointer that will get
+ * 	any options that could be desired to be sent along with the general
+ * 	search query. Default options are always passed out so if this is
+ * 	NULL then only the default options are passed to the Bing service,
+ * 	otherwise the returned option string will be appended to the
+ * 	default options.
+ * @param get_options_done_func An optional function pointer that, if the
+ * 	result from get_options_func is not NULL, will be passed the options
+ * 	string so it can be freed. Only the string returned by
+ * 	get_options_func will be passed in to this function.
+ *
+ * @return A boolean value which is non-zero for a successful creation,
+ * 	otherwise zero on error.
+ */
+int request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func);
 
 /*
  * Response functions
  */
 
-typedef enum
-{
-	BING_RESPONSE_UNKNOWN,
-
-	//A custom response
-	BING_RESPONSE_CUSTOM,
-
-	//A bundled response
-	BING_RESPONSE_BUNDLE,
-
-	//Standard responses
-	BING_RESPONSE_AD,
-	BING_RESPONSE_IMAGE,
-	BING_RESPONSE_INSTANT_ANWSER,
-	BING_RESPONSE_MOBILE_WEB,
-	BING_RESPONSE_NEWS,
-	BING_RESPONSE_PHONEBOOK,
-	BING_RESPONSE_RELATED_SEARCH,
-	BING_RESPONSE_SPELL,
-	BING_RESPONSE_TRANSLATION,
-	BING_RESPONSE_VIDEO,
-	BING_RESPONSE_WEB
-} RESPONSE_TYPE;
-
 //Standard operations
 
 /**
- * @brief Get the Bing response type.
+ * @brief Get the Bing response source type.
  *
- * The @c response_get_type() function allows developers to retrieve the
- * type of Bing response that is passed in.
+ * The @c response_get_source_type() function allows developers to retrieve the
+ * source type of Bing response that is passed in.
  *
- * @param response The Bing response to get the type of.
+ * @param response The Bing response to get the source type of.
  *
- * @return The Bing response type, or BING_RESPONSE_UNKNOWN if NULL is passed in.
+ * @return The Bing response source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-RESPONSE_TYPE response_get_type(bing_response_t response);
+SOURCE_TYPE response_get_source_type(bing_response_t response);
 
 /**
  * @brief Get the estimated total number of results for a Bing response.
@@ -626,6 +873,21 @@ int response_get_news_related_searches(bing_response_t response, bing_related_se
 //Custom functions
 
 /**
+ * @brief Check if the Bing response filed type is supported.
+ *
+ * The @c response_custom_is_field_supported() functions allows developers to determine
+ * if a field is supported.
+ *
+ * @param response The Bing response to to check for a field.
+ * @param field The field string to check for.
+ *
+ * @return A boolean value which is non-zero if the field is supported
+ * 	within the specified Bing response, otherwise zero on error, NULL to,
+ * 	or NULL field string.
+ */
+int response_custom_is_field_supported(bing_response_t response, const char* field);
+
+/**
  * @brief Get a custom value from a Bing response.
  *
  * The @c response_custom_get_*() functions allows developers to retrieve
@@ -752,30 +1014,6 @@ int response_unregister_response_creator(const char* name);
 
 typedef enum
 {
-	BING_RESULT_UNKNOWN,
-
-	//A custom result
-	BING_RESULT_CUSTOM,
-
-	//A error result
-	BING_RESULT_ERROR,
-
-	//Standard result
-	BING_RESULT_AD,
-	BING_RESULT_IMAGE,
-	BING_RESULT_INSTANT_ANWSER,
-	BING_RESULT_MOBILE_WEB,
-	BING_RESULT_NEWS,
-	BING_RESULT_PHONEBOOK,
-	BING_RESULT_RELATED_SEARCH,
-	BING_RESULT_SPELL,
-	BING_RESULT_TRANSLATION,
-	BING_RESULT_VIDEO,
-	BING_RESULT_WEB
-} RESULT_TYPE;
-
-typedef enum
-{
 	//All values are strings unless otherwise noted.
 
 	RESULT_FIELD_UNKNOWN,
@@ -851,16 +1089,30 @@ typedef enum
 //Standard operations
 
 /**
- * @brief Get the Bing result type.
+ * @brief Get the Bing result source type.
  *
- * The @c result_get_type() functions allows developers to retrieve the
- * type of Bing result that is passed in.
+ * The @c result_get_source_type() functions allows developers to retrieve the
+ * source type of Bing result that is passed in.
  *
- * @param result The Bing result to get the type of.
+ * @param result The Bing result to get the source type of.
  *
- * @return The Bing result type, or BING_RESULT_UNKNOWN if NULL is passed in.
+ * @return The Bing result source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-RESULT_TYPE result_get_type(bing_result_t result);
+SOURCE_TYPE result_get_source_type(bing_result_t result);
+
+/**
+ * @brief Check if the Bing result type is supported.
+ *
+ * The @c result_is_field_supported() functions allows developers to determine
+ * if a field is supported.
+ *
+ * @param result The Bing result to check for a field.
+ * @param field The field to check for.
+ *
+ * @return A boolean value which is non-zero if the field is supported
+ * 	within the specified Bing result, otherwise zero on error or NULL result.
+ */
+int result_is_field_supported(bing_result_t result, RESULT_FIELD field);
 
 /**
  * @brief Get a value from a Bing result.
@@ -896,6 +1148,21 @@ int result_get_boolean(bing_result_t result, RESULT_FIELD field, int* value);
 int result_get_array(bing_result_t result, RESULT_FIELD field, void* value);
 
 //Custom operations
+
+/**
+ * @brief Check if the Bing to type is supported.
+ *
+ * The @c result_custom_is_field_supported() functions allows developers to determine
+ * if a field is supported.
+ *
+ * @param result The Bing result to check for a field.
+ * @param field The field string to check for.
+ *
+ * @return A boolean value which is non-zero if the field is supported
+ * 	within the specified Bing result, otherwise zero on error, NULL to,
+ * 	or NULL field string.
+ */
+int result_custom_is_field_supported(bing_result_t result, const char* field);
 
 /**
  * @brief Get a custom value from a Bing result.

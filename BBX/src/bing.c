@@ -192,6 +192,7 @@ void free_bing(unsigned int bingID)
 			pthread_mutex_lock(&bingI->mutex);
 
 			//TODO: Free all responses created for this that have not been freed already
+			//TODO: Free all registered result, response, and request creators
 			free(bingI->appId);
 
 			pthread_mutex_destroy(&bingI->mutex);
