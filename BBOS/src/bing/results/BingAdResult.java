@@ -45,7 +45,7 @@ public class BingAdResult extends BingResult
 	
 	public String getDisplayURL()
 	{
-		return (String)super.attrDict.get("DisplayURL");
+		return (String)super.attrDict.get("DisplayUrl");
 	}
 	
 	public String getAdlinkURL()

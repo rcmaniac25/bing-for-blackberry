@@ -50,4 +50,9 @@ bool bing_service::app_ID(const char* appId)
 	return BOOL_TO_CPP_BOOL(set_app_ID(ID, appId));
 }
 
+unsigned int bing_service::unique_bing_id()
+{
+	return ID;
+}
+
 #endif

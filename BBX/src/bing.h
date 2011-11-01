@@ -82,7 +82,9 @@ typedef enum
 	BING_SOURCETYPE_SPELL,
 	BING_SOURCETYPE_TRANSLATION,
 	BING_SOURCETYPE_VIDEO,
-	BING_SOURCETYPE_WEB
+	BING_SOURCETYPE_WEB,
+
+	BING_SOURCETYPE_COUNT
 } SOURCE_TYPE;
 
 /*
@@ -339,9 +341,9 @@ int search_event_async(unsigned int bing, const char* query, const bing_request_
  * 	that will be returned. If this is NULL, then the function function returns
  * 	NULL.
  *
- * @return A URL string that can be used for searches. This function allocates
- * 	memory with malloc and it is up to the developer to free it to avoid
- * 	memory leaks.
+ * @return A URL string that can be used for searches, or NULL on error. This
+ * 	function allocates memory with malloc and it is up to the developer to
+ * 	free it to avoid memory leaks.
  */
 const char* request_url(unsigned int bing, const char* query, const bing_request_t request);
 
@@ -632,7 +634,8 @@ int request_custom_set_double(bing_request_t request, const char* field, double*
  * @param get_options_done_func An optional function pointer that, if the
  * 	result from get_options_func is not NULL, will be passed the options
  * 	string so it can be freed. Only the string returned by
- * 	get_options_func will be passed in to this function.
+ * 	get_options_func will be passed in to this function. If this is NULL
+ * 	and get_options_func is not NULL, then a memory leak could occur.
  *
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error.
@@ -1032,7 +1035,7 @@ typedef enum
 	RESULT_FIELD_PARAMETER,
 	RESULT_FIELD_SOURCE_TYPE,
 	//64bit integer
-	RESULT_FIELD_SOURCE_TYPE_ERROR_CORE,
+	RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,
 	RESULT_FIELD_VALUE,
 	//64bit integer
 	RESULT_FIELD_HEIGHT,
@@ -1389,6 +1392,16 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 * @return A boolean value specifying if the function completed successfully.
 		 */
 		bool app_ID(const char* appId);
+
+		/**
+		 * @brief Get a Bing service's unique ID.
+		 *
+		 * The @cpp unique_bing_id() function allows developers to get the service's current
+		 * unique ID, this allows for a developer to use this ID with the C Bing functions.
+		 *
+		 * @return The unique Bing service ID.
+		 */
+		unsigned int unique_bing_id();
 
 		//TODO
 	};

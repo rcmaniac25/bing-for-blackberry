@@ -26,7 +26,6 @@ void initialize()
 	}
 }
 
-//TODO: Not sure how this will be called
 void shutdown()
 {
 	if(initialized)
@@ -313,4 +312,144 @@ int set_app_ID(unsigned int bingID, const char* appId)
 	}
 
 	return res;
+}
+
+const char BING_URL[] = "http://api.bing.net/xml.aspx?";
+const char URL_UNRESERVED[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
+const char HEX[] = "0123456789ABCDEF";
+
+//requestUrl formats the URL, this encodes it so it is formatted in a manner that can be interpreted properly
+const char* encodeUrl(const char* url)
+{
+	unsigned char* bytes = (unsigned char*)url;
+	char* ret = "";
+	char* find;
+	size_t size;
+	size_t pos;
+	unsigned char b;
+	if(bytes != NULL)
+	{
+		size = sizeof(url) + 1;
+		ret = (char*)malloc(size * 3); //We don't know how many of these bytes we will need, better to be safe then sorry
+		if(ret != NULL)
+		{
+			memset(ret, 0, size * 3);
+			pos = 0;
+
+			while((b = *bytes) != 0)
+			{
+				find = strchr(URL_UNRESERVED, b);
+				if(find != NULL)
+				{
+					//The value is valid for a URL, simply use it
+					ret[pos++] = b;
+				}
+				else
+				{
+					//The value is not valid for a URL, encode it
+					ret[pos++] = '%';
+					ret[pos++] = HEX[(b >> 4) & 0x0F];
+					ret[pos++] = HEX[b & 0x0F];
+				}
+				//Move the bytes forward
+				bytes++;
+			}
+			ret[pos] = 0; //Null char
+		}
+		else
+		{
+			//Error, back to original
+			ret = "";
+		}
+	}
+	return ret;
+}
+
+const char* request_url(unsigned int bingID, const char* query, const bing_request_t request)
+{
+	bing* bingI = retrieveBing(bingID);
+	char* ret = NULL;
+	const char* queryStr;
+	const char* appIdStr;
+	const char* rquestOptions;
+	bing_request* req = (bing_request*)request;
+	size_t urlSize = 46; //This is the length of the URL format
+
+	if(bingI != NULL && request != NULL)
+	{
+		//Size of URL (it's constant but it could change so we don't want to hard code the size)
+		urlSize += sizeof(BING_URL);
+
+		//Encode the query and get its size
+		queryStr = encodeUrl(query);
+		urlSize += strlen(queryStr);
+
+		//Size of the request source type
+		urlSize += strlen(req->sourceType);
+
+		//Get the request options and types and size
+		rquestOptions = req->getOptions(request);
+		urlSize += strlen(rquestOptions);
+
+		//We want to lock it now before we use the application ID (since it can be changed)
+		pthread_mutex_lock(&bingI->mutex);
+
+		//Application ID and size
+		appIdStr = bingI->appId;
+		if(appIdStr == NULL)
+		{
+			appIdStr = "";
+		}
+		urlSize += strlen(appIdStr);
+
+		//Allocate the url data
+		ret = (char*)malloc(urlSize + 6); //The 6 is just for null chars as a precaution.
+		if(ret != NULL)
+		{
+			//Zero everything (safer that way... Can never be too safe)
+			memset(ret, 0, urlSize + 6);
+
+			//Now actually create the URL
+			if(sprintf(ret, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, req->sourceType, rquestOptions) < 0)
+			{
+				//Error
+				free(ret);
+				ret = NULL;
+			}
+		}
+
+		//Let the Bing element go back to normal execution
+		pthread_mutex_unlock(&bingI->mutex);
+
+		//Free the strings
+		req->finishGetOptions(request, rquestOptions);
+		free((void*)queryStr);
+	}
+	return ret;
+}
+
+const char* find_field(bing_field_search* searchFields, int fieldID, FIELD_TYPE type, SOURCE_TYPE sourceType)
+{
+	int i;
+	//If the field actually has a value then we check it, otherwise skip it. We also don't want to do anything with custom types (since it will fail anyway)
+	if(fieldID && sourceType != BING_SOURCETYPE_CUSTOM)
+	{
+		for(; searchFields != NULL; searchFields = searchFields->next)
+		{
+			//Make sure the variable and type match (we don't want to return a String for something that needs to be a long or double)
+			if(searchFields->field.variableValue == fieldID &&
+					searchFields->field.type == type)
+			{
+				//Fields support certain types, see if the type matches
+				for(i = 0; i < searchFields->field.sourceTypeCount; i++)
+				{
+					if(searchFields->field.supportedTypes[i] == sourceType)
+					{
+						return searchFields->field.name;
+					}
+				}
+			}
+		}
+	}
+	return NULL;
 }

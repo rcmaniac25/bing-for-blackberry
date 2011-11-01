@@ -13,9 +13,13 @@
 #include "bing.h"
 
 #include <string.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <bps/bps.h>
+
+/*
+ * Defines
+ */
 
 #if !defined(BOOL)
 #define BOOL int
@@ -36,6 +40,10 @@
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
 #endif
 
+/*
+ * Structures
+ */
+
 typedef struct BING_S
 {
 	pthread_mutex_t mutex;
@@ -55,7 +63,51 @@ typedef struct BING_SYSTEM_S
 	bing** bingInstances;
 } bing_system;
 
+typedef enum
+{
+	FIELD_TYPE_UNKNOWN,
+	FIELD_TYPE_LONG,
+	FIELD_TYPE_STRING,
+	FIELD_TYPE_DOUBLE,
+	FIELD_TYPE_BOOLEAN,
+	FIELD_TYPE_ARRAY
+} FIELD_TYPE;
+
+typedef struct BING_FIELD_SUPPORT_S
+{
+	//This is the built in variable value (REQUEST_FIELD, RESULT_FIELD)
+	int variableValue;
+	FIELD_TYPE type;
+	const char* name;
+
+	int sourceTypeCount;
+	SOURCE_TYPE supportedTypes[BING_SOURCETYPE_COUNT];
+} bing_field_support;
+
+typedef struct BING_FIELD_SEARCH_S
+{
+	bing_field_support field;
+	struct BING_FIELD_SEARCH_S* next;
+} bing_field_search;
+
+typedef struct BING_REQUEST_S
+{
+	const char* sourceType;
+
+	//These will never be NULL
+	request_get_options_func getOptions;
+	request_finish_get_options_func finishGetOptions;
+} bing_request;
+
+/*
+ * Variables
+ */
+
 static bing_system bingSystem;
+
+/*
+ * Functions
+ */
 
 /*
  * Setup the Bing subsystem.
@@ -65,8 +117,11 @@ void initialize();
 /*
  * Shutdown the Bing subsystem.
  */
+//TODO: Not sure how this will be called
 void shutdown();
 
-//TODO: Dictionary functions, creation of requests, responses, result, etc.
+const char* find_field(bing_field_search* searchFields, int fieldID, FIELD_TYPE type, SOURCE_TYPE sourceType);
+
+//TODO: Dictionary functions (hash_map), creation of requests, responses, result, etc.
 
 #endif /* BING_INTERNAL_H_ */
