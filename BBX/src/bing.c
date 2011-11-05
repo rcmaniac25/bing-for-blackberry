@@ -428,7 +428,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 	return ret;
 }
 
-const char* find_field(bing_field_search* searchFields, int fieldID, FIELD_TYPE type, SOURCE_TYPE sourceType)
+const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType)
 {
 	int i;
 	//If the field actually has a value then we check it, otherwise skip it. We also don't want to do anything with custom types (since it will fail anyway)
@@ -447,6 +447,11 @@ const char* find_field(bing_field_search* searchFields, int fieldID, FIELD_TYPE 
 					{
 						return searchFields->field.name;
 					}
+				}
+				//If we want every field, then it is implicitly supported
+				if(searchFields->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS)
+				{
+					return searchFields->field.name;
 				}
 			}
 		}

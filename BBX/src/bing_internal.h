@@ -54,16 +54,7 @@ typedef struct BING_S
 #endif
 } bing;
 
-typedef struct BING_SYSTEM_S
-{
-	int domainID;
-	pthread_mutex_t mutex;
-
-	int bingInstancesCount;
-	bing** bingInstances;
-} bing_system;
-
-typedef enum
+enum FIELD_TYPE
 {
 	FIELD_TYPE_UNKNOWN,
 	FIELD_TYPE_LONG,
@@ -71,24 +62,28 @@ typedef enum
 	FIELD_TYPE_DOUBLE,
 	FIELD_TYPE_BOOLEAN,
 	FIELD_TYPE_ARRAY
-} FIELD_TYPE;
+};
 
 typedef struct BING_FIELD_SUPPORT_S
 {
 	//This is the built in variable value (REQUEST_FIELD, RESULT_FIELD)
 	int variableValue;
-	FIELD_TYPE type;
+	enum FIELD_TYPE type;
 	const char* name;
 
 	int sourceTypeCount;
-	SOURCE_TYPE supportedTypes[BING_SOURCETYPE_COUNT];
+	enum SOURCE_TYPE supportedTypes[15]; //BING_SOURCETYPE_COUNT
 } bing_field_support;
+
+#define BING_FIELD_SUPPORT_ALL_FIELDS -2
 
 typedef struct BING_FIELD_SEARCH_S
 {
 	bing_field_support field;
 	struct BING_FIELD_SEARCH_S* next;
 } bing_field_search;
+
+typedef struct hashtable_s hashtable_t;
 
 typedef struct BING_REQUEST_S
 {
@@ -97,7 +92,49 @@ typedef struct BING_REQUEST_S
 	//These will never be NULL
 	request_get_options_func getOptions;
 	request_finish_get_options_func finishGetOptions;
+	hashtable_t* data;
 } bing_request;
+
+typedef struct BING_RESULT_S
+{
+	//These will never be NULL
+	result_creation_func creation;
+	result_additional_result_func additionalResult;
+	hashtable_t* data;
+} bing_result;
+
+typedef struct BING_RESPONSE_S
+{
+	//These will never be NULL
+	response_creation_func creation;
+	response_additional_data_func additionalData;
+	hashtable_t* data;
+	int resultCount;
+	bing_result* results;
+} bing_response;
+
+typedef struct BING_RESPONSE_CREATOR_S
+{
+	const char* name;
+	response_creation_func creation;
+	response_additional_data_func additionalData;
+} bing_response_creator;
+
+typedef struct BING_RESULT_CREATOR_S
+{
+	const char* name;
+	result_creation_func creation;
+	result_additional_result_func additionalResult;
+} bing_result_creator;
+
+typedef struct BING_SYSTEM_S
+{
+	int domainID;
+	pthread_mutex_t mutex;
+
+	int bingInstancesCount;
+	bing** bingInstances;
+} bing_system;
 
 /*
  * Variables
@@ -120,8 +157,17 @@ void initialize();
 //TODO: Not sure how this will be called
 void shutdown();
 
-const char* find_field(bing_field_search* searchFields, int fieldID, FIELD_TYPE type, SOURCE_TYPE sourceType);
+const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType);
 
-//TODO: Dictionary functions (hash_map), creation of requests, responses, result, etc.
+//Dictionary functions
+hashtable_t* hashtable_create();
+void hashtable_free(hashtable_t* table);
+int hashtable_key_exists(hashtable_t* table, const char* key);
+int hashtable_put_item(hashtable_t* table, const char* key, void* data, size_t data_size);
+int hashtable_get_item(hashtable_t* table, const char* name, void* data);
+int hashtable_remove_item(hashtable_t* table, const char* key);
+int hashtable_get_keys(hashtable_t* table, char** keys);
+
+//TODO: creation of requests, responses, result, etc.
 
 #endif /* BING_INTERNAL_H_ */

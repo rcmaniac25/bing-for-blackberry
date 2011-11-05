@@ -11,7 +11,7 @@
 #ifndef BING_H_
 #define BING_H_
 
-#include <sys/cdefs.h>
+#include <sys/platform.h>
 #include <bps/bps.h>
 
 #include <stdlib.h>
@@ -58,7 +58,7 @@ typedef struct _bing_search_tag
 	const char* value;
 } bing_search_tag_s, *bing_search_tag_t;
 
-typedef enum
+enum SOURCE_TYPE
 {
 	BING_SOURCETYPE_UNKNOWN,
 
@@ -85,7 +85,7 @@ typedef enum
 	BING_SOURCETYPE_WEB,
 
 	BING_SOURCETYPE_COUNT
-} SOURCE_TYPE;
+};
 
 /*
  * Function delegates
@@ -113,7 +113,7 @@ typedef void (*result_additional_result_func)(const char* name, bing_result_t re
  * @param name The name of the field to retrieve from the dictionary.
  * @param data The buffer to copy the data into.
  *
- * @return The size of the data in bytes, or 0 if an error has occurred, dict is NULL,
+ * @return The size of the data in bytes, or -1 if an error has occurred, dict is NULL,
  * 	or the name doesn't exist.
  */
 int dictionary_get_data(data_dictionary_t dict, const char* name, void* data);
@@ -351,7 +351,7 @@ const char* request_url(unsigned int bing, const char* query, const bing_request
  * Request functions
  */
 
-typedef enum
+enum REQUEST_FIELD
 {
 	//All values are strings unless otherwise noted.
 
@@ -394,7 +394,7 @@ typedef enum
 	REQUEST_FIELD_SOURCE_LANGUAGE,
 	REQUEST_FIELD_TARGET_LANGUAGE,
 	REQUEST_FIELD_WEB_OPTIONS
-} REQUEST_FIELD;
+};
 
 //Helper functions to make the end result better, from http://stackoverflow.com/questions/195975/how-to-make-a-char-string-from-a-c-macros-value
 #define STR_VALUE(arg) #arg
@@ -461,7 +461,7 @@ typedef enum
  *
  * @return The Bing request source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-SOURCE_TYPE request_get_source_type(bing_request_t request);
+enum SOURCE_TYPE request_get_source_type(bing_request_t request);
 
 /**
  * @brief Create a standard Bing request.
@@ -477,7 +477,7 @@ SOURCE_TYPE request_get_source_type(bing_request_t request);
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error, invalid source types, or NULL request pointer.
  */
-int request_create_request(SOURCE_TYPE source_type, bing_request_t* request);
+int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request);
 
 /**
  * @brief Check if the Bing request type is supported.
@@ -491,7 +491,7 @@ int request_create_request(SOURCE_TYPE source_type, bing_request_t* request);
  * @return A boolean value which is non-zero if the field is supported
  * 	within the specified Bing request, otherwise zero on error or NULL request.
  */
-int request_is_field_supported(bing_request_t request, REQUEST_FIELD field);
+int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field);
 
 /**
  * @brief Get a value from a Bing request.
@@ -515,9 +515,9 @@ int request_is_field_supported(bing_request_t request, REQUEST_FIELD field);
  * 	length of the data in bytes is returned.
  */
 
-int request_get_64bit_int(bing_request_t request, REQUEST_FIELD field, long long* value);
-int request_get_string(bing_request_t request, REQUEST_FIELD field, char* value);
-int request_get_double(bing_request_t request, REQUEST_FIELD field, double* value);
+int request_get_64bit_int(bing_request_t request, enum REQUEST_FIELD field, long long* value);
+int request_get_string(bing_request_t request, enum REQUEST_FIELD field, char* value);
+int request_get_double(bing_request_t request, enum REQUEST_FIELD field, double* value);
 
 /**
  * @brief Free a Bing request from memory.
@@ -658,7 +658,7 @@ int request_create_custom_request(const char* source_type, bing_request_t* reque
  *
  * @return The Bing response source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-SOURCE_TYPE response_get_source_type(bing_response_t response);
+enum SOURCE_TYPE response_get_source_type(bing_response_t response);
 
 /**
  * @brief Get the estimated total number of results for a Bing response.
@@ -1015,7 +1015,7 @@ int response_unregister_response_creator(const char* name);
  * Result functions
  */
 
-typedef enum
+enum RESULT_FIELD
 {
 	//All values are strings unless otherwise noted.
 
@@ -1087,7 +1087,7 @@ typedef enum
 	RESULT_FIELD_DEEP_LINKS,
 	//bing_search_tag_s
 	RESULT_FIELD_SEARCH_TAGS
-} RESULT_FIELD;
+};
 
 //Standard operations
 
@@ -1101,7 +1101,7 @@ typedef enum
  *
  * @return The Bing result source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-SOURCE_TYPE result_get_source_type(bing_result_t result);
+enum SOURCE_TYPE result_get_source_type(bing_result_t result);
 
 /**
  * @brief Check if the Bing result type is supported.
@@ -1115,7 +1115,7 @@ SOURCE_TYPE result_get_source_type(bing_result_t result);
  * @return A boolean value which is non-zero if the field is supported
  * 	within the specified Bing result, otherwise zero on error or NULL result.
  */
-int result_is_field_supported(bing_result_t result, RESULT_FIELD field);
+int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field);
 
 /**
  * @brief Get a value from a Bing result.
@@ -1144,11 +1144,11 @@ int result_is_field_supported(bing_result_t result, RESULT_FIELD field);
  * 	types, the length of the data in bytes is returned.
  */
 
-int result_get_64bit_int(bing_result_t result, RESULT_FIELD field, long long* value);
-int result_get_string(bing_result_t result, RESULT_FIELD field, char* value);
-int result_get_double(bing_result_t result, RESULT_FIELD field, double* value);
-int result_get_boolean(bing_result_t result, RESULT_FIELD field, int* value);
-int result_get_array(bing_result_t result, RESULT_FIELD field, void* value);
+int result_get_64bit_int(bing_result_t result, enum RESULT_FIELD field, long long* value);
+int result_get_string(bing_result_t result, enum RESULT_FIELD field, char* value);
+int result_get_double(bing_result_t result, enum RESULT_FIELD field, double* value);
+int result_get_boolean(bing_result_t result, enum RESULT_FIELD field, int* value);
+int result_get_array(bing_result_t result, enum RESULT_FIELD field, void* value);
 
 //Custom operations
 

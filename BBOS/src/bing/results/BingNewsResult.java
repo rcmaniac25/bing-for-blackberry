@@ -38,7 +38,7 @@ public class BingNewsResult extends BingResult
 	
 	public String getSnippet()
 	{
-		return (String)super.attrDict.get("Snipper");
+		return (String)super.attrDict.get("Snippet");
 	}
 	
 	public String getSource()
