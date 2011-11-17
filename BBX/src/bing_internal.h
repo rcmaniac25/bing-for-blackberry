@@ -15,11 +15,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <assert.h>
 #include <bps/bps.h>
 
 /*
  * Defines
  */
+
+__BEGIN_DECLS
 
 #if !defined(BOOL)
 #define BOOL int
@@ -169,5 +172,7 @@ int hashtable_remove_item(hashtable_t* table, const char* key);
 int hashtable_get_keys(hashtable_t* table, char** keys);
 
 //TODO: creation of requests, responses, result, etc.
+
+__END_DECLS
 
 #endif /* BING_INTERNAL_H_ */
