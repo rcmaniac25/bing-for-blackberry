@@ -90,4 +90,65 @@ static bing_field_search result_fields[] =
 		{{RESULT_FIELD_SEARCH_TAGS,						FIELD_TYPE_ARRAY,	"SearchTag",					1,	{BING_SOURCETYPE_WEB}},						NULL}
 };
 
-//TODO
+enum SOURCE_TYPE result_get_source_type(bing_result_t result)
+{
+	enum SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
+	bing_result* res;
+	if(result)
+	{
+		res = (bing_result*)result;
+		t = res->type;
+	}
+	return t;
+}
+
+int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field)
+{
+	BOOL ret = FALSE;
+	bing_result* res;
+	const char* key;
+	if(result)
+	{
+		//Get the key
+		res = (bing_result*)result;
+		key = find_field(result_fields, field, FIELD_TYPE_UNKNOWN, res->type, FALSE);
+
+		//Determine if the key is within the result
+		ret = hashtable_key_exists(res->data, key) != -1;
+	}
+	return ret;
+}
+
+//TODO: result_get_64bit_int
+//TODO: result_get_string
+//TODO: result_get_double
+//TODO: result_get_boolean
+//TODO: result_get_array
+
+int result_custom_is_field_supported(bing_result_t result, const char* field)
+{
+	BOOL ret = FALSE;
+	bing_result* res;
+	if(result && field)
+	{
+		res = (bing_result*)result;
+		ret = hashtable_key_exists(res->data, field) != -1;
+	}
+	return ret;
+}
+
+//TODO: result_custom_get_64bit_int
+//TODO: result_custom_get_string
+//TODO: result_custom_get_double
+//TODO: result_custom_get_boolean
+//TODO: result_custom_get_array
+
+//TODO: result_custom_set_64bit_int
+//TODO: result_custom_set_string
+//TODO: result_custom_set_double
+//TODO: result_custom_set_boolean
+//TODO: result_custom_set_array
+
+//TODO: result_register_result_creator
+
+//TODO: result_unregister_result_creator

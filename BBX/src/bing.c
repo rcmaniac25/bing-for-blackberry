@@ -28,15 +28,21 @@ void initialize()
 
 void shutdown()
 {
+	unsigned int i = 1;
 	if(initialized)
 	{
-		if(bingSystem.bingInstancesCount > 0)
+		//TODO: Free registered response and result creators
+
+		while(bingSystem.bingInstancesCount > 0)
 		{
-			//TODO: GO through all services and free them
-			bingSystem.bingInstancesCount = 0;
-			free(bingSystem.bingInstances);
-			bingSystem.bingInstances = NULL;
+			if(bingSystem.bingInstances[i])
+			{
+				free_bing(i++);
+			}
 		}
+		bingSystem.bingInstancesCount = 0;
+		free(bingSystem.bingInstances);
+		bingSystem.bingInstances = NULL;
 
 		pthread_mutex_destroy(&bingSystem.mutex);
 
@@ -56,11 +62,11 @@ int findFreeIndex()
 	int i;
 	if(bingSystem.domainID != -1)
 	{
-		if(bingSystem.bingInstances != NULL)
+		if(bingSystem.bingInstances)
 		{
 			for(i = 0; i < bingSystem.bingInstancesCount; i++)
 			{
-				if(bingSystem.bingInstances[i] == NULL)
+				if(!bingSystem.bingInstances[i])
 				{
 					return i;
 				}
@@ -85,15 +91,15 @@ unsigned int create_bing(const char* application_ID)
 		pthread_mutex_lock(&bingSystem.mutex);
 
 		//Reallocate the instance length
-		if(bingSystem.bingInstances == NULL)
-		{
-			in = malloc(sizeof(bing*));
-		}
-		else
+		if(bingSystem.bingInstances)
 		{
 			in = realloc(bingSystem.bingInstances, (bingSystem.bingInstancesCount + 1) * sizeof(bing*));
 		}
-		if(in != NULL)
+		else
+		{
+			in = malloc(sizeof(bing*));
+		}
+		if(in)
 		{
 			//Reset instances
 			in[bingSystem.bingInstancesCount - 1] = NULL;
@@ -106,39 +112,15 @@ unsigned int create_bing(const char* application_ID)
 			//Create Bing instance
 			in[loc] = bingI = (bing*)malloc(sizeof(bing));
 
-			if(bingI == NULL)
-			{
-				//Didn't work, revert
-				if(bingSystem.bingInstancesCount > 1)
-				{
-					bingSystem.bingInstancesCount--;
-					if(loc == bingSystem.bingInstancesCount) //At end of instances, free up some space
-					{
-						in = realloc(bingSystem.bingInstances, bingSystem.bingInstancesCount * sizeof(bing*));
-
-						if(in != NULL)
-						{
-							bingSystem.bingInstances = in;
-						}
-					}
-				}
-				else
-				{
-					free(bingSystem.bingInstances);
-
-					bingSystem.bingInstances = NULL;
-					bingSystem.bingInstancesCount = 0;
-				}
-			}
-			else
+			if(bingI)
 			{
 				memset(bingI, 0, sizeof(bing));
 
 				//Copy application ID
-				if(application_ID != NULL)
+				if(application_ID)
 				{
 					bingI->appId = (char*)malloc(strlen(application_ID) + 1);
-					if(bingI->appId != NULL)
+					if(bingI->appId)
 					{
 						bingI->appId = strcpy(bingI->appId, application_ID);
 					}
@@ -151,6 +133,30 @@ unsigned int create_bing(const char* application_ID)
 				pthread_mutex_init(&bingI->mutex, NULL);
 
 				ret = bingSystem.bingInstancesCount;
+			}
+			else
+			{
+				//Didn't work, revert
+				if(bingSystem.bingInstancesCount > 1)
+				{
+					bingSystem.bingInstancesCount--;
+					if(loc == bingSystem.bingInstancesCount) //At end of instances, free up some space
+					{
+						in = realloc(bingSystem.bingInstances, bingSystem.bingInstancesCount * sizeof(bing*));
+
+						if(in)
+						{
+							bingSystem.bingInstances = in;
+						}
+					}
+				}
+				else
+				{
+					free(bingSystem.bingInstances);
+
+					bingSystem.bingInstances = NULL;
+					bingSystem.bingInstancesCount = 0;
+				}
 			}
 		}
 
@@ -190,8 +196,7 @@ void free_bing(unsigned int bingID)
 
 			pthread_mutex_lock(&bingI->mutex);
 
-			//TODO: Free all responses created for this that have not been freed already
-			//TODO: Free all registered result, response, and request creators
+			//TODO: Free all unfreed respones and results
 			free(bingI->appId);
 
 			pthread_mutex_destroy(&bingI->mutex);
@@ -230,7 +235,7 @@ int set_error_return(unsigned int bingID, int error)
 {
 	bing* bingI = retrieveBing(bingID);
 
-	if(bingI != NULL)
+	if(bingI)
 	{
 		bingI->errorRet = error;
 
@@ -244,7 +249,7 @@ int get_error_return(unsigned int bingID)
 	int res = FALSE;
 	bing* bingI = retrieveBing(bingID);
 
-	if(bingI != NULL)
+	if(bingI)
 	{
 		res = bingI->errorRet;
 	}
@@ -259,13 +264,13 @@ int get_app_ID(unsigned int bingID, char* buffer)
 	bing* bingI = retrieveBing(bingID);
 	int ret = -1;
 
-	if(bingI != NULL)
+	if(bingI)
 	{
 		pthread_mutex_lock(&bingI->mutex);
 
 		ret = strlen(bingI->appId) + 1;
 
-		if(buffer != NULL)
+		if(buffer)
 		{
 			strcpy(buffer, bingI->appId);
 		}
@@ -283,18 +288,18 @@ int set_app_ID(unsigned int bingID, const char* appId)
 	int res = FALSE;
 	char* preApp;
 
-	if(appId != NULL && (size = strlen(appId) + 1) > 1)
+	if(appId && (size = strlen(appId) + 1) > 1)
 	{
 		bingI= retrieveBing(bingID);
 
-		if(bingI != NULL)
+		if(bingI)
 		{
 			pthread_mutex_lock(&bingI->mutex);
 
 			preApp = bingI->appId;
 
 			bingI->appId = (char*)malloc(size);
-			if(bingI->appId != NULL)
+			if(bingI->appId)
 			{
 				bingI->appId = strcpy(bingI->appId, appId);
 
@@ -336,10 +341,10 @@ const char* encodeUrl(const char* url)
 			memset(ret, 0, size * 3);
 			pos = 0;
 
-			while((b = *bytes) != 0)
+			while((b = *bytes))
 			{
 				find = strchr(URL_UNRESERVED, b);
-				if(find != NULL)
+				if(find)
 				{
 					//The value is valid for a URL, simply use it
 					ret[pos++] = b;
@@ -375,7 +380,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 46; //This is the length of the URL format
 
-	if(bingI != NULL && request != NULL)
+	if(bingI && request)
 	{
 		//Size of URL (it's constant but it could change so we don't want to hard code the size)
 		urlSize += sizeof(BING_URL);
@@ -396,7 +401,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 
 		//Application ID and size
 		appIdStr = bingI->appId;
-		if(appIdStr == NULL)
+		if(!appIdStr)
 		{
 			appIdStr = "";
 		}
@@ -404,7 +409,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 
 		//Allocate the url data
 		ret = (char*)malloc(urlSize + 6); //The 6 is just for null chars as a precaution.
-		if(ret != NULL)
+		if(ret)
 		{
 			//Zero everything (safer that way... Can never be too safe)
 			memset(ret, 0, urlSize + 6);
@@ -428,17 +433,17 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 	return ret;
 }
 
-const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType)
+const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType)
 {
 	int i;
 	//If the field actually has a value then we check it, otherwise skip it. We also don't want to do anything with custom types (since it will fail anyway)
 	if(fieldID && sourceType != BING_SOURCETYPE_CUSTOM)
 	{
-		for(; searchFields != NULL; searchFields = searchFields->next)
+		for(; searchFields; searchFields = searchFields->next)
 		{
 			//Make sure the variable and type match (we don't want to return a String for something that needs to be a long or double)
 			if(searchFields->field.variableValue == fieldID &&
-					searchFields->field.type == type)
+					!(checkType && searchFields->field.type != type))
 			{
 				//Fields support certain types, see if the type matches
 				for(i = 0; i < searchFields->field.sourceTypeCount; i++)

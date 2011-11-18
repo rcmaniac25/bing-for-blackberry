@@ -43,6 +43,12 @@ __BEGIN_DECLS
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
 #endif
 
+#define RESPONSE_TOTAL_STR "bb_res_total"
+#define RESPONSE_OFFSET_STR "bb_res_offset"
+#define RESPONSE_QUERY_STR "bb_res_query"
+#define RESPONSE_ALTERED_QUERY_STR "bb_res_alt_query"
+#define RESPONSE_ALTERATIONS_OVER_QUERY_STR "bb_res_alt_over_query"
+
 /*
  * Structures
  */
@@ -100,6 +106,8 @@ typedef struct BING_REQUEST_S
 
 typedef struct BING_RESULT_S
 {
+	enum SOURCE_TYPE type;
+
 	//These will never be NULL
 	result_creation_func creation;
 	result_additional_result_func additionalResult;
@@ -108,6 +116,8 @@ typedef struct BING_RESULT_S
 
 typedef struct BING_RESPONSE_S
 {
+	enum SOURCE_TYPE type;
+
 	//These will never be NULL
 	response_creation_func creation;
 	response_additional_data_func additionalData;
@@ -160,10 +170,10 @@ void initialize();
 //TODO: Not sure how this will be called
 void shutdown();
 
-const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType);
+const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType);
 
 //Dictionary functions
-hashtable_t* hashtable_create();
+hashtable_t* hashtable_create(int size);
 void hashtable_free(hashtable_t* table);
 int hashtable_key_exists(hashtable_t* table, const char* key);
 int hashtable_put_item(hashtable_t* table, const char* key, void* data, size_t data_size);

@@ -271,7 +271,7 @@ int set_app_ID(unsigned int bing, const char* appId);
  * The @c search_sync() function allows developers to perform a blocking
  * search operation that will return when the search is complete.
  *
- * @param bing The unique Bing ID for each application ID.
+ * @param bing The unique Bing ID to perform a search with.
  * @param query The search query to perform. If this is NULL, then the function
  * 	returns immediately with no response.
  * @param request The type of search to perform. This determines the response
@@ -291,7 +291,7 @@ bing_response_t search_sync(unsigned int bing, const char* query, const bing_req
  * search operation that will return immediately and call the specified callback
  * function with the response.
  *
- * @param bing The unique Bing ID for each application ID.
+ * @param bing The unique Bing ID to perform a search with.
  * @param query The search query to perform. If this is NULL, then the function
  * 	returns a zero (false) value.
  * @param request The type of search to perform. This determines the response
@@ -314,7 +314,7 @@ int search_async(unsigned int bing, const char* query, const bing_request_t requ
  *
  * To determine if the event is a Bing response, use the bing_get_domain() function.
  *
- * @param bing The unique Bing ID for each application ID.
+ * @param bing The unique Bing ID to perform a search with.
  * @param query The search query to perform. If this is NULL, then the function
  * 	returns a zero (false) value.
  * @param request The type of search to perform. This determines the response
@@ -334,7 +334,7 @@ int search_event_async(unsigned int bing, const char* query, const bing_request_
  * 	a developer to custom tailor the search URL and handle the result in whatever
  * 	manner they deem necessary.
  *
- * @param bing The unique Bing ID for each application ID.
+ * @param bing The unique Bing ID to generate a URL for.
  * @param query The search query to perform. If this is NULL, then the function
  * 	returns a URL with an empty query.
  * @param request The type of search to perform. This determines the response
@@ -467,7 +467,8 @@ enum SOURCE_TYPE request_get_source_type(bing_request_t request);
  * @brief Create a standard Bing request.
  *
  * The @c request_create_request() functions allows developers to create a new
- * Bing request that can be used to search.
+ * Bing request that can be used to search. It is up to the dev to free this
+ * request using free_request() to prevent a memory leak.
  *
  * @param source_type The sourcetype that the new Bing request should be. The
  * 	BING_RESULT_ERROR type and BING_SOURCETYPE_UNKNOWN type are not valid and
@@ -614,7 +615,8 @@ int request_custom_set_double(bing_request_t request, const char* field, double*
  * @brief Create a custom request.
  *
  * The @c request_create_custom_request() function allows developers to
- * create a custom Bing request.
+ * create a custom Bing request. It is up to the dev to free this request
+ * using free_request() to prevent a memory leak.
  *
  * Requests contain a callback function to get the options to be written
  * to the Bing service, and a callback function to free the options string.

@@ -25,6 +25,8 @@ typedef struct hashTable
 //Internal functions
 hashtable_t* hashtable_create(int size)
 {
+	assert(sizeof(xmlChar) == sizeof(char)); //Purly for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
+
 	ht* hash = (ht*)malloc(sizeof(ht));
 	if(hash)
 	{
@@ -57,6 +59,16 @@ void hashtable_free(hashtable_t* table)
 	}
 }
 
+int hashtable_key_exists(hashtable_t* table, const char* key)
+{
+	int ret = -1;
+	if(table && key)
+	{
+		ret = xmlHashLookup(((ht*)table)->table, (xmlChar*)key) != NULL;
+	}
+	return ret;
+}
+
 void ht_dup_value(void* payload, void* data, xmlChar* name)
 {
 	xmlHashTablePtr nTable = (xmlHashTablePtr)data;
@@ -76,7 +88,7 @@ int resizeHashTable(ht* hash)
 	xmlHashTablePtr nTable = xmlHashCreate(nAlloc);
 	if(!nTable)
 	{
-		return -1;
+		return FALSE;
 	}
 
 	//Duplicate the table
@@ -89,7 +101,7 @@ int resizeHashTable(ht* hash)
 	hash->table = nTable;
 	hash->alloc = nAlloc;
 
-	return 0;
+	return TRUE;
 }
 
 int hashtable_put_item(hashtable_t* table, const char* key, void* data, size_t data_size)
@@ -109,7 +121,7 @@ int hashtable_put_item(hashtable_t* table, const char* key, void* data, size_t d
 			if(hash->alloc <= xmlHashSize(hash->table))
 			{
 				//We need to resize the table
-				if(resizeHashTable(hash) == -1)
+				if(!resizeHashTable(hash))
 				{
 					free(ud);
 					return ret;
@@ -136,7 +148,7 @@ int hashtable_get_item(hashtable_t* table, const char* name, void* data)
 		if(dat)
 		{
 			ret = (int)(*((size_t*)dat));
-			if(dat)
+			if(data)
 			{
 				memcpy(data, dat + sizeof(size_t), *((size_t*)dat));
 			}

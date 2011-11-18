@@ -57,4 +57,173 @@ static bing_field_search request_fields[] =
 		{{REQUEST_FIELD_FILE_TYPE,			FIELD_TYPE_STRING,	"filetype",			2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
 };
 
-//TODO
+typedef struct request_source_type_s
+{
+	enum SOURCE_TYPE type;
+	const char* source_type;
+	//TODO: Maximum number of elements that request support
+	//TODO: Get options function
+
+	struct request_source_type_s* next;
+} request_source_type;
+
+static request_source_type request_source_types[] =
+{
+		//Unsure if capitalization is required or not, leave it like this since it worked for the BBOS version
+		{BING_SOURCETYPE_AD,				"Ad",				&request_source_types[1]},
+		{BING_SOURCETYPE_IMAGE,				"image",			&request_source_types[2]},
+		{BING_SOURCETYPE_INSTANT_ANWSER,	"InstantAnswer",	&request_source_types[3]},
+		{BING_SOURCETYPE_MOBILE_WEB,		"MobileWeb",		&request_source_types[4]},
+		{BING_SOURCETYPE_NEWS,				"news",				&request_source_types[5]},
+		{BING_SOURCETYPE_PHONEBOOK,			"phonebook",		&request_source_types[6]},
+		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",	&request_source_types[7]},
+		{BING_SOURCETYPE_SPELL,				"Spell",			&request_source_types[8]},
+		{BING_SOURCETYPE_TRANSLATION,		"Translation",		&request_source_types[9]},
+		{BING_SOURCETYPE_VIDEO,				"video",			&request_source_types[10]},
+		{BING_SOURCETYPE_WEB,				"web",				NULL}
+};
+
+enum SOURCE_TYPE request_get_source_type(bing_request_t request)
+{
+	enum SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
+	bing_request* req;
+	request_source_type* type;
+	if(request)
+	{
+		req = (bing_request*)request;
+		if(req->sourceType)
+		{
+			for(type = request_source_types; type; type = type->next)
+			{
+				if(strcmp(type->source_type, req->sourceType) == 0)
+				{
+					t = type->type;
+					break;
+				}
+			}
+		}
+		else
+		{
+			t = BING_SOURCETYPE_BUNDLE;
+		}
+	}
+	return t;
+}
+
+int request_create(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func, int tableSize)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	if(request)
+	{
+		req = (bing_request*)malloc(sizeof(bing_request));
+		if(req)
+		{
+			req->sourceType = source_type;
+			req->getOptions = get_options_func;
+			req->finishGetOptions = get_options_done_func;
+			req->data = NULL;
+
+			req->data = hashtable_create(tableSize);
+			if(req->data)
+			{
+				request[0] = req;
+				ret = TRUE;
+			}
+			else
+			{
+				free(req);
+			}
+		}
+	}
+	return ret;
+}
+
+int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request)
+{
+	BOOL ret = FALSE;
+	int tableSize;
+	request_source_type* type;
+	const char* sourceT;
+	request_get_options_func getOFun;
+	request_finish_get_options_func doneWithOFun;
+	if(source_type >= BING_SOURCETYPE_AD && source_type <= BING_SOURCETYPE_WEB && source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
+	{
+		tableSize = -1;
+
+		if(source_type == BING_SOURCETYPE_BUNDLE)
+		{
+			for(type = request_source_types; type; type = type->next)
+			{
+				if(type->type == source_type)
+				{
+					sourceT = type->source_type;
+					//TODO: Assign the proper equations
+					//TODO: Assign maximum number of table elements
+					break;
+				}
+			}
+		}
+		else
+		{
+			sourceT = NULL;
+			//TODO: Assign the proper equations
+			//TODO: Assign maximum number of table elements
+		}
+		ret = request_create(sourceT, request, getOFun, doneWithOFun, tableSize);
+	}
+	return ret;
+}
+
+int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	const char* key;
+	if(request)
+	{
+		//Get the key
+		req = (bing_request*)request;
+		key = find_field(request_fields, field, FIELD_TYPE_UNKNOWN, request_get_source_type(request), FALSE);
+
+		//Determine if the key is within the result
+		ret = hashtable_key_exists(req->data, key) != -1;
+	}
+	return ret;
+}
+
+//TODO: request_get_64bit_int
+//TODO: request_get_string
+//TODO: request_get_double
+
+//TODO: free_request
+
+int request_custom_is_field_supported(bing_request_t request, const char* field)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	if(request && field)
+	{
+		req = (bing_request*)request;
+		ret = hashtable_key_exists(req->data, field) != -1;
+	}
+	return ret;
+}
+
+//TODO: request_custom_get_64bit_int
+//TODO: request_custom_get_string
+//TODO: request_custom_get_double
+
+//TODO: request_custom_set_64bit_int
+//TODO: request_custom_set_string
+//TODO: request_custom_set_double
+
+int request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func)
+{
+	//TODO: Need to do non-case sensitive source_type comp
+	if(source_type && get_options_func)
+	{
+		return request_create(source_type, request, get_options_func, get_options_done_func, -1);
+	}
+	return FALSE;
+}
