@@ -57,12 +57,75 @@ static bing_field_search request_fields[] =
 		{{REQUEST_FIELD_FILE_TYPE,			FIELD_TYPE_STRING,	"filetype",			2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
 };
 
+const char* request_def_get_options(bing_request_t request)
+{
+	//TODO
+	return NULL;
+}
+
+const char* request_bundle_get_options(bing_request_t request)
+{
+	//TODO
+	return NULL;
+}
+
+//TODO: Do other special options
+
+const char* request_custom_get_options(bing_request_t request)
+{
+	bing_request* req;
+	const char* ret = NULL;
+	const char* custOptions;
+	char* resultOptions;
+	//Request exists, create the options string
+	if(request)
+	{
+		req = (bing_request*)request;
+
+		ret = request_def_get_options(request);
+		custOptions = req->uGetOptions(request);
+
+		resultOptions = calloc(strlen(ret) + strlen(custOptions) + 2, sizeof(char));
+		if(resultOptions)
+		{
+			//First copy in the default options
+			memcpy(resultOptions, ret, strlen(ret));
+
+			//Free the return string
+			free((void*)ret);
+
+			//Conc. the user options
+			strcat(resultOptions, custOptions);
+
+			//Set the return
+			ret = resultOptions;
+		}
+		else
+		{
+			free((void*)ret);
+			ret = NULL;
+		}
+		if(req->uFinishGetOptions)
+		{
+			req->uFinishGetOptions(request, custOptions);
+		}
+	}
+	//No return exists, create a empty string (that won't be invalid on "custom finish")
+	if(ret == NULL)
+	{
+		ret = calloc(1, sizeof(char));
+	}
+	return ret;
+}
+
+#define DEFAULT_ELEMENT_COUNT 8
+
 typedef struct request_source_type_s
 {
 	enum SOURCE_TYPE type;
 	const char* source_type;
-	//TODO: Maximum number of elements that request support
-	//TODO: Get options function
+	int maxElements;
+	request_get_options_func getOptions;
 
 	struct request_source_type_s* next;
 } request_source_type;
@@ -70,17 +133,18 @@ typedef struct request_source_type_s
 static request_source_type request_source_types[] =
 {
 		//Unsure if capitalization is required or not, leave it like this since it worked for the BBOS version
-		{BING_SOURCETYPE_AD,				"Ad",				&request_source_types[1]},
-		{BING_SOURCETYPE_IMAGE,				"image",			&request_source_types[2]},
-		{BING_SOURCETYPE_INSTANT_ANWSER,	"InstantAnswer",	&request_source_types[3]},
-		{BING_SOURCETYPE_MOBILE_WEB,		"MobileWeb",		&request_source_types[4]},
-		{BING_SOURCETYPE_NEWS,				"news",				&request_source_types[5]},
-		{BING_SOURCETYPE_PHONEBOOK,			"phonebook",		&request_source_types[6]},
-		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",	&request_source_types[7]},
-		{BING_SOURCETYPE_SPELL,				"Spell",			&request_source_types[8]},
-		{BING_SOURCETYPE_TRANSLATION,		"Translation",		&request_source_types[9]},
-		{BING_SOURCETYPE_VIDEO,				"video",			&request_source_types[10]},
-		{BING_SOURCETYPE_WEB,				"web",				NULL}
+		//TODO: Replace null options
+		{BING_SOURCETYPE_AD,				"Ad",				DEFAULT_ELEMENT_COUNT + 6,	NULL,						&request_source_types[1]},
+		{BING_SOURCETYPE_IMAGE,				"image",			DEFAULT_ELEMENT_COUNT + 3,	NULL,						&request_source_types[2]},
+		{BING_SOURCETYPE_INSTANT_ANWSER,	"InstantAnswer",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]},
+		{BING_SOURCETYPE_MOBILE_WEB,		"MobileWeb",		DEFAULT_ELEMENT_COUNT + 3,	NULL,						&request_source_types[4]},
+		{BING_SOURCETYPE_NEWS,				"news",				DEFAULT_ELEMENT_COUNT + 5,	NULL,						&request_source_types[5]},
+		{BING_SOURCETYPE_PHONEBOOK,			"phonebook",		DEFAULT_ELEMENT_COUNT + 5,	NULL,						&request_source_types[6]},
+		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[7]},
+		{BING_SOURCETYPE_SPELL,				"Spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[8]},
+		{BING_SOURCETYPE_TRANSLATION,		"Translation",		DEFAULT_ELEMENT_COUNT + 2,	NULL,						&request_source_types[9]},
+		{BING_SOURCETYPE_VIDEO,				"video",			DEFAULT_ELEMENT_COUNT + 4,	NULL,						&request_source_types[10]},
+		{BING_SOURCETYPE_WEB,				"web",				DEFAULT_ELEMENT_COUNT + 4,	NULL,						NULL}
 };
 
 enum SOURCE_TYPE request_get_source_type(bing_request_t request)
@@ -110,7 +174,13 @@ enum SOURCE_TYPE request_get_source_type(bing_request_t request)
 	return t;
 }
 
-int request_create(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func, int tableSize)
+const char* request_get_bundle_sourcetype(bing_request* bundle)
+{
+	//TODO
+	return NULL;
+}
+
+int request_create(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_request* req;
@@ -121,7 +191,6 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 		{
 			req->sourceType = source_type;
 			req->getOptions = get_options_func;
-			req->finishGetOptions = get_options_done_func;
 			req->data = NULL;
 
 			req->data = hashtable_create(tableSize);
@@ -146,7 +215,6 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 	request_source_type* type;
 	const char* sourceT;
 	request_get_options_func getOFun;
-	request_finish_get_options_func doneWithOFun;
 	if(source_type >= BING_SOURCETYPE_AD && source_type <= BING_SOURCETYPE_WEB && source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
 	{
 		tableSize = -1;
@@ -158,8 +226,8 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 				if(type->type == source_type)
 				{
 					sourceT = type->source_type;
-					//TODO: Assign the proper equations
-					//TODO: Assign maximum number of table elements
+					tableSize = type->maxElements;
+					getOFun = type->getOptions;
 					break;
 				}
 			}
@@ -167,10 +235,10 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 		else
 		{
 			sourceT = NULL;
-			//TODO: Assign the proper equations
-			//TODO: Assign maximum number of table elements
+			tableSize = DEFAULT_ELEMENT_COUNT + 1;
+			getOFun = request_bundle_get_options;
 		}
-		ret = request_create(sourceT, request, getOFun, doneWithOFun, tableSize);
+		ret = request_create(sourceT, request, getOFun, tableSize);
 	}
 	return ret;
 }
@@ -196,7 +264,126 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
 //TODO: request_get_string
 //TODO: request_get_double
 
-//TODO: free_request
+typedef struct bundle_list_s
+{
+	int count;
+	int cap;
+	bing_request_t* requests;
+} bundle_list;
+
+int request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	bundle_list* list = NULL;
+	bing_request_t* requestList = NULL;
+	int i;
+
+	if(request && request_to_add && request == request_to_add)
+	{
+		req = (bing_request*)request;
+
+		if(!req->sourceType) //Bundle's source type is null
+		{
+			if(hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list) != -1)
+			{
+				//Get the list
+				requestList = list->requests;
+			}
+			else
+			{
+				//Create the list
+				list = (bundle_list*)malloc(sizeof(bundle_list));
+				if(list)
+				{
+					list->count = 0;
+					requestList = list->requests = (bing_request_t*)calloc(11, sizeof(bing_request_t));
+					if(list->requests)
+					{
+						//Save the list
+						list->cap = 11;
+						if(hashtable_put_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, list, sizeof(bundle_list*)) == -1)
+						{
+							//List creation failed, cleanup
+							free(list);
+							list = NULL;
+						}
+					}
+					else
+					{
+						//List creation failed, cleanup
+						free(list);
+						list = NULL;
+					}
+				}
+			}
+			if(list)
+			{
+				if(list->count >= list->cap)
+				{
+					//Resize list
+					requestList = (bing_request_t*)realloc(requestList, sizeof(bing_request_t) * (list->cap * 2));
+					if(requestList)
+					{
+						list->cap *= 2;
+						list->requests = requestList;
+					}
+					else
+					{
+						requestList = NULL;
+					}
+				}
+				if(requestList)
+				{
+					//See if the request already exists in the list
+					for(i = 0; i < list->count; i++)
+					{
+						if(requestList[i] == request_to_add)
+						{
+							break;
+						}
+					}
+					//If i != list->count then the item has been found
+					if(i == list->count)
+					{
+						//TODO: Remove all "parent options"
+						requestList[i] = request_to_add;
+						ret = TRUE;
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+void free_request(bing_request_t request)
+{
+	bing_request* req;
+	bundle_list* list;
+	int i;
+	if(request)
+	{
+		req = (bing_request*)request;
+
+		if(req->data)
+		{
+			//Bundle, make sure data is freed
+			if(!req->sourceType && hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list) != -1)
+			{
+				for(i = 0; i < list->count; i++)
+				{
+					free_request(list->requests[i]);
+				}
+				free((void*)list->requests);
+				free((void*)list);
+			}
+			hashtable_free(req->data);
+		}
+
+		free(req);
+	}
+}
 
 int request_custom_is_field_supported(bing_request_t request, const char* field)
 {
@@ -220,10 +407,34 @@ int request_custom_is_field_supported(bing_request_t request, const char* field)
 
 int request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func)
 {
+	bing_request* req;
+	BOOL ret = FALSE;
+	request_get_options_func uGet;
+	request_finish_get_options_func uDone;
+
 	//TODO: Need to do non-case sensitive source_type comp
+
 	if(source_type && get_options_func)
 	{
-		return request_create(source_type, request, get_options_func, get_options_done_func, -1);
+		if(get_options_func)
+		{
+			//We need to save the user functions because we will be using a different function to actually create the options string
+			uGet = get_options_func;
+			uDone = get_options_done_func;
+			get_options_func = request_custom_get_options;
+		}
+		else
+		{
+			get_options_func = request_def_get_options;
+		}
+		ret = request_create(source_type, request, get_options_func, -1);
+		if(ret && uGet)
+		{
+			//The options exist, we need to save the user options
+			req = (bing_request*)(*request);
+			req->uGetOptions = uGet;
+			req->uFinishGetOptions = uDone;
+		}
 	}
-	return FALSE;
+	return ret;
 }

@@ -43,6 +43,8 @@ __BEGIN_DECLS
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
 #endif
 
+#define REQUEST_BUNDLE_SUBBUNDLES_STR "bb_req_bundle_sub-bundles"
+
 #define RESPONSE_TOTAL_STR "bb_res_total"
 #define RESPONSE_OFFSET_STR "bb_res_offset"
 #define RESPONSE_QUERY_STR "bb_res_query"
@@ -97,10 +99,11 @@ typedef struct hashtable_s hashtable_t;
 typedef struct BING_REQUEST_S
 {
 	const char* sourceType;
+	request_get_options_func uGetOptions;
+	request_finish_get_options_func uFinishGetOptions;
 
 	//These will never be NULL
 	request_get_options_func getOptions;
-	request_finish_get_options_func finishGetOptions;
 	hashtable_t* data;
 } bing_request;
 
@@ -181,6 +184,7 @@ int hashtable_get_item(hashtable_t* table, const char* name, void* data);
 int hashtable_remove_item(hashtable_t* table, const char* key);
 int hashtable_get_keys(hashtable_t* table, char** keys);
 
+const char* request_get_bundle_sourcetype(bing_request* bundle);
 //TODO: creation of requests, responses, result, etc.
 
 __END_DECLS

@@ -521,6 +521,24 @@ int request_get_string(bing_request_t request, enum REQUEST_FIELD field, char* v
 int request_get_double(bing_request_t request, enum REQUEST_FIELD field, double* value);
 
 /**
+ * @brief Add a request to a bundle request.
+ *
+ * The @c request_bundle_add_request() functions allows developers to add a different
+ * Bing request to add to a bundle request.
+ *
+ * Added requests don't have to be freed as they will be freed when the parent request
+ * is freed.
+ *
+ * @param request The Bing request to add a request to.
+ * @param request_to_add The Bing request to add to the request.
+ *
+ * @return A boolean value which is non-zero if the the request has been added
+ * 	successfully, otherwise zero on error, NULL request, NULL additional
+ * 	request, or if the request and request_to_add is the same.
+ */
+int request_bundle_add_request(bing_request_t request, bing_request_t request_to_add);
+
+/**
  * @brief Free a Bing request from memory.
  *
  * The @c free_request() function allows developers to free
@@ -632,7 +650,8 @@ int request_custom_set_double(bing_request_t request, const char* field, double*
  * 	search query. Default options are always passed out so if this is
  * 	NULL then only the default options are passed to the Bing service,
  * 	otherwise the returned option string will be appended to the
- * 	default options.
+ * 	default options. If this is not NULL but a NULL string is returned,
+ * 	the results are undefined.
  * @param get_options_done_func An optional function pointer that, if the
  * 	result from get_options_func is not NULL, will be passed the options
  * 	string so it can be freed. Only the string returned by

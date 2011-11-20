@@ -196,7 +196,7 @@ void free_bing(unsigned int bingID)
 
 			pthread_mutex_lock(&bingI->mutex);
 
-			//TODO: Free all unfreed respones and results
+			//TODO: Free all unfreed responses and results
 			free(bingI->appId);
 
 			pthread_mutex_destroy(&bingI->mutex);
@@ -377,6 +377,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 	const char* queryStr;
 	const char* appIdStr;
 	const char* rquestOptions;
+	const char* sourceType;
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 46; //This is the length of the URL format
 
@@ -389,8 +390,16 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		queryStr = encodeUrl(query);
 		urlSize += strlen(queryStr);
 
+		//Get the source type
+		sourceType = req->sourceType;
+		if(!sourceType)
+		{
+			//Get bundle source type
+			sourceType = request_get_bundle_sourcetype(req);
+		}
+
 		//Size of the request source type
-		urlSize += strlen(req->sourceType);
+		urlSize += strlen(sourceType);
 
 		//Get the request options and types and size
 		rquestOptions = req->getOptions(request);
@@ -408,14 +417,11 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		urlSize += strlen(appIdStr);
 
 		//Allocate the url data
-		ret = (char*)malloc(urlSize + 6); //The 6 is just for null chars as a precaution.
+		ret = (char*)calloc(urlSize + 6, sizeof(char)); //The 6 is just for null chars as a precaution.
 		if(ret)
 		{
-			//Zero everything (safer that way... Can never be too safe)
-			memset(ret, 0, urlSize + 6);
-
 			//Now actually create the URL
-			if(sprintf(ret, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, req->sourceType, rquestOptions) < 0)
+			if(sprintf(ret, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, rquestOptions) < 0)
 			{
 				//Error
 				free(ret);
@@ -427,7 +433,12 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		pthread_mutex_unlock(&bingI->mutex);
 
 		//Free the strings
-		req->finishGetOptions(request, rquestOptions);
+		if(req->sourceType)
+		{
+			//Need to free source type for bundle
+			free((void*)sourceType);
+		}
+		free((void*)rquestOptions);
 		free((void*)queryStr);
 	}
 	return ret;
