@@ -83,6 +83,7 @@ unsigned int create_bing(const char* application_ID)
 	int loc;
 	bing* bingI;
 	bing** in;
+	size_t size;
 
 	initialize();
 
@@ -119,10 +120,11 @@ unsigned int create_bing(const char* application_ID)
 				//Copy application ID
 				if(application_ID)
 				{
-					bingI->appId = (char*)malloc(strlen(application_ID) + 1);
+					size = strlen(application_ID) + 1;
+					bingI->appId = (char*)malloc(size);
 					if(bingI->appId)
 					{
-						bingI->appId = strcpy(bingI->appId, application_ID);
+						strlcpy(bingI->appId, application_ID, size);
 					}
 					//If an error occurs, it's up to the developer to make sure that the app ID was copied
 				}
@@ -301,7 +303,7 @@ int set_app_ID(unsigned int bingID, const char* appId)
 			bingI->appId = (char*)malloc(size);
 			if(bingI->appId)
 			{
-				bingI->appId = strcpy(bingI->appId, appId);
+				strlcpy(bingI->appId, appId, size);
 
 				free(preApp);
 
@@ -318,6 +320,8 @@ int set_app_ID(unsigned int bingID, const char* appId)
 
 	return res;
 }
+
+//Utility functions
 
 const char BING_URL[] = "http://api.bing.net/xml.aspx?";
 const char URL_UNRESERVED[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
@@ -376,7 +380,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 	char* ret = NULL;
 	const char* queryStr;
 	const char* appIdStr;
-	const char* rquestOptions;
+	const char* requestOptions;
 	const char* sourceType;
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 46; //This is the length of the URL format
@@ -402,8 +406,8 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		urlSize += strlen(sourceType);
 
 		//Get the request options and types and size
-		rquestOptions = req->getOptions(request);
-		urlSize += strlen(rquestOptions);
+		requestOptions = req->getOptions(request);
+		urlSize += strlen(requestOptions);
 
 		//We want to lock it now before we use the application ID (since it can be changed)
 		pthread_mutex_lock(&bingI->mutex);
@@ -421,7 +425,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		if(ret)
 		{
 			//Now actually create the URL
-			if(sprintf(ret, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, rquestOptions) < 0)
+			if(snprintf(ret, urlSize + 6, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, requestOptions) < 0)
 			{
 				//Error
 				free(ret);
@@ -433,12 +437,12 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		pthread_mutex_unlock(&bingI->mutex);
 
 		//Free the strings
-		if(req->sourceType)
+		if(!req->sourceType)
 		{
 			//Need to free source type for bundle
 			free((void*)sourceType);
 		}
-		free((void*)rquestOptions);
+		free((void*)requestOptions);
 		free((void*)queryStr);
 	}
 	return ret;
@@ -473,4 +477,36 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 		}
 	}
 	return NULL;
+}
+
+void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize)
+{
+	char buffer[256];
+	buffer[0] = '\0';
+	char* rett;
+	size_t size = hashtable_get_item(table, key, NULL);
+	if(size > 0)
+	{
+		size += 1;
+		if(size > curDataSize[0])
+		{
+			data[0] = realloc(data[0], size);
+			curDataSize[0] = size;
+		}
+
+		if(data[0])
+		{
+			hashtable_get_item(table, key, data[0]);
+
+			snprintf(buffer, 256, format, data[0]);
+
+			returnDataSize[0] += strlen(buffer);
+			rett = realloc(returnData[0], returnDataSize[0]);
+			if(rett)
+			{
+				strlcat(returnData[0], buffer, returnDataSize[0]);
+				returnData[0] = rett;
+			}
+		}
+	}
 }

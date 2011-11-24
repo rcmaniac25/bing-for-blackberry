@@ -9,17 +9,26 @@
 
 #include "bing_internal.h"
 
+#define REQ_VERSION "version"
+#define REQ_MARKET "market"
+#define REQ_ADULT "adult"
+#define REQ_OPTIONS "options"
+#define REQ_LATITUDE "latitude"
+#define REQ_LONGITUDE "longitude"
+#define REQ_LANGUAGE "language"
+#define REQ_RADIUS "radius"
+
 static bing_field_search request_fields[] =
 {
 		//Universal
-		{{REQUEST_FIELD_VERSION,			FIELD_TYPE_STRING,	"version",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[1]},
-		{{REQUEST_FIELD_MARKET,				FIELD_TYPE_STRING,	"market",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[2]},
-		{{REQUEST_FIELD_ADULT,				FIELD_TYPE_STRING,	"adult",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[3]},
-		{{REQUEST_FIELD_OPTIONS,			FIELD_TYPE_STRING,	"options",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[4]},
-		{{REQUEST_FIELD_LATITUDE,			FIELD_TYPE_DOUBLE,	"latitude",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[5]},
-		{{REQUEST_FIELD_LONGITUDE,			FIELD_TYPE_DOUBLE,	"longitude",		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[6]},
-		{{REQUEST_FIELD_LANGUAGE,			FIELD_TYPE_STRING,	"language",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[7]},
-		{{REQUEST_FIELD_RADIUS,				FIELD_TYPE_DOUBLE,	"radius",			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[8]},
+		{{REQUEST_FIELD_VERSION,			FIELD_TYPE_STRING,	REQ_VERSION,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[1]},
+		{{REQUEST_FIELD_MARKET,				FIELD_TYPE_STRING,	REQ_MARKET,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[2]},
+		{{REQUEST_FIELD_ADULT,				FIELD_TYPE_STRING,	REQ_ADULT,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[3]},
+		{{REQUEST_FIELD_OPTIONS,			FIELD_TYPE_STRING,	REQ_OPTIONS,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[4]},
+		{{REQUEST_FIELD_LATITUDE,			FIELD_TYPE_DOUBLE,	REQ_LATITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[5]},
+		{{REQUEST_FIELD_LONGITUDE,			FIELD_TYPE_DOUBLE,	REQ_LONGITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[6]},
+		{{REQUEST_FIELD_LANGUAGE,			FIELD_TYPE_STRING,	REQ_LANGUAGE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[7]},
+		{{REQUEST_FIELD_RADIUS,				FIELD_TYPE_DOUBLE,	REQ_RADIUS,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[8]},
 
 		//Ad
 		{{REQUEST_FIELD_PAGE_NUMBER,		FIELD_TYPE_LONG,	"pageNumber",		1,	{BING_SOURCETYPE_AD}},								&request_fields[9]},
@@ -57,16 +66,111 @@ static bing_field_search request_fields[] =
 		{{REQUEST_FIELD_FILE_TYPE,			FIELD_TYPE_STRING,	"filetype",			2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
 };
 
+#define DEFAULT_ELEMENT_COUNT 8
+
+typedef struct request_source_type_s
+{
+	enum SOURCE_TYPE type;
+	const char* source_type;
+	int maxElements;
+	request_get_options_func getOptions;
+
+	struct request_source_type_s* next;
+} request_source_type;
+
+typedef struct bundle_list_s
+{
+	int count;
+	int cap;
+	bing_request_t* requests;
+} bundle_list;
+
 const char* request_def_get_options(bing_request_t request)
 {
-	//TODO
-	return NULL;
+	bing_request* req;
+	char* ret = calloc(1, sizeof(char));
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+#define APPEND(fmt, key) append_data(req->data, (fmt), (key), &data, &cursize, &ret, &retSize);
+
+		APPEND("&Version=%s",		REQ_VERSION)
+		APPEND("&Market=%s",		REQ_MARKET)
+		APPEND("&Adult=%s",			REQ_ADULT)
+		APPEND("&Options=%s",		REQ_OPTIONS)
+		APPEND("&Latitude=%f",		REQ_LATITUDE)
+		APPEND("&Longitude=%f",		REQ_LONGITUDE)
+		APPEND("&UILanguage=%s",	REQ_LANGUAGE)
+		APPEND("&Radius=%f",		REQ_RADIUS)
+
+#undef APPEND
+
+		free(data);
+	}
+	return ret;
 }
 
 const char* request_bundle_get_options(bing_request_t request)
 {
-	//TODO
-	return NULL;
+	bing_request* req;
+	bing_request* inReq;
+	char* ret = NULL;
+	char* rett;
+	const char* options;
+	bundle_list* list = NULL;
+	size_t len = 0;
+	int i = 0;
+	if(request)
+	{
+		req = (bing_request*)request;
+
+		//Get the default options
+		ret = (char*)request_def_get_options(request);
+		if(ret)
+		{
+			len = strlen(ret) + 1;
+
+			//Go through all the bundled elements
+			hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
+			if(list && list->count > 0)
+			{
+				for(i = 0; i < list->count; i++)
+				{
+					inReq = (bing_request*)list->requests[i];
+
+					//Don't allow bundle's within bundles
+					if(!inReq->sourceType)
+					{
+						continue;
+					}
+
+					//Get the options
+					options = inReq->getOptions(list->requests[i]);
+					len += strlen(options);
+
+					//Resize the return data and append the results
+					rett = (char*)realloc(ret, len);
+					if(rett)
+					{
+						strlcat(rett, options, len);
+						ret = rett;
+					}
+
+					//Free the options
+					free((void*)options);
+				}
+			}
+		}
+	}
+	if(!ret)
+	{
+		ret = calloc(1, sizeof(char));
+	}
+	return ret;
 }
 
 //TODO: Do other special options
@@ -77,6 +181,7 @@ const char* request_custom_get_options(bing_request_t request)
 	const char* ret = NULL;
 	const char* custOptions;
 	char* resultOptions;
+	size_t size;
 	//Request exists, create the options string
 	if(request)
 	{
@@ -85,7 +190,7 @@ const char* request_custom_get_options(bing_request_t request)
 		ret = request_def_get_options(request);
 		custOptions = req->uGetOptions(request);
 
-		resultOptions = calloc(strlen(ret) + strlen(custOptions) + 2, sizeof(char));
+		resultOptions = calloc(size = strlen(ret) + strlen(custOptions) + 2, sizeof(char));
 		if(resultOptions)
 		{
 			//First copy in the default options
@@ -95,7 +200,7 @@ const char* request_custom_get_options(bing_request_t request)
 			free((void*)ret);
 
 			//Conc. the user options
-			strcat(resultOptions, custOptions);
+			strlcat(resultOptions, custOptions, size);
 
 			//Set the return
 			ret = resultOptions;
@@ -117,18 +222,6 @@ const char* request_custom_get_options(bing_request_t request)
 	}
 	return ret;
 }
-
-#define DEFAULT_ELEMENT_COUNT 8
-
-typedef struct request_source_type_s
-{
-	enum SOURCE_TYPE type;
-	const char* source_type;
-	int maxElements;
-	request_get_options_func getOptions;
-
-	struct request_source_type_s* next;
-} request_source_type;
 
 static request_source_type request_source_types[] =
 {
@@ -176,8 +269,50 @@ enum SOURCE_TYPE request_get_source_type(bing_request_t request)
 
 const char* request_get_bundle_sourcetype(bing_request* bundle)
 {
-	//TODO
-	return NULL;
+	char buffer[256];
+	char* result = calloc(1, sizeof(char));
+	size_t len = 1;
+	bundle_list* list = NULL;
+	int i;
+	char* src;
+	if(bundle && result)
+	{
+		//Get the list
+		hashtable_get_item(bundle->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
+		if(list && list->count > 0)
+		{
+			//Go through elements and get data
+			for(i = 0; i < list->count; i++)
+			{
+				src = (char*)((bing_request*)list->requests[i])->sourceType;
+				if(!src)
+				{
+					//We don't want bundle types within bundle types
+					continue;
+				}
+				//Get the source type in the proper format
+				if(i == 0)
+				{
+					strlcpy(buffer, src, 256);
+				}
+				else
+				{
+					snprintf(buffer, 256, "+%s", src);
+					buffer[255] = '\0';
+				}
+				//Get the length and resize the string
+				len += strlen(buffer);
+				src = (char*)realloc(result, len);
+				if(src)
+				{
+					//Append the source type
+					strlcat(src, buffer, len);
+					result = src;
+				}
+			}
+		}
+	}
+	return result;
 }
 
 int request_create(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, int tableSize)
@@ -196,6 +331,11 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 			req->data = hashtable_create(tableSize);
 			if(req->data)
 			{
+				//Add default values
+				hashtable_put_item(req->data, REQ_VERSION, DEFAULT_API_VERSION, strlen(DEFAULT_API_VERSION) + 1);
+				hashtable_put_item(req->data, REQ_MARKET, DEFAULT_SEARCH_MARKET, strlen(DEFAULT_SEARCH_MARKET) + 1);
+
+				//Save request
 				request[0] = req;
 				ret = TRUE;
 			}
@@ -264,12 +404,17 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
 //TODO: request_get_string
 //TODO: request_get_double
 
-typedef struct bundle_list_s
+void request_remove_parent_options(bing_request* request)
 {
-	int count;
-	int cap;
-	bing_request_t* requests;
-} bundle_list;
+	hashtable_remove_item(request->data, REQ_VERSION);
+	hashtable_remove_item(request->data, REQ_MARKET);
+	hashtable_remove_item(request->data, REQ_ADULT);
+	hashtable_remove_item(request->data, REQ_OPTIONS);
+	hashtable_remove_item(request->data, REQ_LATITUDE);
+	hashtable_remove_item(request->data, REQ_LONGITUDE);
+	hashtable_remove_item(request->data, REQ_LANGUAGE);
+	hashtable_remove_item(request->data, REQ_RADIUS);
+}
 
 int request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
 {
@@ -346,7 +491,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 					//If i != list->count then the item has been found
 					if(i == list->count)
 					{
-						//TODO: Remove all "parent options"
+						request_remove_parent_options((bing_request*)request_to_add);
 						requestList[i] = request_to_add;
 						ret = TRUE;
 					}

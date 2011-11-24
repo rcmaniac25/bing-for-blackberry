@@ -174,6 +174,7 @@ void initialize();
 void shutdown();
 
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType);
+void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize);
 
 //Dictionary functions
 hashtable_t* hashtable_create(int size);

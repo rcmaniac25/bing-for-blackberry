@@ -177,7 +177,7 @@ void ht_get_name(void* payload, void* data, xmlChar* name)
 	keys[index] = (char*)calloc(size, sizeof(char));
 	if(keys[index])
 	{
-		strcpy(keys[index], (char*)name);
+		strlcpy(keys[index], (char*)name, size);
 	}
 
 	*((int*)data) = index + 1;
