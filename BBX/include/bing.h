@@ -513,7 +513,8 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
  *
  * @return A boolean value which is non-zero for a successful data retrieval,
  * 	otherwise zero on error or invalid field. Note that for string types, the
- * 	length of the data in bytes is returned.
+ * 	length of the data in bytes is returned. If an error occurs on a string
+ * 	type then the result is -1.
  */
 
 int request_get_64bit_int(bing_request_t request, enum REQUEST_FIELD field, long long* value);
@@ -589,7 +590,8 @@ int request_custom_is_field_supported(bing_request_t request, const char* field)
  *
  * @return A boolean value which is non-zero for a successful data retrieval,
  * 	otherwise zero on error or invalid field. Note that for string types, the
- * 	length of the data in bytes is returned.
+ * 	length of the data in bytes is returned. If an error occurs on a string
+ * 	type then the result is -1.
  */
 
 int request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value);

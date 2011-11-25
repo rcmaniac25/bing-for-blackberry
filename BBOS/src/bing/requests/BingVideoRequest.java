@@ -36,7 +36,7 @@ public class BingVideoRequest extends BingRequest
 		
 		if(super.attrDict.containsKey("sortby"))
 		{
-			options.append(bing.Bing.format("&Web.FileType={0}", new Object[]{ super.attrDict.get("sortby") }));
+			options.append(bing.Bing.format("&Video.FileType={0}", new Object[]{ super.attrDict.get("sortby") }));
 		}
 		
 		if(super.attrDict.containsKey("offset"))

@@ -41,7 +41,7 @@ public class BingNewsRequest extends BingRequest
 		
 		if(super.attrDict.containsKey("sortby"))
 		{
-			options.append(bing.Bing.format("&News.Category={0}", new Object[]{ super.attrDict.get("sortby") }));
+			options.append(bing.Bing.format("&News.SortBy={0}", new Object[]{ super.attrDict.get("sortby") }));
 		}
 		
 		return options.toString();

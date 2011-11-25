@@ -18,6 +18,31 @@
 #define REQ_LANGUAGE "language"
 #define REQ_RADIUS "radius"
 
+#define REQ_AD_PAGENUMBER "pageNumber"
+#define REQ_AD_ADUNITID "adUnitId"
+#define REQ_AD_PROPID "propertyId"
+#define REQ_AD_CHANID "channelId"
+#define REQ_AD_MLCOUNT "mlAdcount"
+#define REQ_AD_SBCOUNT "sbAdCount"
+
+#define REQ_MW_OPTIONS "mobileWebOptions"
+
+#define REQ_NEWS_CAT "category"
+#define REQ_NEWS_LOCOVER "locationOverride"
+
+#define REQ_PHONE_LOCID "locId"
+
+#define REQ_TRANS_SOURCE "sourceLanguage"
+#define REQ_TRANS_TARGET "targetLanguage"
+
+#define REQ_WEB_OPTIONS "webOptions"
+
+#define REQ_MULTI_COUNT "count"
+#define REQ_MULTI_OFFSET "offset"
+#define REQ_MULTI_FILTERS "filters"
+#define REQ_MULTI_SORTBY "sortby"
+#define REQ_MULTI_FILETYPE "filetype"
+
 static bing_field_search request_fields[] =
 {
 		//Universal
@@ -31,42 +56,44 @@ static bing_field_search request_fields[] =
 		{{REQUEST_FIELD_RADIUS,				FIELD_TYPE_DOUBLE,	REQ_RADIUS,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[8]},
 
 		//Ad
-		{{REQUEST_FIELD_PAGE_NUMBER,		FIELD_TYPE_LONG,	"pageNumber",		1,	{BING_SOURCETYPE_AD}},								&request_fields[9]},
-		{{REQUEST_FIELD_AD_UNIT_ID,			FIELD_TYPE_LONG,	"adUnitId",			1,	{BING_SOURCETYPE_AD}},								&request_fields[10]},
-		{{REQUEST_FIELD_PROPERTY_ID,		FIELD_TYPE_LONG,	"propertyId",		1,	{BING_SOURCETYPE_AD}},								&request_fields[11]},
-		{{REQUEST_FIELD_CHANNEL_ID,			FIELD_TYPE_LONG,	"channelId",		1,	{BING_SOURCETYPE_AD}},								&request_fields[12]},
-		{{REQUEST_FIELD_MAINLINE_AD_COUNT,	FIELD_TYPE_LONG,	"mlAdcount",		1,	{BING_SOURCETYPE_AD}},								&request_fields[13]},
-		{{REQUEST_FIELD_SIDEBAR_AD_COUNT,	FIELD_TYPE_LONG,	"sbAdCount",		1,	{BING_SOURCETYPE_AD}},								&request_fields[14]},
+		{{REQUEST_FIELD_PAGE_NUMBER,		FIELD_TYPE_LONG,	REQ_AD_PAGENUMBER,	1,	{BING_SOURCETYPE_AD}},								&request_fields[9]},
+		{{REQUEST_FIELD_AD_UNIT_ID,			FIELD_TYPE_LONG,	REQ_AD_ADUNITID,	1,	{BING_SOURCETYPE_AD}},								&request_fields[10]},
+		{{REQUEST_FIELD_PROPERTY_ID,		FIELD_TYPE_LONG,	REQ_AD_PROPID,		1,	{BING_SOURCETYPE_AD}},								&request_fields[11]},
+		{{REQUEST_FIELD_CHANNEL_ID,			FIELD_TYPE_LONG,	REQ_AD_CHANID,		1,	{BING_SOURCETYPE_AD}},								&request_fields[12]},
+		{{REQUEST_FIELD_MAINLINE_AD_COUNT,	FIELD_TYPE_LONG,	REQ_AD_MLCOUNT,		1,	{BING_SOURCETYPE_AD}},								&request_fields[13]},
+		{{REQUEST_FIELD_SIDEBAR_AD_COUNT,	FIELD_TYPE_LONG,	REQ_AD_SBCOUNT,		1,	{BING_SOURCETYPE_AD}},								&request_fields[14]},
 
 		//MobileWeb
-		{{REQUEST_FIELD_MOBILE_WEB_OPTIONS,	FIELD_TYPE_STRING,	"mobileWebOptions",	1,	{BING_SOURCETYPE_MOBILE_WEB}},						&request_fields[15]},
+		{{REQUEST_FIELD_MOBILE_WEB_OPTIONS,	FIELD_TYPE_STRING,	REQ_MW_OPTIONS,		1,	{BING_SOURCETYPE_MOBILE_WEB}},						&request_fields[15]},
 
 		//News
-		{{REQUEST_FIELD_CATEGORY,			FIELD_TYPE_STRING,	"category",			1,	{BING_SOURCETYPE_NEWS}},							&request_fields[16]},
-		{{REQUEST_FIELD_LOCATION_OVERRIDE,	FIELD_TYPE_STRING,	"locationOverride",	1,	{BING_SOURCETYPE_NEWS}},							&request_fields[17]},
+		{{REQUEST_FIELD_CATEGORY,			FIELD_TYPE_STRING,	REQ_NEWS_CAT,		1,	{BING_SOURCETYPE_NEWS}},							&request_fields[16]},
+		{{REQUEST_FIELD_LOCATION_OVERRIDE,	FIELD_TYPE_STRING,	REQ_NEWS_LOCOVER,	1,	{BING_SOURCETYPE_NEWS}},							&request_fields[17]},
 
 		//Phonebook
-		{{REQUEST_FIELD_LOC_ID,				FIELD_TYPE_STRING,	"locId",			1,	{BING_SOURCETYPE_PHONEBOOK}},						&request_fields[18]},
+		{{REQUEST_FIELD_LOC_ID,				FIELD_TYPE_STRING,	REQ_PHONE_LOCID,	1,	{BING_SOURCETYPE_PHONEBOOK}},						&request_fields[18]},
 
 		//Translation
-		{{REQUEST_FIELD_SOURCE_LANGUAGE,	FIELD_TYPE_STRING,	"sourceLanguage",	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[19]},
-		{{REQUEST_FIELD_TARGET_LANGUAGE,	FIELD_TYPE_STRING,	"targetLanguage",	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[20]},
+		{{REQUEST_FIELD_SOURCE_LANGUAGE,	FIELD_TYPE_STRING,	REQ_TRANS_SOURCE,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[19]},
+		{{REQUEST_FIELD_TARGET_LANGUAGE,	FIELD_TYPE_STRING,	REQ_TRANS_TARGET,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[20]},
 
 		//Web
-		{{REQUEST_FIELD_WEB_OPTIONS,		FIELD_TYPE_STRING,	"webOptions",		1,	{BING_SOURCETYPE_WEB}},								&request_fields[21]},
+		{{REQUEST_FIELD_WEB_OPTIONS,		FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[21]},
 
 		//Multi (less obvious breaks in original source type)
-		{{REQUEST_FIELD_COUNT,				FIELD_TYPE_LONG,	"count",			6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
+		{{REQUEST_FIELD_COUNT,				FIELD_TYPE_LONG,	REQ_MULTI_COUNT,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
 				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},								&request_fields[22]},
-		{{REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	"offset",			6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
+		{{REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_MULTI_OFFSET,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
 				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},								&request_fields[23]},
-		{{REQUEST_FIELD_FILTERS,			FIELD_TYPE_STRING,	"filters",			2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[24]},
-		{{REQUEST_FIELD_SORT_BY,			FIELD_TYPE_STRING,	"sortby",			3,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
+		{{REQUEST_FIELD_FILTERS,			FIELD_TYPE_STRING,	REQ_MULTI_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[24]},
+		{{REQUEST_FIELD_SORT_BY,			FIELD_TYPE_STRING,	REQ_MULTI_SORTBY,	3,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
 				BING_SOURCETYPE_VIDEO}},																									&request_fields[25]},
-		{{REQUEST_FIELD_FILE_TYPE,			FIELD_TYPE_STRING,	"filetype",			2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
+		{{REQUEST_FIELD_FILE_TYPE,			FIELD_TYPE_STRING,	REQ_MULTI_FILETYPE,	2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
 };
 
 #define DEFAULT_ELEMENT_COUNT 8
+
+#define APPEND(fmt, key) append_data(req->data, (fmt), (key), &data, &cursize, &ret, &retSize);
 
 typedef struct request_source_type_s
 {
@@ -96,8 +123,6 @@ const char* request_def_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-#define APPEND(fmt, key) append_data(req->data, (fmt), (key), &data, &cursize, &ret, &retSize);
-
 		APPEND("&Version=%s",		REQ_VERSION)
 		APPEND("&Market=%s",		REQ_MARKET)
 		APPEND("&Adult=%s",			REQ_ADULT)
@@ -106,8 +131,6 @@ const char* request_def_get_options(bing_request_t request)
 		APPEND("&Longitude=%f",		REQ_LONGITUDE)
 		APPEND("&UILanguage=%s",	REQ_LANGUAGE)
 		APPEND("&Radius=%f",		REQ_RADIUS)
-
-#undef APPEND
 
 		free(data);
 	}
@@ -173,7 +196,173 @@ const char* request_bundle_get_options(bing_request_t request)
 	return ret;
 }
 
-//TODO: Do other special options
+const char* request_ad_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&Ad.PageNumber=%llu",	REQ_AD_PAGENUMBER)
+		APPEND("&Ad.AdUnitId=%llu",		REQ_AD_ADUNITID)
+		APPEND("&Ad.PropertyId=%llu",	REQ_AD_PROPID)
+		APPEND("&Ad.ChannelId=%s",		REQ_AD_CHANID)
+		APPEND("&Ad.MlAdcount=%llu",	REQ_AD_MLCOUNT)
+		APPEND("&Ad.SbAdCount=%llu",	REQ_AD_SBCOUNT)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_image_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&Image.Count=%llu",		REQ_MULTI_COUNT)
+		APPEND("&Image.Offset=%llu",	REQ_MULTI_OFFSET)
+		APPEND("&Image.Filters=%s",		REQ_MULTI_FILTERS)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_mw_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&MobileWeb.Count=%llu",		REQ_MULTI_COUNT)
+		APPEND("&MobileWeb.Offset=%llu",	REQ_MULTI_OFFSET)
+		APPEND("&MobileWeb.Options=%s",		REQ_MW_OPTIONS)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_news_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&News.Count=%llu",			REQ_MULTI_COUNT)
+		APPEND("&News.Offset=%llu",			REQ_MULTI_OFFSET)
+		APPEND("&News.Category=%s",			REQ_NEWS_CAT)
+		APPEND("&News.LocationOverride=%s",	REQ_NEWS_LOCOVER)
+		APPEND("&News.SortBy=%s",			REQ_MULTI_SORTBY)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_phone_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&Phonebook.Count=%llu",		REQ_MULTI_COUNT)
+		APPEND("&Phonebook.Offset=%llu",	REQ_MULTI_OFFSET)
+		APPEND("&Phonebook.FileType=%s",	REQ_MULTI_FILETYPE)
+		APPEND("&Phonebook.LocId=%s",		REQ_PHONE_LOCID)
+		APPEND("&Phonebook.SortBy=%s",		REQ_MULTI_SORTBY)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_transl_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&Translation.SourceLanguage=%s",	REQ_TRANS_SOURCE)
+		APPEND("&Translation.TargetLanguage=%s",	REQ_TRANS_TARGET)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_video_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&Video.Count=%llu",		REQ_MULTI_COUNT)
+		APPEND("&Video.Offset=%llu",	REQ_MULTI_OFFSET)
+		APPEND("&Video.Filters=%s",		REQ_MULTI_FILTERS)
+		APPEND("&Video.FileType=%s",	REQ_MULTI_SORTBY)
+
+		free(data);
+	}
+	return ret;
+}
+
+const char* request_web_get_options(bing_request_t request)
+{
+	bing_request* req;
+	char* ret = (char*)request_def_get_options(request);
+	void* data = NULL;
+	size_t cursize = 0;
+	size_t retSize = strlen(ret) + 1;
+	if(request && ret)
+	{
+		req = (bing_request*)request;
+
+		APPEND("&Web.Count=%llu",	REQ_MULTI_COUNT)
+		APPEND("&Web.Offset=%llu",	REQ_MULTI_OFFSET)
+		APPEND("&Web.FileType=%s",	REQ_MULTI_FILETYPE)
+		APPEND("&Web.Options=%s",	REQ_WEB_OPTIONS)
+
+		free(data);
+	}
+	return ret;
+}
 
 const char* request_custom_get_options(bing_request_t request)
 {
@@ -225,19 +414,17 @@ const char* request_custom_get_options(bing_request_t request)
 
 static request_source_type request_source_types[] =
 {
-		//Unsure if capitalization is required or not, leave it like this since it worked for the BBOS version
-		//TODO: Replace null options
-		{BING_SOURCETYPE_AD,				"Ad",				DEFAULT_ELEMENT_COUNT + 6,	NULL,						&request_source_types[1]},
-		{BING_SOURCETYPE_IMAGE,				"image",			DEFAULT_ELEMENT_COUNT + 3,	NULL,						&request_source_types[2]},
-		{BING_SOURCETYPE_INSTANT_ANWSER,	"InstantAnswer",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]},
-		{BING_SOURCETYPE_MOBILE_WEB,		"MobileWeb",		DEFAULT_ELEMENT_COUNT + 3,	NULL,						&request_source_types[4]},
-		{BING_SOURCETYPE_NEWS,				"news",				DEFAULT_ELEMENT_COUNT + 5,	NULL,						&request_source_types[5]},
-		{BING_SOURCETYPE_PHONEBOOK,			"phonebook",		DEFAULT_ELEMENT_COUNT + 5,	NULL,						&request_source_types[6]},
-		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[7]},
-		{BING_SOURCETYPE_SPELL,				"Spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[8]},
-		{BING_SOURCETYPE_TRANSLATION,		"Translation",		DEFAULT_ELEMENT_COUNT + 2,	NULL,						&request_source_types[9]},
-		{BING_SOURCETYPE_VIDEO,				"video",			DEFAULT_ELEMENT_COUNT + 4,	NULL,						&request_source_types[10]},
-		{BING_SOURCETYPE_WEB,				"web",				DEFAULT_ELEMENT_COUNT + 4,	NULL,						NULL}
+		{BING_SOURCETYPE_AD,				"ad",				DEFAULT_ELEMENT_COUNT + 6,	request_ad_get_options,		&request_source_types[1]},
+		{BING_SOURCETYPE_IMAGE,				"image",			DEFAULT_ELEMENT_COUNT + 3,	request_image_get_options,	&request_source_types[2]},
+		{BING_SOURCETYPE_INSTANT_ANWSER,	"instantAnswer",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]},
+		{BING_SOURCETYPE_MOBILE_WEB,		"mobileWeb",		DEFAULT_ELEMENT_COUNT + 3,	request_mw_get_options,		&request_source_types[4]},
+		{BING_SOURCETYPE_NEWS,				"news",				DEFAULT_ELEMENT_COUNT + 5,	request_news_get_options,	&request_source_types[5]},
+		{BING_SOURCETYPE_PHONEBOOK,			"phonebook",		DEFAULT_ELEMENT_COUNT + 5,	request_phone_get_options,	&request_source_types[6]},
+		{BING_SOURCETYPE_RELATED_SEARCH,	"relatedSearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[7]},
+		{BING_SOURCETYPE_SPELL,				"spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[8]},
+		{BING_SOURCETYPE_TRANSLATION,		"translation",		DEFAULT_ELEMENT_COUNT + 2,	request_transl_get_options,	&request_source_types[9]},
+		{BING_SOURCETYPE_VIDEO,				"video",			DEFAULT_ELEMENT_COUNT + 4,	request_video_get_options,	&request_source_types[10]},
+		{BING_SOURCETYPE_WEB,				"web",				DEFAULT_ELEMENT_COUNT + 4,	request_web_get_options,	NULL}
 };
 
 enum SOURCE_TYPE request_get_source_type(bing_request_t request)
@@ -400,9 +587,65 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
 	return ret;
 }
 
-//TODO: request_get_64bit_int
-//TODO: request_get_string
-//TODO: request_get_double
+int request_get_data_key(bing_request_t request, const char* key, void* value, size_t size)
+{
+	BOOL ret = FALSE;
+	if(request && value)
+	{
+		//Now get the data (we want to check sizes first so we don't copy something bigger into something smaller)
+		if(hashtable_get_item(((bing_request*)request)->data, key, NULL) == size)
+		{
+			hashtable_get_item(((bing_request*)request)->data, key, value);
+			ret = TRUE;
+		}
+	}
+	return ret;
+}
+
+int request_get_data(bing_request_t request, enum REQUEST_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
+{
+	BOOL ret = FALSE;
+	const char* key;
+	if(request && value)
+	{
+		//Get the key
+		key = find_field(request_fields, field, type, request_get_source_type(request), TRUE);
+
+		//Now get the data
+		ret = request_get_data_key(request, key, value, size);
+	}
+	return ret;
+}
+
+int request_get_str_data(bing_request_t request, enum REQUEST_FIELD field, enum FIELD_TYPE type, char* value)
+{
+	int ret = -1;
+	const char* key;
+	if(request && value)
+	{
+		//Get the key
+		key = find_field(request_fields, field, type, request_get_source_type(request), TRUE);
+
+		//Now get the data
+		ret = request_custom_get_string(request, key, value);
+	}
+	return ret;
+}
+
+int request_get_64bit_int(bing_request_t request, enum REQUEST_FIELD field, long long* value)
+{
+	return request_get_data(request, field, FIELD_TYPE_LONG, value, sizeof(long long));
+}
+
+int request_get_string(bing_request_t request, enum REQUEST_FIELD field, char* value)
+{
+	return request_get_str_data(request, field, FIELD_TYPE_STRING, value);
+}
+
+int request_get_double(bing_request_t request, enum REQUEST_FIELD field, double* value)
+{
+	return request_get_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
+}
 
 void request_remove_parent_options(bing_request* request)
 {
@@ -533,22 +776,84 @@ void free_request(bing_request_t request)
 int request_custom_is_field_supported(bing_request_t request, const char* field)
 {
 	BOOL ret = FALSE;
-	bing_request* req;
 	if(request && field)
 	{
-		req = (bing_request*)request;
-		ret = hashtable_key_exists(req->data, field) != -1;
+		ret = hashtable_key_exists(((bing_request*)request)->data, field) != -1;
 	}
 	return ret;
 }
 
-//TODO: request_custom_get_64bit_int
-//TODO: request_custom_get_string
-//TODO: request_custom_get_double
+int request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value)
+{
+	return request_get_data_key(request, field, value, sizeof(long long));
+}
 
-//TODO: request_custom_set_64bit_int
-//TODO: request_custom_set_string
-//TODO: request_custom_set_double
+int request_custom_get_string(bing_request_t request, const char* field, char* value)
+{
+	int ret = -1;
+	if(request)
+	{
+		//Now get the data
+		ret = hashtable_get_item(((bing_request*)request)->data, field, value);
+	}
+	return ret;
+}
+
+int request_custom_get_double(bing_request_t request, const char* field, double* value)
+{
+	return request_get_data_key(request, field, value, sizeof(double));
+}
+
+int request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	if(request && field)
+	{
+		req = (bing_request*)request;
+		if(!value && hashtable_get_item(req->data, field, NULL) != -1)
+		{
+			hashtable_remove_item(req->data, field);
+		}
+		else if(value)
+		{
+			if(hashtable_put_item(req->data, field, value, sizeof(long long)) != -1)
+			{
+				ret =  TRUE;
+			}
+		}
+	}
+	return ret;
+}
+
+int request_custom_set_string(bing_request_t request, const char* field, const char* value)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	if(request && field)
+	{
+		req = (bing_request*)request;
+		if(!value && hashtable_get_item(req->data, field, NULL) != -1)
+		{
+			hashtable_remove_item(req->data, field);
+		}
+		else if(value)
+		{
+			if(hashtable_put_item(req->data, field, value, strlen(value) + 1) != -1)
+			{
+				ret =  TRUE;
+			}
+		}
+	}
+	return ret;
+}
+
+int request_custom_set_double(bing_request_t request, const char* field, double* value)
+{
+	//This needs to be true in order for this function to work
+	assert(sizeof(double) == sizeof(long long));
+	return request_custom_set_64bit_int(request, field, (long long*)value);
+}
 
 int request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func)
 {
@@ -556,10 +861,23 @@ int request_create_custom_request(const char* source_type, bing_request_t* reque
 	BOOL ret = FALSE;
 	request_get_options_func uGet;
 	request_finish_get_options_func uDone;
+	request_source_type* type;
 
-	//TODO: Need to do non-case sensitive source_type comp
+	//Only do the comparison if a source type exists, otherwise it will fail regardless when request creation occurs.
+	if(source_type)
+	{
+		for(type = request_source_types; type; type = type->next)
+		{
+			if(stricmp(source_type, type->source_type) == 0)
+			{
+				//Source types can't match built in types, fail the function
+				source_type = NULL;
+				break;
+			}
+		}
+	}
 
-	if(source_type && get_options_func)
+	if(source_type)
 	{
 		if(get_options_func)
 		{

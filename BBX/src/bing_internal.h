@@ -180,7 +180,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 hashtable_t* hashtable_create(int size);
 void hashtable_free(hashtable_t* table);
 int hashtable_key_exists(hashtable_t* table, const char* key);
-int hashtable_put_item(hashtable_t* table, const char* key, void* data, size_t data_size);
+int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
 int hashtable_get_item(hashtable_t* table, const char* name, void* data);
 int hashtable_remove_item(hashtable_t* table, const char* key);
 int hashtable_get_keys(hashtable_t* table, char** keys);
