@@ -119,6 +119,18 @@ int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field)
 	return ret;
 }
 
+void free_result(bing_result* result, BOOL freeObject)
+{
+	if(result)
+	{
+		hashtable_free(result->data);
+		if(freeObject)
+		{
+			free(result);
+		}
+	}
+}
+
 //TODO: result_get_64bit_int
 //TODO: result_get_string
 //TODO: result_get_double
@@ -149,6 +161,109 @@ int result_custom_is_field_supported(bing_result_t result, const char* field)
 //TODO: result_custom_set_boolean
 //TODO: result_custom_set_array
 
-//TODO: result_register_result_creator
+int result_register_result_creator(const char* name, result_creation_func creation_func, result_additional_result_func additional_func)
+{
+	BOOL ret = FALSE;
+	BOOL cont = TRUE;
+	unsigned int i;
+	bing_result_creator* c;
+	char* nName;
+	size_t size;
+	if(name && creation_func)
+	{
+		//TODO: check if the name is a standard supported name, if so return
 
-//TODO: result_unregister_result_creator
+		if(cont)
+		{
+			pthread_mutex_lock(&bingSystem.mutex);
+
+			//Go through all registered creators and make sure it doesn't already exist
+			i = 0;
+			while(i < bingSystem.bingResultCreatorCount && cont)
+			{
+				if(strcmp(bingSystem.bingResultCreators[i++].name, name) == 0)
+				{
+					cont = FALSE;
+				}
+			}
+
+			if(cont)
+			{
+				//Reproduce the name
+				size = strlen(name) + 1;
+				nName = malloc(size);
+
+				if(nName)
+				{
+					strlcpy(nName, name, size);
+
+					//Create the new version of the name
+					c = (bing_result_creator*)realloc(bingSystem.bingResultCreators, sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount + 1));
+
+					if(c)
+					{
+						bingSystem.bingResultCreators = c;
+
+						c[bingSystem.bingResultCreatorCount].name = nName;
+						c[bingSystem.bingResultCreatorCount].creation = creation_func;
+						c[bingSystem.bingResultCreatorCount++].additionalResult = additional_func;
+
+						ret = TRUE;
+					}
+					else
+					{
+						free(nName);
+					}
+				}
+			}
+
+			pthread_mutex_unlock(&bingSystem.mutex);
+		}
+	}
+	return ret;
+}
+
+int result_unregister_result_creator(const char* name)
+{
+	BOOL ret = FALSE;
+	unsigned int i;
+	bing_result_creator* c;
+	if(name && bingSystem.bingResultCreatorCount > 0) //We don't want to run if there is nothing to run on
+	{
+		pthread_mutex_lock(&bingSystem.mutex);
+
+		//Find the result
+		i = 0;
+		while(i < bingSystem.bingResultCreatorCount)
+		{
+			if(strcmp(bingSystem.bingResultCreators[i].name, name) == 0)
+			{
+				break;
+			}
+			i++;
+		}
+
+		if(i < bingSystem.bingResultCreatorCount)
+		{
+			//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
+			c = (bing_result_creator*)malloc(sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount - 1));
+
+			if(c)
+			{
+				//If this is the last result then it's easy, we just free the data
+				if(i != bingSystem.bingResultCreatorCount - 1)
+				{
+					memmove(bingSystem.bingResultCreators + i, bingSystem.bingResultCreators + (i + 1), (bingSystem.bingResultCreatorCount - i - 1) * sizeof(bing_result_creator));
+				}
+				memcpy(c, bingSystem.bingResultCreators, (--bingSystem.bingResultCreatorCount) * sizeof(bing_result_creator));
+				free(bingSystem.bingResultCreators);
+				bingSystem.bingResultCreators = c;
+
+				ret = TRUE;
+			}
+		}
+
+		pthread_mutex_unlock(&bingSystem.mutex);
+	}
+	return ret;
+}

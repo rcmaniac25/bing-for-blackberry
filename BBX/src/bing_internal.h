@@ -55,16 +55,6 @@ __BEGIN_DECLS
  * Structures
  */
 
-typedef struct BING_S
-{
-	pthread_mutex_t mutex;
-
-	char* appId;
-#if defined(BING_DEBUG)
-	BOOL errorRet;
-#endif
-} bing;
-
 enum FIELD_TYPE
 {
 	FIELD_TYPE_UNKNOWN,
@@ -120,6 +110,7 @@ typedef struct BING_RESULT_S
 typedef struct BING_RESPONSE_S
 {
 	enum SOURCE_TYPE type;
+	unsigned int bing;
 
 	//These will never be NULL
 	response_creation_func creation;
@@ -128,6 +119,19 @@ typedef struct BING_RESPONSE_S
 	int resultCount;
 	bing_result* results;
 } bing_response;
+
+typedef struct BING_S
+{
+	pthread_mutex_t mutex;
+
+	char* appId;
+#if defined(BING_DEBUG)
+	BOOL errorRet;
+#endif
+
+	int responseCount;
+	bing_response** responses;
+} bing;
 
 typedef struct BING_RESPONSE_CREATOR_S
 {
@@ -150,6 +154,12 @@ typedef struct BING_SYSTEM_S
 
 	int bingInstancesCount;
 	bing** bingInstances;
+
+	int bingResponseCreatorCount;
+	bing_response_creator* bingResponseCreators;
+
+	int bingResultCreatorCount;
+	bing_result_creator* bingResultCreators;
 } bing_system;
 
 /*
@@ -186,6 +196,7 @@ int hashtable_remove_item(hashtable_t* table, const char* key);
 int hashtable_get_keys(hashtable_t* table, char** keys);
 
 const char* request_get_bundle_sourcetype(bing_request* bundle);
+void free_result(bing_result* result, BOOL freeObject);
 //TODO: creation of requests, responses, result, etc.
 
 __END_DECLS

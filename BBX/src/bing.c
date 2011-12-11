@@ -22,24 +22,43 @@ void initialize()
 		bingSystem.domainID = bps_register_domain();
 		bingSystem.bingInstancesCount = 0;
 		bingSystem.bingInstances = NULL;
+		bingSystem.bingResponseCreatorCount = 0;
+		bingSystem.bingResultCreatorCount = 0;
+		bingSystem.bingResponseCreators = NULL;
+		bingSystem.bingResultCreators = NULL;
 		pthread_mutex_init(&bingSystem.mutex, NULL);
 	}
 }
 
 void shutdown()
 {
-	unsigned int i = 1;
+	unsigned int i = 0;
 	if(initialized)
 	{
-		//TODO: Free registered response and result creators
+		//Free all the creator strings, then the creators themselves
+		while(bingSystem.bingResponseCreatorCount > 0)
+		{
+			free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
+		}
+		while(bingSystem.bingResultCreatorCount > 0)
+		{
+			free((void*)bingSystem.bingResultCreators[--bingSystem.bingResultCreatorCount].name);
+		}
+		free(bingSystem.bingResponseCreators);
+		free(bingSystem.bingResultCreators);
+		bingSystem.bingResponseCreators = NULL;
+		bingSystem.bingResultCreators = NULL;
 
+		//Free and the Bing instances
 		while(bingSystem.bingInstancesCount > 0)
 		{
 			if(bingSystem.bingInstances[i])
 			{
-				free_bing(i++);
+				free_bing(++i);
 			}
 		}
+
+		//Reset the instance system
 		bingSystem.bingInstancesCount = 0;
 		free(bingSystem.bingInstances);
 		bingSystem.bingInstances = NULL;
@@ -103,9 +122,8 @@ unsigned int create_bing(const char* application_ID)
 		if(in)
 		{
 			//Reset instances
-			in[bingSystem.bingInstancesCount - 1] = NULL;
+			in[bingSystem.bingInstancesCount++] = NULL;
 			bingSystem.bingInstances = in;
-			bingSystem.bingInstancesCount++;
 
 			//Find a free index
 			loc = findFreeIndex();
@@ -198,7 +216,13 @@ void free_bing(unsigned int bingID)
 
 			pthread_mutex_lock(&bingI->mutex);
 
-			//TODO: Free all unfreed responses and results
+			//Free the responses themselves
+			while(bingI->responseCount > 0)
+			{
+				free_response((bing_response_t)bingI->responses[bingI->responseCount - 1]);
+			}
+			free(bingI->responses);
+
 			free(bingI->appId);
 
 			pthread_mutex_destroy(&bingI->mutex);

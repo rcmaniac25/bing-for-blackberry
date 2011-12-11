@@ -1008,7 +1008,8 @@ int response_custom_set_array(bing_response_t response, const char* field, const
  * @param name The name associated with the response. Only unsupported
  * 	names can be registered. For example, the name "web:Web"
  * 	is for a web response type. If this was passed in, it would fail.
- * 	Names are the XML names that returned by the Bing service.
+ * 	Names are the XML names that returned by the Bing service. If the
+ * 	name already exists then this function fails.
  * @param creation_func The function that handles any data passed in to
  * 	a response. This function is required.
  * @param additional_func The function that handles any additional
@@ -1289,7 +1290,8 @@ int result_custom_set_array(bing_result_t result, const char* field, const void*
  * @param name The name associated with the result. Only unsupported
  * 	names can be registered. For example, the name "web:WebResult"
  * 	is for a web result type. If this was passed in, it would fail.
- * 	Names are the XML names that returned by the Bing service.
+ * 	Names are the XML names that returned by the Bing service. If the
+ * 	name already exists then this function fails.
  * @param creation_func The function that handles any data passed in to
  * 	a result. This function is required.
  * @param additional_func The function that handles any additional
@@ -1311,7 +1313,7 @@ int result_register_result_creator(const char* name, result_creation_func creati
  * 	as the name passed into result_register_result_creator.
  *
  * @return A boolean value which is non-zero for a successful registration,
- * 	otherwise zero on error.S
+ * 	otherwise zero on error.
  */
 int result_unregister_result_creator(const char* name);
 
