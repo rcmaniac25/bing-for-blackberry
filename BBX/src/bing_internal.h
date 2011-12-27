@@ -10,7 +10,7 @@
 #ifndef BING_INTERNAL_H_
 #define BING_INTERNAL_H_
 
-#include "bing.h"
+#include "bing_cpp.h" //Use this version since it includes bing.h
 
 #include <string.h>
 #include <stdio.h>
@@ -44,6 +44,7 @@ __BEGIN_DECLS
 #endif
 
 #define REQUEST_BUNDLE_SUBBUNDLES_STR "bb_req_bundle_sub-bundles"
+#define RESPONSE_BUNDLE_SUBBUNDLES_STR "bb_res_bundle_sub-bundles"
 
 #define RESPONSE_TOTAL_STR "bb_res_total"
 #define RESPONSE_OFFSET_STR "bb_res_offset"
@@ -117,7 +118,7 @@ typedef struct BING_RESPONSE_S
 	response_additional_data_func additionalData;
 	hashtable_t* data;
 	int resultCount;
-	bing_result* results;
+	bing_result_t* results;
 } bing_response;
 
 typedef struct BING_S
@@ -129,7 +130,7 @@ typedef struct BING_S
 	BOOL errorRet;
 #endif
 
-	int responseCount;
+	unsigned int responseCount;
 	bing_response** responses;
 } bing;
 
@@ -161,6 +162,16 @@ typedef struct BING_SYSTEM_S
 	int bingResultCreatorCount;
 	bing_result_creator* bingResultCreators;
 } bing_system;
+
+typedef struct list_s
+{
+	int count;
+	int cap;
+	void* listElements;
+} list;
+
+#define LIST_ELEMENTS(l, t) ((t*)l->listElements)
+#define LIST_ELEMENT(l, i, t) (((t*)l->listElements)[i])
 
 /*
  * Variables
@@ -194,10 +205,17 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 int hashtable_get_item(hashtable_t* table, const char* name, void* data);
 int hashtable_remove_item(hashtable_t* table, const char* key);
 int hashtable_get_keys(hashtable_t* table, char** keys);
+//-Helper dictionary functions
+int hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size);
+int hashtable_get_string(hashtable_t* table, const char* field, char* value);
+int hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size);
 
+bing* retrieveBing(unsigned int bingID);
 const char* request_get_bundle_sourcetype(bing_request* bundle);
-void free_result(bing_result* result, BOOL freeObject);
-//TODO: creation of requests, responses, result, etc.
+int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
+int response_add_result(bing_response* response, bing_result* result);
+void free_result(bing_result* result);
+//TODO: creation of responses, result, etc.
 
 __END_DECLS
 

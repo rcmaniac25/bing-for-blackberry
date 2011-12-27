@@ -87,25 +87,261 @@ int response_get_results(bing_response_t response, bing_result_t* results)
 	return ret;
 }
 
-//TODO: Create response (don't forget to add to bing.responses)
+int response_add_result(bing_response* response, bing_result* result)
+{
+	BOOL ret = FALSE;
+	int i;
+	bing_result_t* resultList;
+	if(response && result)
+	{
+		for(i = 0; i < response->resultCount; i++)
+		{
+			if(response->results[i] == result)
+			{
+				break;
+			}
+		}
+		if(i == response->resultCount) //Result not found, add it
+		{
+			resultList = (bing_result_t*)realloc(response->results, (response->resultCount + 1) * sizeof(bing_result_t));
+			if(resultList)
+			{
+				response->results = resultList;
+				resultList[response->resultCount++] = result;
+				ret = TRUE;
+			}
+		}
+	}
+	return ret;
+}
 
-//TODO: Add result
+void response_add_to_bing(bing_response* res)
+{
+	bing_response** t;
+	bing* bing = retrieveBing(res->bing);
 
-void free_response(bing_response_t response)
+	if(bing)
+	{
+		//Make sure this is locked and isn't changed on multiple threads
+		pthread_mutex_lock(&bing->mutex);
+
+		//XXX Should a check be made to see if the response has been added already?
+
+		t = realloc(bing->responses, (bing->responseCount + 1) * sizeof(bing_response*));
+		if(t)
+		{
+			bing->responses = t;
+			t[bing->responseCount++] = res;
+		}
+
+		pthread_mutex_unlock(&bing->mutex);
+	}
+}
+
+void response_remove_from_bing(bing_response* res, BOOL bundle_free)
+{
+	bing* bing;
+	bing_response** t;
+	unsigned int pos;
+
+	//Don't run for bundled responses (they are not included within Bing)
+	if(!bundle_free)
+	{
+		//Get the bing response
+		bing = retrieveBing(res->bing);
+		if(bing)
+		{
+			//Make sure this is locked and isn't changed on multiple threads
+			pthread_mutex_lock(&bing->mutex);
+
+			//Find the component
+			for(pos = 0; pos < bing->responseCount; pos++)
+			{
+				if(bing->responses[pos] == res)
+				{
+					//Found the response
+					if(pos == bing->responseCount - 1)
+					{
+						//Simply remove the last item
+						t = realloc(bing->responses, (bing->responseCount - 1) * sizeof(bing_response*));
+						if(t)
+						{
+							bing->responses = t;
+							bing->responseCount--;
+						}
+					}
+					else
+					{
+						//Create a new array and copy responses into it
+						t = malloc((bing->responseCount - 1) * sizeof(bing_response*));
+						if(t)
+						{
+							memcpy(t, bing->responses, pos * sizeof(bing_response*));
+							memcpy(t + pos, bing->responses + pos + 1, (bing->responseCount - pos - 1) * sizeof(bing_response*));
+
+							free(bing->responses);
+							bing->responses = t;
+
+							bing->responseCount--;
+						}
+					}
+
+					//Stop execution
+					break;
+				}
+			}
+
+			pthread_mutex_unlock(&bing->mutex);
+		}
+	}
+}
+
+int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
+{
+	BOOL ret = FALSE;
+	bing_response* res;
+	list* list_v = NULL;
+	bing_response_t* responseList = NULL;
+	if(response &&
+			(!(responseParent && responseParent->bing == 0) || bing > 0)) //We only want a response to be created if it is destined to be a either a parent or child response, not a child of a child response.
+	{
+		res = (bing_response*)malloc(sizeof(bing_response));
+		if(res)
+		{
+			//Set data
+			res->type = type;
+			res->bing = responseParent ? 0 : bing;
+
+			res->creation = creation;
+			res->additionalData = additionalData;
+
+			res->resultCount = 0;
+			res->results = NULL;
+
+			//Create hashtable
+			res->data = hashtable_create(tableSize);
+			if(res->data)
+			{
+				if(res->bing != 0)
+				{
+					//Add response to Bing object
+					response_add_to_bing(res);
+
+					//Save response
+					response[0] = res;
+					ret = TRUE;
+				}
+				else
+				{
+					//Add response to bundle
+					if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+					{
+						//Get the list
+						responseList = LIST_ELEMENTS(list_v, bing_response_t);
+					}
+					else
+					{
+						//Create the list
+						list_v = (list*)malloc(sizeof(list));
+						if(list_v)
+						{
+							list_v->count = 0;
+							responseList = list_v->listElements = (bing_response_t*)calloc(11, sizeof(bing_response_t));
+							if(list_v->listElements)
+							{
+								//Save the list
+								list_v->cap = 11;
+								if(hashtable_put_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
+								{
+									//List creation failed, cleanup
+									free(list_v);
+									list_v = NULL;
+								}
+							}
+							else
+							{
+								//List creation failed, cleanup
+								free(list_v);
+								list_v = NULL;
+							}
+						}
+					}
+					if(list_v)
+					{
+						if(list_v->count >= list_v->cap)
+						{
+							//Resize list
+							responseList = (bing_response_t*)realloc(responseList, sizeof(bing_response_t) * (list_v->cap * 2));
+							if(responseList)
+							{
+								list_v->cap *= 2;
+								list_v->listElements = responseList;
+							}
+							else
+							{
+								responseList = NULL;
+							}
+						}
+						if(responseList)
+						{
+							//Add the response to list
+							responseList[list_v->count++] = res;
+
+							//Save response
+							response[0] = res;
+							ret = TRUE;
+						}
+						else
+						{
+							//List couldn't be resized
+							hashtable_free(res->data);
+							free(res);
+						}
+					}
+					else
+					{
+						//List couldn't be found/created
+						hashtable_free(res->data);
+						free(res);
+					}
+				}
+			}
+			else
+			{
+				//Hashtable couldn't be created
+				free(res);
+			}
+		}
+	}
+	return ret;
+}
+
+void free_response_in(bing_response_t response, BOOL bundle_free)
 {
 	bing_response* res;
+	list* list;
+	int i;
 	if(response)
 	{
 		res = (bing_response*)response;
 
-		//TODO: Remove from Bing object
+		//Remove response from Bing
+		response_remove_from_bing(res, bundle_free);
 
 		//TODO: Free allocated memory (allocated by response and result)
 
 		//Free data
 		if(res->data)
 		{
-			//TODO: Free bundled responses
+			if(hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list) != -1)
+			{
+				for(i = 0; i < list->count; i++)
+				{
+					free_response_in(LIST_ELEMENT(list, i, bing_response_t), TRUE);
+				}
+				free((void*)list->listElements);
+				free((void*)list);
+			}
 
 			hashtable_free(res->data);
 		}
@@ -113,7 +349,7 @@ void free_response(bing_response_t response)
 		//Free results
 		while(res->resultCount > 0)
 		{
-			free_result(&res->results[--res->resultCount], FALSE);
+			free_result((bing_result*)res->results[--res->resultCount]);
 		}
 		free(res->results);
 
@@ -121,19 +357,100 @@ void free_response(bing_response_t response)
 	}
 }
 
-//TODO: response_get_ad_api_version
+void free_response(bing_response_t response)
+{
+	free_response_in(response, FALSE);
+}
 
-//TODO: response_get_ad_page_number
+int response_get_string(bing_response_t response, char* buffer, const char* field, enum SOURCE_TYPE type)
+{
+	int ret = -1;
+	bing_response* res;
+	if(response)
+	{
+		res = (bing_response*)response;
+		if(res->type == type) //Make sure of the proper type
+		{
+			ret = hashtable_get_string(res->data, field, buffer);
+		}
+	}
+	return ret;
+}
 
-//TODO: response_get_bundle_responses
+int response_get_ad_api_version(bing_response_t response, char* buffer)
+{
+	return response_get_string(response, buffer, "AdAPIVersion", BING_SOURCETYPE_AD);
+}
 
-//TODO: response_get_mobile_web_spell_total
+long long response_get_int64(bing_response_t response, const char* field, enum SOURCE_TYPE type)
+{
+	long long ret = -1;
+	bing_response* res;
+	if(response)
+	{
+		res = (bing_response*)response;
+		if(res->type == type) //Make sure of the proper type
+		{
+			if(hashtable_get_data_key(res->data, field, &ret, sizeof(long long)) == FALSE)
+			{
+				//If an error occurs, make sure it returns the error value
+				ret = -1;
+			}
+		}
+	}
+	return ret;
+}
 
-//TODO: response_get_mobile_web_offset
+long long response_get_ad_page_number(bing_response_t response)
+{
+	return response_get_int64(response, "PageNumber", BING_SOURCETYPE_AD);
+}
 
-//TODO: response_get_phonebook_title
+int response_get_bundle_responses(bing_response_t response, bing_response_t* responses)
+{
+	int ret = -1;
+	bing_response* res;
+	bing_response_t* responseList;
+	list* list_v = NULL;
+	if(response)
+	{
+		res = (bing_response*)response;
+		if(res->type == BING_SOURCETYPE_BUNDLE && //Make sure of the proper type
+				hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+		{
+			ret = list_v->count;
+			if(responses)
+			{
+				//Get the list
+				responseList = LIST_ELEMENTS(list_v, bing_response_t);
 
-//TODO: response_get_phonebook_local_serp_url
+				//Copy the data
+				memcpy(responseList, responses, ret * sizeof(bing_response_t));
+			}
+		}
+	}
+	return ret;
+}
+
+long long response_get_mobile_web_spell_total(bing_response_t response)
+{
+	return response_get_int64(response, "Total", BING_SOURCETYPE_MOBILE_WEB);
+}
+
+long long response_get_mobile_web_offset(bing_response_t response)
+{
+	return response_get_int64(response, "Offset", BING_SOURCETYPE_MOBILE_WEB);
+}
+
+int response_get_phonebook_title(bing_response_t response, char* buffer)
+{
+	return response_get_string(response, buffer, "Title", BING_SOURCETYPE_PHONEBOOK);
+}
+
+int response_get_phonebook_local_serp_url(bing_response_t response, char* buffer)
+{
+	return response_get_string(response, buffer, "LocalSerpUrl", BING_SOURCETYPE_PHONEBOOK);
+}
 
 //TODO: response_get_news_related_searches
 
@@ -149,17 +466,56 @@ int response_custom_is_field_supported(bing_response_t response, const char* fie
 	return ret;
 }
 
-//TODO: response_custom_get_64bit_int
-//TODO: response_custom_get_string
-//TODO: response_custom_get_double
-//TODO: response_custom_get_boolean
-//TODO: response_custom_get_array
+int response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value)
+{
+	return hashtable_get_data_key(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(long long));
+}
 
-//TODO: response_custom_set_64bit_int
-//TODO: response_custom_set_string
-//TODO: response_custom_set_double
-//TODO: response_custom_set_boolean
-//TODO: response_custom_set_array
+int response_custom_get_string(bing_response_t response, const char* field, char* value)
+{
+	return hashtable_get_string(response ? ((bing_response*)response)->data : NULL, field, value);
+}
+
+int response_custom_get_double(bing_response_t response, const char* field, double* value)
+{
+	return response_custom_get_64bit_int(response, field, (long long*)value);
+}
+
+int response_custom_get_boolean(bing_response_t response, const char* field, int* value)
+{
+	return hashtable_get_data_key(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
+}
+
+int response_custom_get_array(bing_response_t response, const char* field, void* value)
+{
+	return response_custom_get_string(response, field, (char*)value);
+}
+
+int response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value)
+{
+	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(long long));
+}
+
+int response_custom_set_string(bing_response_t response, const char* field, const char* value)
+{
+	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
+}
+
+int response_custom_set_double(bing_response_t response, const char* field, double* value)
+{
+	return response_custom_set_64bit_int(response, field, (long long*)value);
+}
+
+int response_custom_set_boolean(bing_response_t response, const char* field, int* value)
+{
+	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
+}
+
+int response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size)
+{
+	//This could be a safety hazard but we have no way of checking the size of the data passed in
+	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, size);
+}
 
 int response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func)
 {

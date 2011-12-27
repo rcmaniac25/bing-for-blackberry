@@ -105,13 +105,6 @@ typedef struct request_source_type_s
 	struct request_source_type_s* next;
 } request_source_type;
 
-typedef struct bundle_list_s
-{
-	int count;
-	int cap;
-	bing_request_t* requests;
-} bundle_list;
-
 const char* request_def_get_options(bing_request_t request)
 {
 	bing_request* req;
@@ -144,7 +137,7 @@ const char* request_bundle_get_options(bing_request_t request)
 	char* ret = NULL;
 	char* rett;
 	const char* options;
-	bundle_list* list = NULL;
+	list* list = NULL;
 	size_t len = 0;
 	int i = 0;
 	if(request)
@@ -163,7 +156,7 @@ const char* request_bundle_get_options(bing_request_t request)
 			{
 				for(i = 0; i < list->count; i++)
 				{
-					inReq = (bing_request*)list->requests[i];
+					inReq = (bing_request*)LIST_ELEMENT(list, i, bing_request_t);
 
 					//Don't allow bundle's within bundles
 					if(!inReq->sourceType)
@@ -172,7 +165,7 @@ const char* request_bundle_get_options(bing_request_t request)
 					}
 
 					//Get the options
-					options = inReq->getOptions(list->requests[i]);
+					options = inReq->getOptions(LIST_ELEMENT(list, i, bing_request_t));
 					len += strlen(options);
 
 					//Resize the return data and append the results
@@ -459,7 +452,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 	char buffer[256];
 	char* result = calloc(1, sizeof(char));
 	size_t len = 1;
-	bundle_list* list = NULL;
+	list* list = NULL;
 	int i;
 	char* src;
 	if(bundle && result)
@@ -471,7 +464,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 			//Go through elements and get data
 			for(i = 0; i < list->count; i++)
 			{
-				src = (char*)((bing_request*)list->requests[i])->sourceType;
+				src = (char*)((bing_request*)LIST_ELEMENT(list, i, bing_request_t))->sourceType;
 				if(!src)
 				{
 					//We don't want bundle types within bundle types
@@ -587,21 +580,6 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
 	return ret;
 }
 
-int request_get_data_key(bing_request_t request, const char* key, void* value, size_t size)
-{
-	BOOL ret = FALSE;
-	if(request && value)
-	{
-		//Now get the data (we want to check sizes first so we don't copy something bigger into something smaller)
-		if(hashtable_get_item(((bing_request*)request)->data, key, NULL) == size)
-		{
-			hashtable_get_item(((bing_request*)request)->data, key, value);
-			ret = TRUE;
-		}
-	}
-	return ret;
-}
-
 int request_get_data(bing_request_t request, enum REQUEST_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
 {
 	BOOL ret = FALSE;
@@ -612,7 +590,7 @@ int request_get_data(bing_request_t request, enum REQUEST_FIELD field, enum FIEL
 		key = find_field(request_fields, field, type, request_get_source_type(request), TRUE);
 
 		//Now get the data
-		ret = request_get_data_key(request, key, value, size);
+		ret = hashtable_get_data_key(((bing_request*)request)->data, key, value, size);
 	}
 	return ret;
 }
@@ -621,7 +599,7 @@ int request_get_str_data(bing_request_t request, enum REQUEST_FIELD field, enum 
 {
 	int ret = -1;
 	const char* key;
-	if(request && value)
+	if(request)
 	{
 		//Get the key
 		key = find_field(request_fields, field, type, request_get_source_type(request), TRUE);
@@ -663,58 +641,58 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 {
 	BOOL ret = FALSE;
 	bing_request* req;
-	bundle_list* list = NULL;
+	list* list_v = NULL;
 	bing_request_t* requestList = NULL;
 	int i;
 
-	if(request && request_to_add && request == request_to_add)
+	if(request && request_to_add && request != request_to_add)
 	{
 		req = (bing_request*)request;
 
 		if(!req->sourceType) //Bundle's source type is null
 		{
-			if(hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list) != -1)
+			if(hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
 			{
 				//Get the list
-				requestList = list->requests;
+				requestList = LIST_ELEMENTS(list_v, bing_request_t);
 			}
 			else
 			{
 				//Create the list
-				list = (bundle_list*)malloc(sizeof(bundle_list));
-				if(list)
+				list_v = (list*)malloc(sizeof(list));
+				if(list_v)
 				{
-					list->count = 0;
-					requestList = list->requests = (bing_request_t*)calloc(11, sizeof(bing_request_t));
-					if(list->requests)
+					list_v->count = 0;
+					requestList = list_v->listElements = (bing_request_t*)calloc(11, sizeof(bing_request_t));
+					if(list_v->listElements)
 					{
 						//Save the list
-						list->cap = 11;
-						if(hashtable_put_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, list, sizeof(bundle_list*)) == -1)
+						list_v->cap = 11;
+						if(hashtable_put_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
 						{
 							//List creation failed, cleanup
-							free(list);
-							list = NULL;
+							free(list_v);
+							list_v = NULL;
 						}
 					}
 					else
 					{
 						//List creation failed, cleanup
-						free(list);
-						list = NULL;
+						free(list_v);
+						list_v = NULL;
 					}
 				}
 			}
-			if(list)
+			if(list_v)
 			{
-				if(list->count >= list->cap)
+				if(list_v->count >= list_v->cap)
 				{
 					//Resize list
-					requestList = (bing_request_t*)realloc(requestList, sizeof(bing_request_t) * (list->cap * 2));
+					requestList = (bing_request_t*)realloc(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
 					if(requestList)
 					{
-						list->cap *= 2;
-						list->requests = requestList;
+						list_v->cap *= 2;
+						list_v->listElements = requestList;
 					}
 					else
 					{
@@ -724,7 +702,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 				if(requestList)
 				{
 					//See if the request already exists in the list
-					for(i = 0; i < list->count; i++)
+					for(i = 0; i < list_v->count; i++)
 					{
 						if(requestList[i] == request_to_add)
 						{
@@ -732,10 +710,10 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 						}
 					}
 					//If i != list->count then the item has been found
-					if(i == list->count)
+					if(i == list_v->count)
 					{
 						request_remove_parent_options((bing_request*)request_to_add);
-						requestList[i] = request_to_add;
+						requestList[list_v->count++] = request_to_add;
 						ret = TRUE;
 					}
 				}
@@ -748,7 +726,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 void free_request(bing_request_t request)
 {
 	bing_request* req;
-	bundle_list* list;
+	list* list;
 	int i;
 	if(request)
 	{
@@ -761,9 +739,9 @@ void free_request(bing_request_t request)
 			{
 				for(i = 0; i < list->count; i++)
 				{
-					free_request(list->requests[i]);
+					free_request(LIST_ELEMENT(list, i, bing_request_t));
 				}
-				free((void*)list->requests);
+				free((void*)list->listElements);
 				free((void*)list);
 			}
 			hashtable_free(req->data);
@@ -785,73 +763,31 @@ int request_custom_is_field_supported(bing_request_t request, const char* field)
 
 int request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value)
 {
-	return request_get_data_key(request, field, value, sizeof(long long));
+	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
 }
 
 int request_custom_get_string(bing_request_t request, const char* field, char* value)
 {
-	int ret = -1;
-	if(request)
-	{
-		//Now get the data
-		ret = hashtable_get_item(((bing_request*)request)->data, field, value);
-	}
-	return ret;
+	return hashtable_get_string(request ? ((bing_request*)request)->data : NULL, field, value);
 }
 
 int request_custom_get_double(bing_request_t request, const char* field, double* value)
 {
-	return request_get_data_key(request, field, value, sizeof(double));
+	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(double));
 }
 
 int request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value)
 {
-	BOOL ret = FALSE;
-	bing_request* req;
-	if(request && field)
-	{
-		req = (bing_request*)request;
-		if(!value && hashtable_get_item(req->data, field, NULL) != -1)
-		{
-			hashtable_remove_item(req->data, field);
-		}
-		else if(value)
-		{
-			if(hashtable_put_item(req->data, field, value, sizeof(long long)) != -1)
-			{
-				ret =  TRUE;
-			}
-		}
-	}
-	return ret;
+	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
 }
 
 int request_custom_set_string(bing_request_t request, const char* field, const char* value)
 {
-	BOOL ret = FALSE;
-	bing_request* req;
-	if(request && field)
-	{
-		req = (bing_request*)request;
-		if(!value && hashtable_get_item(req->data, field, NULL) != -1)
-		{
-			hashtable_remove_item(req->data, field);
-		}
-		else if(value)
-		{
-			if(hashtable_put_item(req->data, field, value, strlen(value) + 1) != -1)
-			{
-				ret =  TRUE;
-			}
-		}
-	}
-	return ret;
+	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
 }
 
 int request_custom_set_double(bing_request_t request, const char* field, double* value)
 {
-	//This needs to be true in order for this function to work
-	assert(sizeof(double) == sizeof(long long));
 	return request_custom_set_64bit_int(request, field, (long long*)value);
 }
 

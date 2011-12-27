@@ -119,23 +119,71 @@ int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field)
 	return ret;
 }
 
-void free_result(bing_result* result, BOOL freeObject)
+void free_result(bing_result* result)
 {
 	if(result)
 	{
 		hashtable_free(result->data);
-		if(freeObject)
-		{
-			free(result);
-		}
+		free(result);
 	}
 }
 
-//TODO: result_get_64bit_int
-//TODO: result_get_string
-//TODO: result_get_double
-//TODO: result_get_boolean
-//TODO: result_get_array
+//TODO: Create result
+
+int result_get_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
+{
+	BOOL ret = FALSE;
+	const char* key;
+	if(result && value)
+	{
+		//Get the key
+		key = find_field(result_fields, field, type, result_get_source_type(result), TRUE);
+
+		//Now get the data
+		ret = hashtable_get_data_key(((bing_result*)result)->data, key, value, size);
+	}
+	return ret;
+}
+
+int result_get_str_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TYPE type, char* value)
+{
+	int ret = -1;
+	const char* key;
+	if(result)
+	{
+		//Get the key
+		key = find_field(result_fields, field, type, result_get_source_type(result), TRUE);
+
+		//Now get the data
+		ret = result_custom_get_string(result, key, value);
+	}
+	return ret;
+}
+
+int result_get_64bit_int(bing_result_t result, enum RESULT_FIELD field, long long* value)
+{
+	return result_get_data(result, field, FIELD_TYPE_LONG, value, sizeof(long long));
+}
+
+int result_get_string(bing_result_t result, enum RESULT_FIELD field, char* value)
+{
+	return result_get_str_data(result, field, FIELD_TYPE_STRING, value);
+}
+
+int result_get_double(bing_result_t result, enum RESULT_FIELD field, double* value)
+{
+	return result_get_data(result, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
+}
+
+int result_get_boolean(bing_result_t result, enum RESULT_FIELD field, int* value)
+{
+	return result_get_data(result, field, FIELD_TYPE_BOOLEAN, value, sizeof(int));
+}
+
+int result_get_array(bing_result_t result, enum RESULT_FIELD field, void* value)
+{
+	return result_get_str_data(result, field, FIELD_TYPE_ARRAY, value);
+}
 
 int result_custom_is_field_supported(bing_result_t result, const char* field)
 {
@@ -149,17 +197,56 @@ int result_custom_is_field_supported(bing_result_t result, const char* field)
 	return ret;
 }
 
-//TODO: result_custom_get_64bit_int
-//TODO: result_custom_get_string
-//TODO: result_custom_get_double
-//TODO: result_custom_get_boolean
-//TODO: result_custom_get_array
+int result_custom_get_64bit_int(bing_result_t result, const char* field, long long* value)
+{
+	return hashtable_get_data_key(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(long long));
+}
 
-//TODO: result_custom_set_64bit_int
-//TODO: result_custom_set_string
-//TODO: result_custom_set_double
-//TODO: result_custom_set_boolean
-//TODO: result_custom_set_array
+int result_custom_get_string(bing_result_t result, const char* field, char* value)
+{
+	return hashtable_get_string(result ? ((bing_result*)result)->data : NULL, field, value);
+}
+
+int result_custom_get_double(bing_result_t result, const char* field, double* value)
+{
+	return result_custom_get_64bit_int(result, field, (long long*)value);
+}
+
+int result_custom_get_boolean(bing_result_t result, const char* field, int* value)
+{
+	return hashtable_get_data_key(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(int));
+}
+
+int result_custom_get_array(bing_result_t result, const char* field, void* value)
+{
+	return result_custom_get_string(result, field, (char*)value);
+}
+
+int result_custom_set_64bit_int(bing_result_t result, const char* field, long long* value)
+{
+	return hashtable_set_data(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(long long));
+}
+
+int result_custom_set_string(bing_result_t result, const char* field, const char* value)
+{
+	return hashtable_set_data(result ? ((bing_result*)result)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
+}
+
+int result_custom_set_double(bing_result_t result, const char* field, double* value)
+{
+	return result_custom_set_64bit_int(result, field, (long long*)value);
+}
+
+int result_custom_set_boolean(bing_result_t result, const char* field, int* value)
+{
+	return hashtable_set_data(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(int));
+}
+
+int result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size)
+{
+	//This could be a safety hazard but we have no way of checking the size of the data passed in
+	return hashtable_set_data(result ? ((bing_result*)result)->data : NULL, field, value, size);
+}
 
 int result_register_result_creator(const char* name, result_creation_func creation_func, result_additional_result_func additional_func)
 {

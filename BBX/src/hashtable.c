@@ -217,6 +217,52 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 	return ret;
 }
 
+int hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size)
+{
+	BOOL ret = FALSE;
+	if(table && value)
+	{
+		//Now get the data (we want to check sizes first so we don't copy something bigger into something smaller)
+		if(hashtable_get_item(table, key, NULL) == size)
+		{
+			hashtable_get_item(table, key, value);
+			ret = TRUE;
+		}
+	}
+	return ret;
+}
+
+int hashtable_get_string(hashtable_t* table, const char* field, char* value)
+{
+	int ret = -1;
+	if(table)
+	{
+		//Now get the data
+		ret = hashtable_get_item(table, field, value);
+	}
+	return ret;
+}
+
+int hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size)
+{
+	BOOL ret = FALSE;
+	if(table && field)
+	{
+		if(!value && hashtable_get_item(table, field, NULL) != -1)
+		{
+			hashtable_remove_item(table, field);
+		}
+		else if(value)
+		{
+			if(hashtable_put_item(table, field, value, size) != -1)
+			{
+				ret =  TRUE;
+			}
+		}
+	}
+	return ret;
+}
+
 //Public functions
 int dictionary_get_data(data_dictionary_t dict, const char* name, void* data)
 {
