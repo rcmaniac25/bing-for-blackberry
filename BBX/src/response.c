@@ -9,6 +9,39 @@
 
 #include "bing_internal.h"
 
+//Creation/update functions
+
+//TODO
+
+//XXX Are update functions really necessary? Seems like only results have the potential to be updated (prior to investigation).
+
+//Search structure
+
+typedef struct BING_RESPONSE_CREATOR_SEARCH_S
+{
+	bing_response_creator creator;
+	enum SOURCE_TYPE type;
+	struct BING_RESPONSE_CREATOR_SEARCH_S* next;
+} bing_response_creator_search;
+
+static bing_response_creator_search response_def_creator[]=
+{
+		//TODO: Replace NULL with dedicated options
+		{{"web:Web",			NULL, NULL}, BING_SOURCETYPE_WEB,				&response_def_creator[1]},
+		{{"pho:Phonebook",		NULL, NULL}, BING_SOURCETYPE_PHONEBOOK,			&response_def_creator[2]},
+		{{"mms:Image",			NULL, NULL}, BING_SOURCETYPE_IMAGE, 			&response_def_creator[3]},
+		{{"mms:Video",			NULL, NULL}, BING_SOURCETYPE_VIDEO,				&response_def_creator[4]},
+		{{"news:News",			NULL, NULL}, BING_SOURCETYPE_NEWS,				&response_def_creator[5]},
+		{{"ads:Ad",				NULL, NULL}, BING_SOURCETYPE_AD, 				&response_def_creator[6]},
+		{{"rs:RelatedSearch",	NULL, NULL}, BING_SOURCETYPE_RELATED_SEARCH,	&response_def_creator[7]},
+		{{"tra:Translation",	NULL, NULL}, BING_SOURCETYPE_TRANSLATION,		&response_def_creator[8]},
+		{{"spl:Spell",			NULL, NULL}, BING_SOURCETYPE_SPELL,				&response_def_creator[9]},
+		{{"mw:MobileWeb",		NULL, NULL}, BING_SOURCETYPE_MOBILE_WEB,		&response_def_creator[10]},
+		{{"ia:InstantAnswer",	NULL, NULL}, BING_SOURCETYPE_INSTANT_ANWSER,	NULL}
+};
+
+//Functions
+
 void bing_event_get_response(bps_event_t* event, bing_response_t* response)
 {
 	if(response != NULL)
@@ -115,9 +148,11 @@ int response_add_result(bing_response* response, bing_result* result)
 	return ret;
 }
 
-void response_add_to_bing(bing_response* res)
+int response_add_to_bing(bing_response* res)
 {
+	BOOL ret = FALSE;
 	bing_response** t;
+	int i;
 	bing* bing = retrieveBing(res->bing);
 
 	if(bing)
@@ -125,17 +160,27 @@ void response_add_to_bing(bing_response* res)
 		//Make sure this is locked and isn't changed on multiple threads
 		pthread_mutex_lock(&bing->mutex);
 
-		//XXX Should a check be made to see if the response has been added already?
-
-		t = realloc(bing->responses, (bing->responseCount + 1) * sizeof(bing_response*));
-		if(t)
+		for(i = 0; i < bing->responseCount; i++)
 		{
-			bing->responses = t;
-			t[bing->responseCount++] = res;
+			if(bing->responses[i] == res)
+			{
+				break;
+			}
+		}
+		if(i == bing->responseCount) //Response not found, add it
+		{
+			t = realloc(bing->responses, (bing->responseCount + 1) * sizeof(bing_response*));
+			if(t)
+			{
+				bing->responses = t;
+				t[bing->responseCount++] = res;
+				ret = TRUE;
+			}
 		}
 
 		pthread_mutex_unlock(&bing->mutex);
 	}
+	return ret;
 }
 
 void response_remove_from_bing(bing_response* res, BOOL bundle_free)
@@ -208,7 +253,7 @@ int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned i
 		res = (bing_response*)malloc(sizeof(bing_response));
 		if(res)
 		{
-			//Set data
+			//Set variables
 			res->type = type;
 			res->bing = responseParent ? 0 : bing;
 
@@ -218,6 +263,9 @@ int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned i
 			res->resultCount = 0;
 			res->results = NULL;
 
+			res->allocatedMemoryCount = 0;
+			res->allocatedMemory = NULL;
+
 			//Create hashtable
 			res->data = hashtable_create(tableSize);
 			if(res->data)
@@ -225,11 +273,18 @@ int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned i
 				if(res->bing != 0)
 				{
 					//Add response to Bing object
-					response_add_to_bing(res);
-
-					//Save response
-					response[0] = res;
-					ret = TRUE;
+					if(response_add_to_bing(res))
+					{
+						//Save response
+						response[0] = res;
+						ret = TRUE;
+					}
+					else
+					{
+						//Couldn't save response
+						hashtable_free(res->data);
+						free(res);
+					}
 				}
 				else
 				{
@@ -316,6 +371,8 @@ int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned i
 	return ret;
 }
 
+//TODO: response_create_raw
+
 void free_response_in(bing_response_t response, BOOL bundle_free)
 {
 	bing_response* res;
@@ -328,7 +385,12 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		//Remove response from Bing
 		response_remove_from_bing(res, bundle_free);
 
-		//TODO: Free allocated memory (allocated by response and result)
+		//Free allocated memory (allocated by response and result)
+		for(i = 0; i < res->allocatedMemoryCount; i++)
+		{
+			free(res->allocatedMemory[i]);
+		}
+		free(res->allocatedMemory);
 
 		//Free data
 		if(res->data)
@@ -452,7 +514,16 @@ int response_get_phonebook_local_serp_url(bing_response_t response, char* buffer
 	return response_get_string(response, buffer, "LocalSerpUrl", BING_SOURCETYPE_PHONEBOOK);
 }
 
-//TODO: response_get_news_related_searches
+int response_get_news_related_searches(bing_response_t response, bing_related_search_t searches)
+{
+	int ret = response_get_string(response, (char*)searches, "RelatedSearches", BING_SOURCETYPE_NEWS);
+	if(ret != -1)
+	{
+		//We need to convert byte count to item count
+		ret /= sizeof(bing_related_search_t);
+	}
+	return ret;
+}
 
 int response_custom_is_field_supported(bing_response_t response, const char* field)
 {
@@ -517,17 +588,114 @@ int response_custom_set_array(bing_response_t response, const char* field, const
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, size);
 }
 
+void* allocateMemory(size_t size, bing_response* response)
+{
+	void* ret = NULL;
+	void** mem = malloc((response->allocatedMemoryCount + 1) * sizeof(void*));
+	if(mem)
+	{
+		ret = malloc(size);
+		if(ret)
+		{
+			//Copy the memory
+			memcpy(mem, response->allocatedMemory, response->allocatedMemoryCount * sizeof(void*));
+
+			free(response->allocatedMemory);
+			response->allocatedMemory = mem;
+
+			//Set the new memory allocation
+			mem[response->allocatedMemoryCount++] = ret;
+		}
+		else
+		{
+			free(mem);
+		}
+	}
+	return ret;
+}
+
+void freeMemory(void* ptr, bing_response* response)
+{
+	unsigned int i;
+	void** mem;
+	//Find the memory
+	for(i = 0; i < response->allocatedMemoryCount; i++)
+	{
+		if(response->allocatedMemory[i] == ptr)
+		{
+			break;
+		}
+	}
+	if(i != response->allocatedMemoryCount)
+	{
+		//New allocation
+		if(response->allocatedMemoryCount > 1)
+		{
+			mem = malloc((response->allocatedMemoryCount - 1) * sizeof(void*));
+			if(mem)
+			{
+				//Copy over pointers
+				memcpy(mem, response->allocatedMemory, i * sizeof(void*));
+				memcpy(mem + i, response->allocatedMemory + (i + 1), (response->allocatedMemoryCount - i - 1) * sizeof(void*));
+
+				//Free old allocated memory pointer and ptr
+				free(response->allocatedMemory);
+				free(ptr);
+
+				//Set the memory
+				response->allocatedMemoryCount--;
+				response->allocatedMemory = mem;
+			}
+		}
+		else
+		{
+			//Free all memory
+			free(response->allocatedMemory);
+			free(ptr);
+
+			//Reset allocated memory
+			response->allocatedMemoryCount = 0;
+			response->allocatedMemory = NULL;
+		}
+	}
+}
+
+void* response_custom_allocation(bing_response_t response, size_t size)
+{
+	void* ret = NULL;
+	bing_response* res;
+	if(response)
+	{
+		res = (bing_response*)response;
+		if(res->type == BING_SOURCETYPE_CUSTOM && //We only want to allocate memory for custom types
+				(size <= (10 * 1024) && size >= 1)) //We want it to be within a small range to prevent nieve misuse.
+		{
+			ret = allocateMemory(size, res);
+		}
+	}
+	return ret;
+}
+
 int response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func)
 {
 	BOOL ret = FALSE;
 	BOOL cont = TRUE;
 	unsigned int i;
 	bing_response_creator* c;
+	bing_response_creator_search* cr;
 	char* nName;
 	size_t size;
 	if(name && creation_func)
 	{
-		//TODO: check if the name is a standard supported name, if so return
+		//Check if the name is a standard supported name, if so return
+		for(cr = response_def_creator; cr != NULL; cr = cr->next)
+		{
+			if(strcmp(name, cr->creator.name) == 0)
+			{
+				cont = FALSE;
+				break;
+			}
+		}
 
 		if(cont)
 		{

@@ -9,6 +9,35 @@
 
 #include "bing_internal.h"
 
+//Creation/update functions
+
+//TODO
+
+//Search structure
+
+typedef struct BING_RESULT_CREATOR_SEARCH_S
+{
+	bing_result_creator creator;
+	enum SOURCE_TYPE type;
+	struct BING_RESULT_CREATOR_SEARCH_S* next;
+} bing_result_creator_search;
+
+static bing_result_creator_search result_def_creator[]=
+{
+		//TODO: Replace NULL with dedicated options
+		{{"web:WebResult",			NULL, NULL}, BING_SOURCETYPE_WEB,				&result_def_creator[1]},
+		{{"pho:PhonebookResult",	NULL, NULL}, BING_SOURCETYPE_PHONEBOOK,			&result_def_creator[2]},
+		{{"mms:VideoResult",		NULL, NULL}, BING_SOURCETYPE_VIDEO, 			&result_def_creator[3]},
+		{{"mms:ImageResult",		NULL, NULL}, BING_SOURCETYPE_IMAGE,				&result_def_creator[4]},
+		{{"news:NewsResult",		NULL, NULL}, BING_SOURCETYPE_NEWS,				&result_def_creator[5]},
+		{{"ads:AdResult",			NULL, NULL}, BING_SOURCETYPE_AD, 				&result_def_creator[6]},
+		{{"rs:RelatedSearchResult",	NULL, NULL}, BING_SOURCETYPE_RELATED_SEARCH,	&result_def_creator[7]},
+		{{"tra:TranslationResult",	NULL, NULL}, BING_SOURCETYPE_TRANSLATION,		&result_def_creator[8]},
+		{{"spl:SpellResult",		NULL, NULL}, BING_SOURCETYPE_SPELL,				&result_def_creator[9]},
+		{{"mw:MobileWebResult",		NULL, NULL}, BING_SOURCETYPE_MOBILE_WEB,		&result_def_creator[10]},
+		{{"ia:InstantAnswerResult",	NULL, NULL}, BING_SOURCETYPE_INSTANT_ANWSER,	NULL}
+};
+
 static bing_field_search result_fields[] =
 {
 		//Ad
@@ -90,6 +119,8 @@ static bing_field_search result_fields[] =
 		{{RESULT_FIELD_SEARCH_TAGS,						FIELD_TYPE_ARRAY,	"SearchTag",					1,	{BING_SOURCETYPE_WEB}},						NULL}
 };
 
+//Functions
+
 enum SOURCE_TYPE result_get_source_type(bing_result_t result)
 {
 	enum SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
@@ -128,7 +159,47 @@ void free_result(bing_result* result)
 	}
 }
 
-//TODO: Create result
+int result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, result_creation_func creation, result_additional_result_func additionalResult, int tableSize)
+{
+	BOOL ret = FALSE;
+	bing_result* res;
+	if(result && responseParent)
+	{
+		res = (bing_result*)malloc(sizeof(bing_result));
+		if(res)
+		{
+			//Set variables
+			res->type = type;
+			res->creation = creation;
+			res->additionalResult = additionalResult;
+
+			res->data = hashtable_create(tableSize);
+			if(res->data)
+			{
+				//Add result to response
+				if(response_add_result(responseParent, res))
+				{
+					//Save the result
+					res->parent = responseParent;
+					result[0] = res;
+					ret = TRUE;
+				}
+				else
+				{
+					hashtable_free(res->data);
+					free(res);
+				}
+			}
+			else
+			{
+				free(res);
+			}
+		}
+	}
+	return ret;
+}
+
+//TODO: result_create_raw
 
 int result_get_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
 {
@@ -248,17 +319,42 @@ int result_custom_set_array(bing_result_t result, const char* field, const void*
 	return hashtable_set_data(result ? ((bing_result*)result)->data : NULL, field, value, size);
 }
 
+void* result_custom_allocation(bing_result_t result, size_t size)
+{
+	void* ret = NULL;
+	bing_result* res;
+	if(result)
+	{
+		res = (bing_result*)result;
+		if(res->type == BING_SOURCETYPE_CUSTOM && //We only want to allocate memory for custom types
+				(size <= (5 * 1024) && size >= 1)) //We want it to be within a small range since multiple results can be allocated for the same response.
+		{
+			ret = allocateMemory(size, res->parent);
+		}
+	}
+	return ret;
+}
+
 int result_register_result_creator(const char* name, result_creation_func creation_func, result_additional_result_func additional_func)
 {
 	BOOL ret = FALSE;
 	BOOL cont = TRUE;
 	unsigned int i;
 	bing_result_creator* c;
+	bing_result_creator_search* cr;
 	char* nName;
 	size_t size;
 	if(name && creation_func)
 	{
-		//TODO: check if the name is a standard supported name, if so return
+		//Check if the name is a standard supported name, if so return
+		for(cr = result_def_creator; cr != NULL; cr = cr->next)
+		{
+			if(strcmp(name, cr->creator.name) == 0)
+			{
+				cont = FALSE;
+				break;
+			}
+		}
 
 		if(cont)
 		{

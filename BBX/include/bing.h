@@ -18,6 +18,14 @@
 
 __BEGIN_DECLS
 
+/*
+ * The full Bing library.
+ *
+ * A note on arrays: The data itself will be copied, not just the pointer to the element.
+ * But, if the element contains pointers, the pointers will be references. Internal
+ * pointers are Response-dependent and will only effect usage of the response.
+ */
+
 #define BING_VERSION 2.2
 #define BBING_VERSION 1.0
 
@@ -985,6 +993,31 @@ int response_custom_set_boolean(bing_response_t response, const char* field, int
 int response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size);
 
 /**
+ * @brief Allocate memory that will be freed when responses are freed.
+ *
+ * The @c response_custom_allocation() function allows developers to
+ * allocate any amount of memory between 1 byte and 10 KiB. This
+ * memory will be freed when free_response is called for the same
+ * response.
+ *
+ * It is recommended that this function not be used for anything but
+ * internal pointers (a pointer within a structure).
+ *
+ * It is also not recommended to free the memory returned as it can
+ * cause an exception when free_response is called.
+ *
+ * This is equivalent to malloc where the memory is not zeroed
+ * on allocation.
+ *
+ * @param response The Bing response to allocate memory from.
+ * @param size The size of the memory block to allocate.
+ *
+ * @return A pointer of the allocated memory will be returned, or
+ * 	NULL if allocation failed or the size was above the allowed limit.
+ */
+void* response_custom_allocation(bing_response_t response, size_t size);
+
+/**
  * @brief Register a new response creator.
  *
  * The @c result_register_result_creator() function allows developers to
@@ -1254,6 +1287,32 @@ int result_custom_set_string(bing_result_t result, const char* field, const char
 int result_custom_set_double(bing_result_t result, const char* field, double* value);
 int result_custom_set_boolean(bing_result_t result, const char* field, int* value);
 int result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
+
+/**
+ * @brief Allocate memory that will be freed when the parent response
+ * is freed.
+ *
+ * The @c result_custom_allocation() function allows developers to
+ * allocate any amount of memory between 1 byte and 5 KiB. This
+ * memory will be freed when free_response is called for the
+ * parent response that the result came from.
+ *
+ * It is recommended that this function not be used for anything but
+ * internal pointers (a pointer within a structure).
+ *
+ * It is also not recommended to free the memory returned as it can
+ * cause an exception when free_response is called.
+ *
+ * This is equivalent to malloc where the memory is not zeroed
+ * on allocation.
+ *
+ * @param result The Bing result to allocate memory from.
+ * @param size The size of the memory block to allocate.
+ *
+ * @return A pointer of the allocated memory will be returned, or
+ * 	NULL if allocation failed or the size was above the allowed limit.
+ */
+void* result_custom_allocation(bing_result_t result, size_t size);
 
 /**
  * @brief Register a new result creator.

@@ -103,6 +103,7 @@ typedef struct BING_RESULT_S
 	enum SOURCE_TYPE type;
 
 	//These will never be NULL
+	struct BING_RESPONSE_S* parent;
 	result_creation_func creation;
 	result_additional_result_func additionalResult;
 	hashtable_t* data;
@@ -119,6 +120,8 @@ typedef struct BING_RESPONSE_S
 	hashtable_t* data;
 	int resultCount;
 	bing_result_t* results;
+	int allocatedMemoryCount;
+	void** allocatedMemory;
 } bing_response;
 
 typedef struct BING_S
@@ -212,10 +215,15 @@ int hashtable_set_data(hashtable_t* table, const char* field, const void* value,
 
 bing* retrieveBing(unsigned int bingID);
 const char* request_get_bundle_sourcetype(bing_request* bundle);
+int response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
 int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
 int response_add_result(bing_response* response, bing_result* result);
+int result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
+int result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, result_creation_func creation, result_additional_result_func additionalResult, int tableSize);
 void free_result(bing_result* result);
-//TODO: creation of responses, result, etc.
+
+void* allocateMemory(size_t size, bing_response* response);
+void freeMemory(void* ptr, bing_response* response);
 
 __END_DECLS
 
