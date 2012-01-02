@@ -534,3 +534,51 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 		}
 	}
 }
+
+BOOL replace_string_with_longlong(hashtable_t* table, const char* field)
+{
+	BOOL ret = TRUE; //We want to return true by default as the field might not exist
+	char* str;
+	long long ll;
+	int strLen = hashtable_get_string(table, field, NULL);
+	if(strLen > -1)
+	{
+		str = malloc(strLen);
+		if(str)
+		{
+			hashtable_get_string(table, field, str);
+			ll = atoll(str);
+			ret = hashtable_set_data(table, field, &ll, sizeof(long long));
+			free(str);
+		}
+		else
+		{
+			ret = FALSE;
+		}
+	}
+	return ret;
+}
+
+BOOL replace_string_with_double(hashtable_t* table, const char* field)
+{
+	BOOL ret = TRUE; //We want to return true by default as the field might not exist
+	char* str;
+	double d;
+	int strLen = hashtable_get_string(table, field, NULL);
+	if(strLen > -1)
+	{
+		str = malloc(strLen);
+		if(str)
+		{
+			hashtable_get_string(table, field, str);
+			d = atof(str);
+			ret = hashtable_set_data(table, field, &d, sizeof(double));
+			free(str);
+		}
+		else
+		{
+			ret = FALSE;
+		}
+	}
+	return ret;
+}

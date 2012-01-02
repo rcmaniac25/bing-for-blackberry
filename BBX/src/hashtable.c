@@ -14,7 +14,7 @@
 
 //This is a "wrapper" for the actual hashtable which comes from libxml
 
-#define MIN_ALLOC 10
+#define MIN_ALLOC 4
 
 typedef struct hashTable
 {
@@ -25,7 +25,7 @@ typedef struct hashTable
 //Internal functions
 hashtable_t* hashtable_create(int size)
 {
-	assert(sizeof(xmlChar) == sizeof(char)); //Purly for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
+	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
 
 	ht* hash = (ht*)malloc(sizeof(ht));
 	if(hash)
@@ -69,17 +69,94 @@ int hashtable_key_exists(hashtable_t* table, const char* key)
 	return ret;
 }
 
+void* ht_copy(void* payload, xmlChar* name)
+{
+	void* nd = NULL;
+
+	if(payload)
+	{
+		//Duplicate the data
+		size_t size = *((size_t*)payload) + sizeof(size_t); //We want the size of the data then we want to add the size of a "size_t".
+		nd = malloc(size);
+		memcpy(nd, payload, size);
+	}
+
+	return nd;
+}
+
 void ht_dup_value(void* payload, void* data, xmlChar* name)
 {
 	xmlHashTablePtr nTable = (xmlHashTablePtr)data;
 
-	//Duplicate the data
-	size_t size = *((size_t*)payload) + sizeof(size_t);
-	void* nd = malloc(size);
-	memcpy(nd, payload, size);
+	void* nd = ht_copy(payload, name);
 
 	//Add new value
 	xmlHashAddEntry(nTable, name, nd);
+}
+
+BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable)
+{
+	ht* dst;
+	xmlHashTablePtr src;
+	int c;
+	BOOL ret = FALSE;
+	if(dstTable && srcTable)
+	{
+		dst = (ht*)dstTable;
+		src = ((ht*)srcTable)->table;
+
+		c = xmlHashSize(src);
+		//Duplicate the table
+		if(c > dst->alloc)
+		{
+			//Need to expand the table, free the old one and create the new one
+
+			//First create the new one
+			src = xmlHashCopy(src, ht_copy);
+			if(src)
+			{
+				//Free the old one
+				xmlHashFree(dst->table, ht_data_deallocator);
+
+				dst->table = src;
+				dst->alloc = xmlHashSize(dst->table); //Get the actual size
+
+				ret = TRUE;
+			}
+			else
+			{
+				//Copy it manually
+				src = xmlHashCreate(c);
+
+				if(src)
+				{
+					//Duplicate the table
+					xmlHashScan(((ht*)srcTable)->table, ht_dup_value, src);
+
+					dst->alloc = xmlHashSize(dst->table); //Get the actual size
+
+					ret = TRUE;
+				}
+			}
+		}
+		else
+		{
+			//Erase the current table (no existing function to clear it)
+			c = xmlHashSize(dst->table);
+			if(c > 0)
+			{
+				//Elements exist, need to erase it
+				xmlHashFree(dst->table, ht_data_deallocator);
+				dst->table = xmlHashCreate(c);
+			}
+
+			//Can simply copy the table
+			xmlHashScan(src, ht_dup_value, dst->table);
+
+			ret = TRUE;
+		}
+	}
+	return ret;
 }
 
 int resizeHashTable(ht* hash)
@@ -171,7 +248,7 @@ int hashtable_remove_item(hashtable_t* table, const char* key)
 void ht_get_name(void* payload, void* data, xmlChar* name)
 {
 	int index = *((int*)data);
-	char** keys = *((char***)data);
+	char** keys = *((char***)(data + sizeof(int)));
 	int size = strlen((char*)name);
 
 	keys[index] = (char*)calloc(size, sizeof(char));
@@ -196,12 +273,8 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 		ret = xmlHashSize(hash->table);
 		if(keys)
 		{
-			dat = malloc(sizeof(char***) + sizeof(int));
-			if(!dat)
-			{
-				ret = -1;
-			}
-			else
+			dat = malloc(sizeof(char**) + sizeof(int));
+			if(dat)
 			{
 				//Make a simple structure for data
 				*((int*)dat) = ret;
@@ -211,6 +284,10 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 				xmlHashScan(hash->table, ht_get_name, dat);
 
 				free(dat);
+			}
+			else
+			{
+				ret = -1;
 			}
 		}
 	}

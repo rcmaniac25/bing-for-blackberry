@@ -9,9 +9,144 @@
 
 #include "bing_internal.h"
 
+#define RES_AD_RANK "Rank"
+
+#define RES_ERROR_CODE "Code"
+#define RES_ERROR_ERRORCODE "SourceTypeErrorCode"
+
+#define RES_IMAGE_HEIGHT "Height"
+#define RES_IMAGE_WIDTH "Width"
+#define RES_IMAGE_FILESIZE "FileSize"
+
+#define RES_PHONE_LAT "Latitude"
+#define RES_PHONE_LONG "Longitude"
+#define RES_PHONE_RATING "UserRating"
+#define RES_PHONE_REVW_COUNT "ReviewCount"
+
+#define RES_NEWS_BREAKINGNEWS "BreakingNews"
+
 //Creation/update functions
 
-//TODO
+//Creation
+int result_def_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	//Default response is to duplicate the dictionary
+	if(!dictionary)
+	{
+		//If NULL, then everything is good, carry on.
+		return TRUE;
+	}
+	return hashtable_copy(((bing_result*)result)->data, (hashtable_t*)dictionary);
+}
+
+int result_phonebook_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	hashtable_t* table;
+	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
+	if(ret)
+	{
+		table = ((bing_result*)result)->data;
+		ret = replace_string_with_double(table, RES_PHONE_LAT);
+		ret &= replace_string_with_double(table, RES_PHONE_LONG);
+		ret &= replace_string_with_double(table, RES_PHONE_RATING);
+		ret &= replace_string_with_longlong(table, RES_PHONE_REVW_COUNT);
+	}
+	return ret;
+}
+
+int result_image_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	hashtable_t* table;
+	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
+	if(ret)
+	{
+		table = ((bing_result*)result)->data;
+		ret = replace_string_with_longlong(table, RES_IMAGE_HEIGHT);
+		ret &= replace_string_with_longlong(table, RES_IMAGE_WIDTH);
+		ret &= replace_string_with_longlong(table, RES_IMAGE_FILESIZE);
+	}
+	return ret;
+}
+
+int result_news_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	int strLen;
+	char* str;
+	int b;
+	hashtable_t* table;
+	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
+	if(ret)
+	{
+		table = ((bing_result*)result)->data;
+		strLen = hashtable_get_string(table, RES_NEWS_BREAKINGNEWS, NULL);
+		if(strLen > -1)
+		{
+			str = malloc(strLen);
+			if(str)
+			{
+				hashtable_get_string(table, RES_NEWS_BREAKINGNEWS, str);
+				b = str[0] == '1';
+				ret = hashtable_set_data(table, RES_NEWS_BREAKINGNEWS, &b, sizeof(int));
+				free(str);
+			}
+			else
+			{
+				ret = FALSE;
+			}
+		}
+		ret = replace_string_with_longlong(((bing_result*)result)->data, RES_AD_RANK);
+	}
+	return ret;
+}
+
+int result_ad_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
+	if(ret)
+	{
+		ret = replace_string_with_longlong(((bing_result*)result)->data, RES_AD_RANK);
+	}
+	return ret;
+}
+
+int result_error_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	hashtable_t* table;
+	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
+	if(ret)
+	{
+		table = ((bing_result*)result)->data;
+		ret = replace_string_with_longlong(table, RES_ERROR_CODE);
+		ret &= replace_string_with_longlong(table, RES_ERROR_ERRORCODE);
+	}
+	return ret;
+}
+
+//Additional results
+void result_web_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO
+}
+
+void result_video_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO
+}
+
+void result_image_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO
+}
+
+void result_news_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO
+}
+
+void result_def_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	freeResult[0] = FALSE;
+}
 
 //Search structure
 
@@ -19,29 +154,34 @@ typedef struct BING_RESULT_CREATOR_SEARCH_S
 {
 	bing_result_creator creator;
 	enum SOURCE_TYPE type;
+	int tableCount;
 	struct BING_RESULT_CREATOR_SEARCH_S* next;
 } bing_result_creator_search;
 
 static bing_result_creator_search result_def_creator[]=
 {
-		//TODO: Replace NULL with dedicated options
-		{{"web:WebResult",			NULL, NULL}, BING_SOURCETYPE_WEB,				&result_def_creator[1]},
-		{{"pho:PhonebookResult",	NULL, NULL}, BING_SOURCETYPE_PHONEBOOK,			&result_def_creator[2]},
-		{{"mms:VideoResult",		NULL, NULL}, BING_SOURCETYPE_VIDEO, 			&result_def_creator[3]},
-		{{"mms:ImageResult",		NULL, NULL}, BING_SOURCETYPE_IMAGE,				&result_def_creator[4]},
-		{{"news:NewsResult",		NULL, NULL}, BING_SOURCETYPE_NEWS,				&result_def_creator[5]},
-		{{"ads:AdResult",			NULL, NULL}, BING_SOURCETYPE_AD, 				&result_def_creator[6]},
-		{{"rs:RelatedSearchResult",	NULL, NULL}, BING_SOURCETYPE_RELATED_SEARCH,	&result_def_creator[7]},
-		{{"tra:TranslationResult",	NULL, NULL}, BING_SOURCETYPE_TRANSLATION,		&result_def_creator[8]},
-		{{"spl:SpellResult",		NULL, NULL}, BING_SOURCETYPE_SPELL,				&result_def_creator[9]},
-		{{"mw:MobileWebResult",		NULL, NULL}, BING_SOURCETYPE_MOBILE_WEB,		&result_def_creator[10]},
-		{{"ia:InstantAnswerResult",	NULL, NULL}, BING_SOURCETYPE_INSTANT_ANWSER,	NULL}
+		//Results
+		{{"web:WebResult",			FALSE,	FALSE,	result_def_create,			result_web_additional_result},		BING_SOURCETYPE_WEB,				8,	&result_def_creator[1]},
+		{{"pho:PhonebookResult",	FALSE,	FALSE,	result_phonebook_create,	result_def_additional_result},		BING_SOURCETYPE_PHONEBOOK,			16,	&result_def_creator[2]},
+		{{"mms:VideoResult",		FALSE,	FALSE,	result_def_create,			result_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[3]},
+		{{"mms:ImageResult",		FALSE,	FALSE,	result_image_create,		result_image_additional_result},	BING_SOURCETYPE_IMAGE,				9,	&result_def_creator[4]},
+		{{"news:NewsResult",		FALSE,	FALSE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[5]},
+		{{"ads:AdResult",			FALSE,	FALSE,	result_ad_create,			result_def_additional_result},		BING_SOURCETYPE_AD, 				6,	&result_def_creator[6]},
+		{{"rs:RelatedSearchResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		2,	&result_def_creator[7]},
+		{{"tra:TranslationResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_TRANSLATION,		1,	&result_def_creator[8]},
+		{{"spl:SpellResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_SPELL,				1,	&result_def_creator[9]},
+		{{"mw:MobileWebResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_MOBILE_WEB,			5,	&result_def_creator[10]},
+		{{"ia:InstantAnswerResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_INSTANT_ANWSER,		5,	&result_def_creator[11]},
+		{{"Error",					FALSE,	FALSE,	result_error_create,		result_def_additional_result},		BING_RESULT_ERROR,					7,	NULL}
+
+		//Common
+		//TODO
 };
 
 static bing_field_search result_fields[] =
 {
 		//Ad
-		{{RESULT_FIELD_RANK,							FIELD_TYPE_LONG,	"Rank",							1,	{BING_SOURCETYPE_AD}},						&result_fields[1]},
+		{{RESULT_FIELD_RANK,							FIELD_TYPE_LONG,	RES_AD_RANK,					1,	{BING_SOURCETYPE_AD}},						&result_fields[1]},
 		{{RESULT_FIELD_POSITION,						FIELD_TYPE_STRING,	"Position",						1,	{BING_SOURCETYPE_AD}},						&result_fields[2]},
 		{{RESULT_FIELD_TITLE,							FIELD_TYPE_STRING,	"Title",						9,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
@@ -53,18 +193,18 @@ static bing_field_search result_fields[] =
 		{{RESULT_FIELD_ADLINK_URL,						FIELD_TYPE_STRING,	"AdlinkURL",					1,	{BING_SOURCETYPE_AD}},						&result_fields[6]},
 
 		//Error
-		{{RESULT_FIELD_CODE,							FIELD_TYPE_LONG,	"Code",							1,	{BING_RESULT_ERROR}},						&result_fields[7]},
+		{{RESULT_FIELD_CODE,							FIELD_TYPE_LONG,	RES_ERROR_CODE,					1,	{BING_RESULT_ERROR}},						&result_fields[7]},
 		{{RESULT_FIELD_MESSAGE,							FIELD_TYPE_STRING,	"Message",						1,	{BING_RESULT_ERROR}},						&result_fields[8]},
 		{{RESULT_FIELD_HELP_URL,						FIELD_TYPE_STRING,	"HelpUrl",						1,	{BING_RESULT_ERROR}},						&result_fields[9]},
 		{{RESULT_FIELD_PARAMETER,						FIELD_TYPE_STRING,	"Parameter",					1,	{BING_RESULT_ERROR}},						&result_fields[10]},
 		{{RESULT_FIELD_SOURCE_TYPE,						FIELD_TYPE_STRING,	"SourceType",					1,	{BING_RESULT_ERROR}},						&result_fields[11]},
-		{{RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,			FIELD_TYPE_LONG,	"SourceTypeErrorCode",			1,	{BING_RESULT_ERROR}},						&result_fields[12]},
+		{{RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,			FIELD_TYPE_LONG,	RES_ERROR_ERRORCODE,			1,	{BING_RESULT_ERROR}},						&result_fields[12]},
 		{{RESULT_FIELD_VALUE,							FIELD_TYPE_STRING,	"Value",						2,	{BING_RESULT_ERROR, BING_SOURCETYPE_SPELL}},&result_fields[13]},
 
 		//Image
-		{{RESULT_FIELD_HEIGHT,							FIELD_TYPE_LONG,	"Height",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[14]},
-		{{RESULT_FIELD_WIDTH,							FIELD_TYPE_LONG,	"Width",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[15]},
-		{{RESULT_FIELD_FILE_SIZE,						FIELD_TYPE_LONG,	"FileSize",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[16]},
+		{{RESULT_FIELD_HEIGHT,							FIELD_TYPE_LONG,	RES_IMAGE_HEIGHT,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[14]},
+		{{RESULT_FIELD_WIDTH,							FIELD_TYPE_LONG,	RES_IMAGE_WIDTH,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[15]},
+		{{RESULT_FIELD_FILE_SIZE,						FIELD_TYPE_LONG,	RES_IMAGE_FILESIZE,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[16]},
 		{{RESULT_FIELD_MEDIA_URL,						FIELD_TYPE_STRING,	"MediaUrl",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[17]},
 		{{RESULT_FIELD_URL,								FIELD_TYPE_STRING,	"Url",							7,	{BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
@@ -82,17 +222,17 @@ static bing_field_search result_fields[] =
 				BING_SOURCETYPE_WEB}},																														&result_fields[23]},
 
 		//News
-		{{RESULT_FIELD_BREAKING_NEWS,					FIELD_TYPE_BOOLEAN,	"BreakingNews",					1,	{BING_SOURCETYPE_NEWS}},					&result_fields[24]},
+		{{RESULT_FIELD_BREAKING_NEWS,					FIELD_TYPE_BOOLEAN,	RES_NEWS_BREAKINGNEWS,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[24]},
 		{{RESULT_FIELD_DATE,							FIELD_TYPE_STRING,	"Date",							1,	{BING_SOURCETYPE_NEWS}},					&result_fields[25]},
 		{{RESULT_FIELD_SNIPPET,							FIELD_TYPE_STRING,	"Snippet",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[26]},
 		{{RESULT_FIELD_SOURCE,							FIELD_TYPE_STRING,	"Source",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[27]},
 		{{RESULT_FIELD_NEWSCOLLECTION,					FIELD_TYPE_ARRAY,	"NewsCollection",				1,	{BING_SOURCETYPE_NEWS}},					&result_fields[28]},
 
 		//PhoneBook
-		{{RESULT_FIELD_LATITUDE,						FIELD_TYPE_DOUBLE,	"Latitude",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[29]},
-		{{RESULT_FIELD_LONGITUDE,						FIELD_TYPE_DOUBLE,	"Longitude",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[30]},
-		{{RESULT_FIELD_USER_RATING,						FIELD_TYPE_DOUBLE,	"UserRating",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[31]},
-		{{RESULT_FIELD_REVIEW_COUNT,					FIELD_TYPE_LONG,	"ReviewCount",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[32]},
+		{{RESULT_FIELD_LATITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LAT,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[29]},
+		{{RESULT_FIELD_LONGITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LONG,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[30]},
+		{{RESULT_FIELD_USER_RATING,						FIELD_TYPE_DOUBLE,	RES_PHONE_RATING,				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[31]},
+		{{RESULT_FIELD_REVIEW_COUNT,					FIELD_TYPE_LONG,	RES_PHONE_REVW_COUNT,			1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[32]},
 		{{RESULT_FIELD_BUSINESS_URL,					FIELD_TYPE_STRING,	"BusinessUrl",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[33]},
 		{{RESULT_FIELD_CITY,							FIELD_TYPE_STRING,	"City",							1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[34]},
 		{{RESULT_FIELD_COUNTRY_OR_REGION,				FIELD_TYPE_STRING,	"CountryOrRegion",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[35]},
@@ -159,7 +299,7 @@ void free_result(bing_result* result)
 	}
 }
 
-int result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, result_creation_func creation, result_additional_result_func additionalResult, int tableSize)
+BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, BOOL array, result_creation_func creation, result_additional_result_func additionalResult, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_result* res;
@@ -170,6 +310,7 @@ int result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* r
 		{
 			//Set variables
 			res->type = type;
+			res->array = array;
 			res->creation = creation;
 			res->additionalResult = additionalResult;
 
@@ -199,7 +340,95 @@ int result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* r
 	return ret;
 }
 
-//TODO: result_create_raw
+BOOL result_is_common(const char* type)
+{
+	bing_result_creator_search* cr;
+	int i;
+
+	//First check built in types
+	for(cr = result_def_creator; cr != NULL; cr = cr->next)
+	{
+		if(strcmp(type, cr->creator.name) == 0)
+		{
+			return cr->creator.common;
+		}
+	}
+
+	//Next check for custom types
+	pthread_mutex_lock(&bingSystem.mutex);
+
+	for(i = 0; i < bingSystem.bingResultCreatorCount; i++)
+	{
+		if(strcmp(type, bingSystem.bingResultCreators[i].name) == 0)
+		{
+			return bingSystem.bingResultCreators[i].common;
+		}
+	}
+
+	pthread_mutex_unlock(&bingSystem.mutex);
+
+	//Not found
+	return FALSE;
+}
+
+BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent)
+{
+	BOOL ret = FALSE;
+	bing_result_creator_search* cr;
+	result_creation_func creationFunc;
+	result_additional_result_func additionalResultFunc;
+	BOOL array;
+	int i;
+	if(type && result && responseParent)
+	{
+		//Check default options
+		for(cr = result_def_creator; cr != NULL; cr = cr->next)
+		{
+			if(strcmp(type, cr->creator.name) == 0)
+			{
+				break;
+			}
+		}
+		if(cr)
+		{
+			//Create default options
+			ret = result_create(cr->type, result, responseParent, cr->creator.array, cr->creator.creation, cr->creator.additionalResult, cr->tableCount);
+		}
+		else
+		{
+			creationFunc = NULL;
+			additionalResultFunc = NULL;
+
+			//Search custom creators
+			pthread_mutex_lock(&bingSystem.mutex);
+
+			for(i = 0; i < bingSystem.bingResultCreatorCount; i++)
+			{
+				if(strcmp(type, bingSystem.bingResultCreators[i].name) == 0)
+				{
+					creationFunc = bingSystem.bingResultCreators[i].creation;
+					additionalResultFunc = bingSystem.bingResultCreators[i].additionalResult;
+					array = bingSystem.bingResultCreators[i].array;
+					break;
+				}
+			}
+
+			pthread_mutex_unlock(&bingSystem.mutex);
+
+			if(creationFunc)
+			{
+				//Create the custom result
+				if(!additionalResultFunc)
+				{
+					//The "do nothing" function
+					additionalResultFunc = result_def_additional_result;
+				}
+				ret = result_create(BING_SOURCETYPE_CUSTOM, result, responseParent, array, creationFunc, additionalResultFunc, -1);
+			}
+		}
+	}
+	return ret;
+}
 
 int result_get_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
 {
@@ -335,7 +564,7 @@ void* result_custom_allocation(bing_result_t result, size_t size)
 	return ret;
 }
 
-int result_register_result_creator(const char* name, result_creation_func creation_func, result_additional_result_func additional_func)
+int result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func)
 {
 	BOOL ret = FALSE;
 	BOOL cont = TRUE;
@@ -388,6 +617,8 @@ int result_register_result_creator(const char* name, result_creation_func creati
 						bingSystem.bingResultCreators = c;
 
 						c[bingSystem.bingResultCreatorCount].name = nName;
+						c[bingSystem.bingResultCreatorCount].array = (BOOL)array;
+						c[bingSystem.bingResultCreatorCount].common = (BOOL)common;
 						c[bingSystem.bingResultCreatorCount].creation = creation_func;
 						c[bingSystem.bingResultCreatorCount++].additionalResult = additional_func;
 

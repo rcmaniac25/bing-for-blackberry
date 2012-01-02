@@ -93,6 +93,9 @@ enum SOURCE_TYPE
 	BING_SOURCETYPE_VIDEO,
 	BING_SOURCETYPE_WEB,
 
+	//Common result types
+	BING_RESULT_COMMON,
+
 	BING_SOURCETYPE_COUNT
 };
 
@@ -106,7 +109,7 @@ typedef void (*request_finish_get_options_func)(bing_request_t request, const ch
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
 typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary);
 typedef int (*result_creation_func)(const char* name, bing_result_t result, data_dictionary_t dictionary);
-typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result);
+typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult);
 
 /*
  * Dictionary functions
@@ -838,32 +841,6 @@ long long response_get_ad_page_number(bing_response_t response);
 int response_get_bundle_responses(bing_response_t response, bing_response_t* responses);
 
 /**
- * @brief Get the total for an Bing MobileWeb or Spell response.
- *
- * The @c response_get_mobile_web_spell_total() function allows developers
- * to get the total of a Bing MobileWeb or Spell response.
- *
- * @param response The Bing response to get the total from.
- *
- * @return The total, or -1 if an error occurred or if the response is not
- * 	a MobileWeb or Spell type.
- */
-long long response_get_mobile_web_spell_total(bing_response_t response);
-
-/**
- * @brief Get the offset for an Bing MobileWeb response.
- *
- * The @c response_get_mobile_web_offset() function allows developers
- * to get the offset of a Bing MobileWeb response.
- *
- * @param response The Bing response to get the offset from.
- *
- * @return The total, or -1 if an error occurred or if the response is not
- * 	an MobileWeb type.
- */
-long long response_get_mobile_web_offset(bing_response_t response);
-
-/**
  * @brief Get the title for an Bing Phonebook response.
  *
  * The @c response_get_phonebook_title() function allows developers to
@@ -1026,12 +1003,18 @@ void* response_custom_allocation(bing_response_t response, size_t size);
  *
  * The creation function is provided the internally allocated response,
  * the name the response is associated with, and a dictionary with all
- * the attributes that were passed with result.
+ * the attributes that were passed with result. This can indicate if
+ * creation has run successfully or not based on the return value
+ * where a non-zero value means it ran successfully and zero means
+ * it failed (and thus will not be returned).
  *
  * Some responses can actually contain additional data. That's where
  * the additional data function comes in. When additional data
  * is loaded, this function gets called so the data can be handled in
- * whatever manner is deemed appropriate.
+ * whatever manner is deemed appropriate. The dictionary will be freed
+ * when the callback function returns.
+ *
+ * The dictionaries that are passed in can be NULL.
  *
  * @param name The name associated with the response. Only unsupported
  * 	names can be registered. For example, the name "web:Web"
@@ -1323,20 +1306,34 @@ void* result_custom_allocation(bing_result_t result, size_t size);
  *
  * The creation function is provided the internally allocated result,
  * the name the result is associated with, and a dictionary with all
- * the attributes that were passed with result.
+ * the attributes that were passed with result. This can indicate if
+ * creation has run successfully or not based on the return value
+ * where a non-zero value means it ran successfully and zero means
+ * it failed (and thus will not be returned). The dictionary that is
+ * passed in can be NULL.
  *
  * Some results can actually contain additional results. That's where
  * the additional result function comes in. When an additional result
  * is loaded, this function gets called so the result can be handled in
  * whatever manner is deemed appropriate. The name passed in is the
  * name of the additional result. Results registered with this function
- * can be additional results.
+ * can be additional results. Be sure to set if the result is should be
+ * freed or not (non-zero means TRUE, zero means FALSE) to prevent memory
+ * leaks from occurring. This way a result can simply be stored or it can
+ * be removed when no longer needed.
  *
  * @param name The name associated with the result. Only unsupported
  * 	names can be registered. For example, the name "web:WebResult"
  * 	is for a web result type. If this was passed in, it would fail.
  * 	Names are the XML names that returned by the Bing service. If the
  * 	name already exists then this function fails.
+ * @param array A non-zero value if the result should be considered an
+ * 	array (meaning it can contain multiple other results). A zero value
+ * 	means that it is not an array.
+ * @param common A non-zero value if the result is a common value as
+ * 	opposed to an individual result. For example, a web request would
+ * 	be responded to with a non-common result. But the data types it
+ * 	might contain would be common types.
  * @param creation_func The function that handles any data passed in to
  * 	a result. This function is required.
  * @param additional_func The function that handles any additional
@@ -1346,7 +1343,7 @@ void* result_custom_allocation(bing_result_t result, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int result_register_result_creator(const char* name, result_creation_func creation_func, result_additional_result_func additional_func);
+int result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func);
 
 /**
  * @brief Unregister a result creator.

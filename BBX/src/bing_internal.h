@@ -101,6 +101,7 @@ typedef struct BING_REQUEST_S
 typedef struct BING_RESULT_S
 {
 	enum SOURCE_TYPE type;
+	BOOL array;
 
 	//These will never be NULL
 	struct BING_RESPONSE_S* parent;
@@ -147,6 +148,8 @@ typedef struct BING_RESPONSE_CREATOR_S
 typedef struct BING_RESULT_CREATOR_S
 {
 	const char* name;
+	BOOL array;
+	BOOL common;
 	result_creation_func creation;
 	result_additional_result_func additionalResult;
 } bing_result_creator;
@@ -203,6 +206,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 //Dictionary functions
 hashtable_t* hashtable_create(int size);
 void hashtable_free(hashtable_t* table);
+BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable);
 int hashtable_key_exists(hashtable_t* table, const char* key);
 int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
 int hashtable_get_item(hashtable_t* table, const char* name, void* data);
@@ -213,15 +217,26 @@ int hashtable_get_data_key(hashtable_t* table, const char* key, void* value, siz
 int hashtable_get_string(hashtable_t* table, const char* field, char* value);
 int hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size);
 
+//Bing functions
 bing* retrieveBing(unsigned int bingID);
+
+//Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);
-int response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
-int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
-int response_add_result(bing_response* response, bing_result* result);
-int result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
-int result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, result_creation_func creation, result_additional_result_func additionalResult, int tableSize);
+BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
+BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
+BOOL response_add_result(bing_response* response, bing_result* result);
+
+//Result functions
+BOOL result_is_common(const char* type);
+BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
+BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, BOOL array, result_creation_func creation, result_additional_result_func additionalResult, int tableSize);
 void free_result(bing_result* result);
 
+//Helper functions (primarily for creating/updating results/responses)
+BOOL replace_string_with_longlong(hashtable_t* table, const char* field);
+BOOL replace_string_with_double(hashtable_t* table, const char* field);
+
+//Memory functions
 void* allocateMemory(size_t size, bing_response* response);
 void freeMemory(void* ptr, bing_response* response);
 

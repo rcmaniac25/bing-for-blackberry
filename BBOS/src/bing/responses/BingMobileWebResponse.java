@@ -14,28 +14,15 @@ import java.util.Hashtable;
  */
 public class BingMobileWebResponse extends BingResponse
 {
-	private Hashtable attrDict;
-	
 	public void handleElements(Hashtable table)
 	{
-		this.attrDict = table;
-		if(this.attrDict.containsKey("Total"))
+		if(table.containsKey("Total"))
 		{
-			this.attrDict.put("Total", new Long(Long.parseLong((String)this.attrDict.get("Total"))));
+			total = Long.parseLong((String)table.get("Total"));
 		}
-		if(this.attrDict.containsKey("Offset"))
+		if(table.containsKey("Offset"))
 		{
-			this.attrDict.put("Offset", new Long(Long.parseLong((String)this.attrDict.get("Offset"))));
+			offset = Long.parseLong((String)table.get("Offset"));
 		}
-	}
-	
-	public long getTotal()
-	{
-		return ((Long)this.attrDict.get("Total")).longValue();
-	}
-	
-	public long getOffset()
-	{
-		return ((Long)this.attrDict.get("Offset")).longValue();
 	}
 }

@@ -11,9 +11,7 @@
 
 //Creation/update functions
 
-//TODO
-
-//XXX Are update functions really necessary? Seems like only results have the potential to be updated (prior to investigation).
+//TODO (make sure that offset and total are used by mobile web and spell)
 
 //Search structure
 
@@ -21,23 +19,27 @@ typedef struct BING_RESPONSE_CREATOR_SEARCH_S
 {
 	bing_response_creator creator;
 	enum SOURCE_TYPE type;
+	int tableCount;
 	struct BING_RESPONSE_CREATOR_SEARCH_S* next;
 } bing_response_creator_search;
 
+#define RESPONSE_DEF_COUNT 5
+
 static bing_response_creator_search response_def_creator[]=
 {
-		//TODO: Replace NULL with dedicated options
-		{{"web:Web",			NULL, NULL}, BING_SOURCETYPE_WEB,				&response_def_creator[1]},
-		{{"pho:Phonebook",		NULL, NULL}, BING_SOURCETYPE_PHONEBOOK,			&response_def_creator[2]},
-		{{"mms:Image",			NULL, NULL}, BING_SOURCETYPE_IMAGE, 			&response_def_creator[3]},
-		{{"mms:Video",			NULL, NULL}, BING_SOURCETYPE_VIDEO,				&response_def_creator[4]},
-		{{"news:News",			NULL, NULL}, BING_SOURCETYPE_NEWS,				&response_def_creator[5]},
-		{{"ads:Ad",				NULL, NULL}, BING_SOURCETYPE_AD, 				&response_def_creator[6]},
-		{{"rs:RelatedSearch",	NULL, NULL}, BING_SOURCETYPE_RELATED_SEARCH,	&response_def_creator[7]},
-		{{"tra:Translation",	NULL, NULL}, BING_SOURCETYPE_TRANSLATION,		&response_def_creator[8]},
-		{{"spl:Spell",			NULL, NULL}, BING_SOURCETYPE_SPELL,				&response_def_creator[9]},
-		{{"mw:MobileWeb",		NULL, NULL}, BING_SOURCETYPE_MOBILE_WEB,		&response_def_creator[10]},
-		{{"ia:InstantAnswer",	NULL, NULL}, BING_SOURCETYPE_INSTANT_ANWSER,	NULL}
+		//TODO: Replace NULL with dedicated options and count
+		{{"web:Web",			NULL, NULL}, BING_SOURCETYPE_WEB,				RESPONSE_DEF_COUNT,		&response_def_creator[1]},
+		{{"pho:Phonebook",		NULL, NULL}, BING_SOURCETYPE_PHONEBOOK,			RESPONSE_DEF_COUNT + 2,	&response_def_creator[2]},
+		{{"mms:Image",			NULL, NULL}, BING_SOURCETYPE_IMAGE, 			RESPONSE_DEF_COUNT,		&response_def_creator[3]},
+		{{"mms:Video",			NULL, NULL}, BING_SOURCETYPE_VIDEO,				RESPONSE_DEF_COUNT,		&response_def_creator[4]},
+		{{"news:News",			NULL, NULL}, BING_SOURCETYPE_NEWS,				RESPONSE_DEF_COUNT + 1,	&response_def_creator[5]},
+		{{"ads:Ad",				NULL, NULL}, BING_SOURCETYPE_AD, 				RESPONSE_DEF_COUNT + 5,	&response_def_creator[6]},
+		{{"rs:RelatedSearch",	NULL, NULL}, BING_SOURCETYPE_RELATED_SEARCH,	RESPONSE_DEF_COUNT,		&response_def_creator[7]},
+		{{"tra:Translation",	NULL, NULL}, BING_SOURCETYPE_TRANSLATION,		RESPONSE_DEF_COUNT,		&response_def_creator[8]},
+		{{"spl:Spell",			NULL, NULL}, BING_SOURCETYPE_SPELL,				RESPONSE_DEF_COUNT,		&response_def_creator[9]},
+		{{"mw:MobileWeb",		NULL, NULL}, BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[10]},
+		{{"ia:InstantAnswer",	NULL, NULL}, BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[11]},
+		{{"bundle",				NULL, NULL}, BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT,		NULL}
 };
 
 //Functions
@@ -120,7 +122,7 @@ int response_get_results(bing_response_t response, bing_result_t* results)
 	return ret;
 }
 
-int response_add_result(bing_response* response, bing_result* result)
+BOOL response_add_result(bing_response* response, bing_result* result)
 {
 	BOOL ret = FALSE;
 	int i;
@@ -241,7 +243,7 @@ void response_remove_from_bing(bing_response* res, BOOL bundle_free)
 	}
 }
 
-int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
+BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_response* res;
@@ -371,7 +373,62 @@ int response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned i
 	return ret;
 }
 
-//TODO: response_create_raw
+BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent)
+{
+	BOOL ret = FALSE;
+	bing_response_creator_search* cr;
+	response_creation_func creationFunc;
+	response_additional_data_func additionalDataFunc;
+	int i;
+	if(type && response &&
+			(!(responseParent && responseParent->bing == 0) || bing > 0))
+	{
+		//Check default options
+		for(cr = response_def_creator; cr != NULL; cr = cr->next)
+		{
+			if(strcmp(type, cr->creator.name) == 0)
+			{
+				break;
+			}
+		}
+		if(cr)
+		{
+			//Create default options
+			ret = response_create(cr->type, response, bing, responseParent, cr->creator.creation, cr->creator.additionalData, cr->tableCount);
+		}
+		else
+		{
+			creationFunc = NULL;
+			additionalDataFunc = NULL;
+
+			//Search custom creators
+			pthread_mutex_lock(&bingSystem.mutex);
+
+			for(i = 0; i < bingSystem.bingResponseCreatorCount; i++)
+			{
+				if(strcmp(type, bingSystem.bingResponseCreators[i].name) == 0)
+				{
+					creationFunc = bingSystem.bingResponseCreators[i].creation;
+					additionalDataFunc = bingSystem.bingResponseCreators[i].additionalData;
+					break;
+				}
+			}
+
+			pthread_mutex_unlock(&bingSystem.mutex);
+
+			if(creationFunc)
+			{
+				//Create the custom response
+				if(!additionalDataFunc)
+				{
+					//TODO: Replace with default ("do nothing") function
+				}
+				ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, additionalDataFunc, -1);
+			}
+		}
+	}
+	return ret;
+}
 
 void free_response_in(bing_response_t response, BOOL bundle_free)
 {
@@ -492,16 +549,6 @@ int response_get_bundle_responses(bing_response_t response, bing_response_t* res
 		}
 	}
 	return ret;
-}
-
-long long response_get_mobile_web_spell_total(bing_response_t response)
-{
-	return response_get_int64(response, "Total", BING_SOURCETYPE_MOBILE_WEB);
-}
-
-long long response_get_mobile_web_offset(bing_response_t response)
-{
-	return response_get_int64(response, "Offset", BING_SOURCETYPE_MOBILE_WEB);
 }
 
 int response_get_phonebook_title(bing_response_t response, char* buffer)

@@ -14,19 +14,11 @@ import java.util.Hashtable;
  */
 public class BingSpellResponse extends BingResponse
 {
-	private Hashtable attrDict;
-	
 	public void handleElements(Hashtable table)
 	{
-		this.attrDict = table;
-		if(this.attrDict.containsKey("Total"))
+		if(table.containsKey("Total"))
 		{
-			this.attrDict.put("Total", new Long(Long.parseLong((String)this.attrDict.get("Total"))));
+			total = Long.parseLong((String)table.get("Total"));
 		}
-	}
-	
-	public long getTotal()
-	{
-		return ((Long)this.attrDict.get("Total")).longValue();
 	}
 }
