@@ -242,157 +242,12 @@ void result_def_additional_result(const char* name, bing_result_t result, bing_r
 {
 }
 
-//XXX Try to consolidate these functions so they have less redundant code
-
-void result_web_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+void result_additional_result_helper(bing_result_t result, bing_result_t new_result, const char* commonType, void* data, void (*specificProcessing)(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data))
 {
 	int size;
 	char* str;
-	void* data;
 	bing_result* res = (bing_result*)new_result;
 	bing_response* pres = ((bing_result*)result)->parent;
-	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
-	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
-		{
-			str = malloc(size);
-			if(str)
-			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_DEEPLINK_ARRAY_NAME) == 0) //Is it the correct common type?
-				{
-					free(str);
-
-					size = hashtable_get_string(res->data, RES_COM_WEB_DEEPLINK_ARRAY, NULL);
-					if(size > 0)
-					{
-						data = malloc(size); //We want a new item, so we add one to an existing array or create a new one
-						hashtable_get_string(res->data, RES_COM_WEB_DEEPLINK_ARRAY, (char*)data); //If the collection doesn't exist, then nothing happens
-
-						//Save the array
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_WEB_DEEPLINK_ARRAY, data, size);
-
-						free(data);
-					}
-				}
-				else if(strcmp(str, RES_COM_SEARCHTAG_ARRAY_NAME) == 0)
-				{
-					free(str);
-
-					size = hashtable_get_string(res->data, RES_COM_WEB_SEARCHTAGS, NULL);
-					if(size > 0)
-					{
-						data = malloc(size); //We want a new item, so we add one to an existing array or create a new one
-						hashtable_get_string(res->data, RES_COM_WEB_SEARCHTAGS, (char*)data); //If the collection doesn't exist, then nothing happens
-
-						//Save the array
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_WEB_SEARCHTAGS, data, size);
-
-						free(data);
-					}
-				}
-				else
-				{
-					free(str);
-				}
-			}
-		}
-	}
-}
-
-void result_load_thumbnail(bing_result_t result, bing_result_t new_result, const char* destName)
-{
-	int size;
-	char* str;
-	bing_thumbnail_t thumbnail;
-	bing_result* res = (bing_result*)new_result;
-	bing_response* pres = ((bing_result*)result)->parent;
-	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
-	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
-		{
-			str = malloc(size);
-			if(str)
-			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_THUMBNAIL_NAME) == 0) //Is it the correct common type?
-				{
-					//We need the string variable
-					free(str);
-
-					//Convert to thumbnail
-					thumbnail = (bing_thumbnail_t)malloc(sizeof(bing_thumbnail_s));
-					if(thumbnail)
-					{
-						//Setup the thumbnail
-						size = hashtable_get_string(res->data, RES_IMAGE_URL, NULL);
-						if(size > 0)
-						{
-							thumbnail->url = str = allocateMemory(size, pres);
-							if(str)
-							{
-								hashtable_get_string(res->data, RES_IMAGE_URL, str);
-							}
-						}
-						else
-						{
-							thumbnail->url = NULL;
-						}
-
-						size = hashtable_get_string(res->data, RES_IMAGE_CONTENTTYPE, NULL);
-						if(size > 0)
-						{
-							thumbnail->content_type = str = allocateMemory(size, pres);
-							if(str)
-							{
-								hashtable_get_string(res->data, RES_IMAGE_CONTENTTYPE, str);
-							}
-						}
-						else
-						{
-							thumbnail->content_type = NULL;
-						}
-
-						hashtable_get_data_key(res->data, RES_IMAGE_HEIGHT, &thumbnail->height, sizeof(long long));
-
-						hashtable_get_data_key(res->data, RES_IMAGE_WIDTH, &thumbnail->width, sizeof(long long));
-
-						hashtable_get_data_key(res->data, RES_IMAGE_FILESIZE, &thumbnail->file_size, sizeof(long long));
-
-						//Save the thumbnail
-						hashtable_set_data(((bing_result*)result)->data, destName, thumbnail, sizeof(bing_thumbnail_s));
-
-						//Free the thumbnail
-						free(thumbnail);
-					}
-				}
-				else
-				{
-					free(str);
-				}
-			}
-		}
-	}
-}
-
-void result_video_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
-{
-	result_load_thumbnail(result, new_result, RES_VIDEO_STATICTHUMBNAIL);
-}
-
-void result_image_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
-{
-	result_load_thumbnail(result, new_result, RES_IMAGE_THUMBNAIL);
-}
-
-void result_news_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
-{
-	int size;
-	char* str;
-	void* newsColl;
-	bing_result* res = (bing_result*)new_result;
 	if(res->type == BING_RESULT_COMMON) //Is this a "common" type?
 	{
 		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
@@ -402,22 +257,11 @@ void result_news_additional_result(const char* name, bing_result_t result, bing_
 			if(str)
 			{
 				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_NEWSCOL_ARRAY_NAME) == 0) //Is it the correct common type?
+				if(strcmp(str, commonType) == 0) //Is it the correct common type?
 				{
 					free(str);
 
-					//Get the current array
-					size = hashtable_get_string(res->data, RES_COM_NEWS_COLLECTION, NULL);
-					if(size > 0)
-					{
-						newsColl = malloc(size);
-						hashtable_get_string(res->data, RES_COM_NEWS_COLLECTION, (char*)newsColl);
-
-						//Save the news collection
-						hashtable_set_data(((bing_result*)result)->data, RES_NEWS_COLLECTION, newsColl, size);
-
-						free(newsColl);
-					}
+					specificProcessing(((bing_result*)result)->data, res->data, pres, data);
 				}
 				else
 				{
@@ -428,57 +272,143 @@ void result_news_additional_result(const char* name, bing_result_t result, bing_
 	}
 }
 
-void result_common_deeplink_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+void copyArray(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
+{
+	const char* name = (char*)data;
+	int size = hashtable_get_string(new_resultData, name, NULL);
+	if(size > 0)
+	{
+		data = malloc(size); //We want a new item, so we add one to an existing array or create a new one
+		hashtable_get_string(new_resultData, name, (char*)data); //If the collection doesn't exist, then nothing happens
+
+		//Save the array
+		hashtable_set_data(resultData, name, data, size);
+
+		free(data);
+	}
+}
+
+void result_web_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+{
+	result_additional_result_helper(result, new_result, RES_COM_DEEPLINK_ARRAY_NAME, RES_COM_WEB_DEEPLINK_ARRAY, copyArray);
+	result_additional_result_helper(result, new_result, RES_COM_SEARCHTAG_ARRAY_NAME, RES_COM_WEB_SEARCHTAGS, copyArray);
+}
+
+void loadThumbnail(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
 {
 	int size;
-	int i;
 	char* str;
-	bing_deep_link_t deeplinks;
-	bing_result* res = (bing_result*)new_result;
-	bing_response* pres = ((bing_result*)result)->parent;
-	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
+
+	//Convert to thumbnail
+	bing_thumbnail_t thumbnail = (bing_thumbnail_t)malloc(sizeof(bing_thumbnail_s));
+	if(thumbnail)
 	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
+		//Setup the thumbnail
+		size = hashtable_get_string(new_resultData, RES_IMAGE_URL, NULL);
+		if(size > 0)
 		{
-			str = malloc(size);
+			thumbnail->url = str = allocateMemory(size, pres);
 			if(str)
 			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_DEEPLINK_NAME) == 0) //Is it the correct common type?
-				{
-					free(str);
-
-					size = hashtable_get_string(((bing_result*)result)->data, RES_COM_WEB_DEEPLINK_ARRAY, NULL);
-					if(size > 0)
-					{
-						deeplinks = (bing_deep_link_t)malloc(size = max(size + sizeof(bing_deep_link_s), sizeof(bing_deep_link_s))); //We want a new item, so we add one to an existing array or create a new one
-						hashtable_get_string(((bing_result*)result)->data, RES_COM_WEB_DEEPLINK_ARRAY, (char*)deeplinks); //If the collection doesn't exist, then nothing happens
-
-						i = max(size / sizeof(bing_deep_link_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
-
-						//Get the deep link
-						size = hashtable_get_string(res->data, RES_AD_TITLE, NULL);
-						deeplinks[i].title = allocateMemory(size, pres);
-						hashtable_get_string(res->data, RES_AD_TITLE, (char*)deeplinks[i].title);
-
-						size = hashtable_get_string(res->data, RES_IMAGE_URL, NULL);
-						deeplinks[i].url = allocateMemory(size, pres);
-						hashtable_get_string(res->data, RES_IMAGE_URL, (char*)deeplinks[i].url);
-
-						//Save the element (it will overwrite the old array)
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_WEB_DEEPLINK_ARRAY, deeplinks, (i + 1) * sizeof(bing_deep_link_s));
-
-						free(deeplinks);
-					}
-				}
-				else
-				{
-					free(str);
-				}
+				hashtable_get_string(new_resultData, RES_IMAGE_URL, str);
 			}
 		}
+		else
+		{
+			thumbnail->url = NULL;
+		}
+
+		size = hashtable_get_string(new_resultData, RES_IMAGE_CONTENTTYPE, NULL);
+		if(size > 0)
+		{
+			thumbnail->content_type = str = allocateMemory(size, pres);
+			if(str)
+			{
+				hashtable_get_string(new_resultData, RES_IMAGE_CONTENTTYPE, str);
+			}
+		}
+		else
+		{
+			thumbnail->content_type = NULL;
+		}
+
+		hashtable_get_data_key(new_resultData, RES_IMAGE_HEIGHT, &thumbnail->height, sizeof(long long));
+
+		hashtable_get_data_key(new_resultData, RES_IMAGE_WIDTH, &thumbnail->width, sizeof(long long));
+
+		hashtable_get_data_key(new_resultData, RES_IMAGE_FILESIZE, &thumbnail->file_size, sizeof(long long));
+
+		//Save the thumbnail
+		hashtable_set_data(resultData, (const char*)data, thumbnail, sizeof(bing_thumbnail_s));
+
+		//Free the thumbnail
+		free(thumbnail);
 	}
+}
+
+void result_video_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+{
+	result_additional_result_helper(result, new_result, RES_COM_THUMBNAIL_NAME, RES_VIDEO_STATICTHUMBNAIL, loadThumbnail);
+}
+
+void result_image_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+{
+	result_additional_result_helper(result, new_result, RES_COM_THUMBNAIL_NAME, RES_IMAGE_THUMBNAIL, loadThumbnail);
+}
+
+void addNewsArray(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
+{
+	//Would perfer to use "copyArray" but it doesn't support different src and dst
+	int size = hashtable_get_string(new_resultData, RES_COM_NEWS_COLLECTION, NULL);
+	if(size > 0)
+	{
+		data = malloc(size); //We want a new item, so we add one to an existing array or create a new one
+		hashtable_get_string(new_resultData, RES_COM_NEWS_COLLECTION, (char*)data); //If the collection doesn't exist, then nothing happens
+
+		//Save the array
+		hashtable_set_data(resultData, RES_NEWS_COLLECTION, data, size);
+
+		free(data);
+	}
+}
+
+void result_news_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+{
+	result_additional_result_helper(result, new_result, RES_COM_NEWSCOL_ARRAY_NAME, NULL, addNewsArray);
+}
+
+void addDeepLink(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
+{
+	const char* name = (const char*)data;
+	bing_deep_link_t deeplinks;
+	int i;
+	int size = hashtable_get_string(resultData, name, NULL);
+	if(size > 0)
+	{
+		deeplinks = (bing_deep_link_t)malloc(size = max(size + sizeof(bing_deep_link_s), sizeof(bing_deep_link_s))); //We want a new item, so we add one to an existing array or create a new one
+		hashtable_get_string(resultData, name, (char*)deeplinks); //If the collection doesn't exist, then nothing happens
+
+		i = max(size / sizeof(bing_deep_link_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+
+		//Get the deep link
+		size = hashtable_get_string(new_resultData, RES_AD_TITLE, NULL);
+		deeplinks[i].title = allocateMemory(size, pres);
+		hashtable_get_string(new_resultData, RES_AD_TITLE, (char*)deeplinks[i].title);
+
+		size = hashtable_get_string(new_resultData, RES_IMAGE_URL, NULL);
+		deeplinks[i].url = allocateMemory(size, pres);
+		hashtable_get_string(new_resultData, RES_IMAGE_URL, (char*)deeplinks[i].url);
+
+		//Save the element (it will overwrite the old array)
+		hashtable_set_data(resultData, name, deeplinks, (i + 1) * sizeof(bing_deep_link_s));
+
+		free(deeplinks);
+	}
+}
+
+void result_common_deeplink_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
+{
+	result_additional_result_helper(result, new_result, RES_COM_DEEPLINK_NAME, RES_COM_WEB_DEEPLINK_ARRAY, addDeepLink);
 }
 
 void result_common_news_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
@@ -513,211 +443,87 @@ void result_common_news_array_additional_result(const char* name, bing_result_t 
 
 void result_common_news_col_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
 {
-	int size;
+	result_additional_result_helper(result, new_result, RES_COM_NEWS_ARRAY_NAME, RES_COM_NEWS_COL_ARTICLES, copyArray);
+}
+
+void addNewsCollection(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
+{
 	int i;
-	char* str;
-	bing_result_t* articles;
-	bing_result* res = (bing_result*)new_result;
-	if(res->type == BING_RESULT_COMMON) //Is this a "common" type?
+	bing_news_collection_t col;
+	int size = hashtable_get_string(resultData, RES_COM_NEWS_COLLECTION, NULL);
+	if(size > 0)
 	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
+		col = (bing_news_collection_t)malloc(size = max(size + sizeof(bing_news_collection_s), sizeof(bing_news_collection_s))); //We want a new item, so we add one to an existing array or create a new one
+		hashtable_get_string(resultData, RES_COM_NEWS_COLLECTION, (char*)col); //If the collection doesn't exist, then nothing happens
+
+		i = max(size / sizeof(bing_news_collection_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+
+		//First get the name
+		size = hashtable_get_string(new_resultData, RES_COM_NEWS_COL_NAME, NULL);
+		if(size > 0)
 		{
-			str = malloc(size);
-			if(str)
-			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_NEWS_ARRAY_NAME) == 0) //Is it the correct common type?
-				{
-					free(str);
-
-					//Get the array
-					size = hashtable_get_string(res->data, RES_COM_NEWS_COL_ARTICLES, NULL);
-					if(size > 0)
-					{
-						articles = (bing_result_t*)malloc(size);
-						hashtable_get_string(res->data, RES_COM_NEWS_COL_ARTICLES, (char*)articles);
-
-						//Save the element
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_NEWS_COL_ARTICLES, articles, size);
-
-						free(articles);
-					}
-				}
-				else
-				{
-					free(str);
-				}
-			}
+			col[i].name = allocateMemory(size, pres);
+			hashtable_get_string(new_resultData, RES_COM_NEWS_COL_NAME, (char*)col[i].name);
 		}
+		else
+		{
+			col[i].name = NULL;
+		}
+
+		//Now get the array
+		col[i].news_article_count = hashtable_get_string(new_resultData, RES_COM_NEWS_COL_ARTICLES, NULL) / sizeof(bing_result_t);
+		col[i].news_articles = allocateMemory(col[i].news_article_count * sizeof(bing_result_t), pres);
+		hashtable_get_string(new_resultData, RES_COM_NEWS_COL_ARTICLES, (char*)col[i].news_articles);
+
+		//Save the element (it will overwrite the old array)
+		hashtable_set_data(resultData, RES_COM_NEWS_COLLECTION, col, (i + 1) * sizeof(bing_news_collection_s));
+
+		free(col);
 	}
 }
 
 void result_common_news_col_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
 {
-	int size;
-	int i;
-	char* str;
-	bing_news_collection_t col;
-	bing_result* res = (bing_result*)new_result;
-	bing_response* pres = ((bing_result*)result)->parent;
-	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
-	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
-		{
-			str = malloc(size);
-			if(str)
-			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_NEWSCOL_NAME) == 0) //Is it the correct common type?
-				{
-					free(str);
-
-					size = hashtable_get_string(((bing_result*)result)->data, RES_COM_NEWS_COLLECTION, NULL);
-					if(size > 0)
-					{
-						col = (bing_news_collection_t)malloc(size = max(size + sizeof(bing_news_collection_s), sizeof(bing_news_collection_s))); //We want a new item, so we add one to an existing array or create a new one
-						hashtable_get_string(((bing_result*)result)->data, RES_COM_NEWS_COLLECTION, (char*)col); //If the collection doesn't exist, then nothing happens
-
-						i = max(size / sizeof(bing_news_collection_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
-
-						//First get the name
-						size = hashtable_get_string(res->data, RES_COM_NEWS_COL_NAME, NULL);
-						if(size > 0)
-						{
-							col[i].name = allocateMemory(size, pres);
-							hashtable_get_string(res->data, RES_COM_NEWS_COL_NAME, (char*)col[i].name);
-						}
-						else
-						{
-							col[i].name = NULL;
-						}
-
-						//Now get the array
-						col[i].news_article_count = hashtable_get_string(res->data, RES_COM_NEWS_COL_ARTICLES, NULL) / sizeof(bing_result_t);
-						col[i].news_articles = allocateMemory(col[i].news_article_count * sizeof(bing_result_t), pres);
-						hashtable_get_string(res->data, RES_COM_NEWS_COL_ARTICLES, (char*)col[i].news_articles);
-
-						//Save the element (it will overwrite the old array)
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_NEWS_COLLECTION, col, (i + 1) * sizeof(bing_news_collection_s));
-
-						free(col);
-					}
-				}
-				else
-				{
-					free(str);
-				}
-			}
-		}
-	}
+	result_additional_result_helper(result, new_result, RES_COM_NEWSCOL_NAME, NULL, addNewsCollection);
 }
 
 void result_common_related_search_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
 {
-	int size;
+	//DeepLink and RelatedSearch are the same (just different names and uses)
+	result_additional_result_helper(result, new_result, RES_COM_RELSEARCH_NAME, RES_COM_WEB_RELATEDSEARCH, addDeepLink);
+}
+
+void addSearchTag(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
+{
+	bing_search_tag_t tags;
 	int i;
-	char* str;
-	bing_related_search_t related;
-	bing_result* res = (bing_result*)new_result;
-	bing_response* pres = ((bing_result*)result)->parent;
-	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
+	int size = hashtable_get_string(resultData, RES_COM_WEB_SEARCHTAGS, NULL);
+	if(size > 0)
 	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
-		{
-			str = malloc(size);
-			if(str)
-			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_RELSEARCH_NAME) == 0) //Is it the correct common type?
-				{
-					free(str);
+		tags = (bing_search_tag_t)malloc(size = max(size + sizeof(bing_search_tag_s), sizeof(bing_search_tag_s))); //We want a new item, so we add one to an existing array or create a new one
+		hashtable_get_string(resultData, RES_COM_WEB_SEARCHTAGS, (char*)tags); //If the collection doesn't exist, then nothing happens
 
-					size = hashtable_get_string(((bing_result*)result)->data, RES_COM_WEB_RELATEDSEARCH, NULL);
-					if(size > 0)
-					{
-						related = (bing_related_search_t)malloc(size = max(size + sizeof(bing_related_search_s), sizeof(bing_related_search_s))); //We want a new item, so we add one to an existing array or create a new one
-						hashtable_get_string(((bing_result*)result)->data, RES_COM_WEB_RELATEDSEARCH, (char*)related); //If the collection doesn't exist, then nothing happens
+		i = max(size / sizeof(bing_search_tag_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
 
-						i = max(size / sizeof(bing_related_search_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+		//Get the search tag
+		size = hashtable_get_string(new_resultData, RES_COM_NEWS_COL_NAME, NULL);
+		tags[i].name = allocateMemory(size, pres);
+		hashtable_get_string(new_resultData, RES_COM_NEWS_COL_NAME, (char*)tags[i].name);
 
-						//Get the related search
-						size = hashtable_get_string(res->data, RES_AD_TITLE, NULL);
-						related[i].title = allocateMemory(size, pres);
-						hashtable_get_string(res->data, RES_AD_TITLE, (char*)related[i].title);
+		size = hashtable_get_string(new_resultData, RES_ERROR_VALUE, NULL);
+		tags[i].value = allocateMemory(size, pres);
+		hashtable_get_string(new_resultData, RES_ERROR_VALUE, (char*)tags[i].value);
 
-						size = hashtable_get_string(res->data, RES_IMAGE_URL, NULL);
-						related[i].url = allocateMemory(size, pres);
-						hashtable_get_string(res->data, RES_IMAGE_URL, (char*)related[i].url);
+		//Save the element (it will overwrite the old array)
+		hashtable_set_data(resultData, RES_COM_WEB_SEARCHTAGS, tags, (i + 1) * sizeof(bing_search_tag_s));
 
-						//Save the element (it will overwrite the old array)
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_WEB_RELATEDSEARCH, related, (i + 1) * sizeof(bing_related_search_s));
-
-						free(related);
-					}
-				}
-				else
-				{
-					free(str);
-				}
-			}
-		}
+		free(tags);
 	}
 }
 
 void result_common_search_tag_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
 {
-	int size;
-	int i;
-	char* str;
-	bing_search_tag_t tags;
-	bing_result* res = (bing_result*)new_result;
-	bing_response* pres = ((bing_result*)result)->parent;
-	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
-	{
-		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
-		if(size > 0) //Does it contain a common type?
-		{
-			str = malloc(size);
-			if(str)
-			{
-				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
-				if(strcmp(str, RES_COM_RELSEARCH_NAME) == 0) //Is it the correct common type?
-				{
-					free(str);
-
-					size = hashtable_get_string(((bing_result*)result)->data, RES_COM_WEB_SEARCHTAGS, NULL);
-					if(size > 0)
-					{
-						tags = (bing_search_tag_t)malloc(size = max(size + sizeof(bing_search_tag_s), sizeof(bing_search_tag_s))); //We want a new item, so we add one to an existing array or create a new one
-						hashtable_get_string(((bing_result*)result)->data, RES_COM_WEB_SEARCHTAGS, (char*)tags); //If the collection doesn't exist, then nothing happens
-
-						i = max(size / sizeof(bing_search_tag_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
-
-						//Get the search tag
-						size = hashtable_get_string(res->data, RES_COM_NEWS_COL_NAME, NULL);
-						tags[i].name = allocateMemory(size, pres);
-						hashtable_get_string(res->data, RES_COM_NEWS_COL_NAME, (char*)tags[i].name);
-
-						size = hashtable_get_string(res->data, RES_ERROR_VALUE, NULL);
-						tags[i].value = allocateMemory(size, pres);
-						hashtable_get_string(res->data, RES_ERROR_VALUE, (char*)tags[i].value);
-
-						//Save the element (it will overwrite the old array)
-						hashtable_set_data(((bing_result*)result)->data, RES_COM_WEB_SEARCHTAGS, tags, (i + 1) * sizeof(bing_search_tag_s));
-
-						free(tags);
-					}
-				}
-				else
-				{
-					free(str);
-				}
-			}
-		}
-	}
+	result_additional_result_helper(result, new_result, RES_COM_RELSEARCH_NAME, NULL, addSearchTag);
 }
 
 //Search structure
