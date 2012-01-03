@@ -108,7 +108,7 @@ public final class BingXMLDelegate extends DefaultHandler
 		
 		//Common types: COMMON_INDEX
 		//-Web
-		this.classes.put("web.DeepLinks", DeepLinkArray.class);						//0
+		this.classes.put("web:DeepLinks", DeepLinkArray.class);						//0
 		this.classes.put("web:DeepLink", DeepLink.class);							//1
 		this.classes.put("web:SearchTags", SearchTagArray.class);					//2
 		this.classes.put("web:WebSearchTag", SearchTag.class);						//3

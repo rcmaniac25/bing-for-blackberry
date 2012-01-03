@@ -99,6 +99,8 @@ enum SOURCE_TYPE
 	BING_SOURCETYPE_COUNT
 };
 
+#define BING_RESULT_COMMON_TYPE "bingResult:CommonType"
+
 /*
  * Function delegates
  */

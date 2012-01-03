@@ -121,6 +121,8 @@ typedef struct BING_RESPONSE_S
 	hashtable_t* data;
 	int resultCount;
 	bing_result_t* results;
+	int internalResultCount;
+	bing_result_t* internalResults;
 	int allocatedMemoryCount;
 	void** allocatedMemory;
 } bing_response;
@@ -224,7 +226,9 @@ bing* retrieveBing(unsigned int bingID);
 const char* request_get_bundle_sourcetype(bing_request* bundle);
 BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
 BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
-BOOL response_add_result(bing_response* response, bing_result* result);
+BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal);
+BOOL response_remove_result(bing_response* response, bing_result* result, BOOL internal, BOOL freeResult);
+BOOL response_swap_result(bing_response* response, bing_result* result, BOOL internal);
 
 //Result functions
 BOOL result_is_common(const char* type);
@@ -238,6 +242,7 @@ BOOL replace_string_with_double(hashtable_t* table, const char* field);
 
 //Memory functions
 void* allocateMemory(size_t size, bing_response* response);
+void* rallocateMemory(void* ptr, size_t size, bing_response* response);
 void freeMemory(void* ptr, bing_response* response);
 
 __END_DECLS

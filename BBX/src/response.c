@@ -122,28 +122,129 @@ int response_get_results(bing_response_t response, bing_result_t* results)
 	return ret;
 }
 
-BOOL response_add_result(bing_response* response, bing_result* result)
+BOOL response_remove_result(bing_response* response, bing_result* result, BOOL internal, BOOL freeResult)
 {
 	BOOL ret = FALSE;
 	int i;
+	int* c;
 	bing_result_t* resultList;
+	bing_result_t** resultListSrc;
 	if(response && result)
 	{
-		for(i = 0; i < response->resultCount; i++)
+		//Get array data
+		if(internal)
 		{
-			if(response->results[i] == result)
+			c = &response->internalResultCount;
+			resultListSrc = &response->internalResults;
+		}
+		else
+		{
+			c = &response->resultCount;
+			resultListSrc = &response->results;
+		}
+		resultList = *resultListSrc;
+
+		//Find result
+		for(i = 0; i < (*c); i++)
+		{
+			if(resultList[i] == result)
 			{
 				break;
 			}
 		}
-		if(i == response->resultCount) //Result not found, add it
+
+		if(i < (*c)) //Result found, remove it
 		{
-			resultList = (bing_result_t*)realloc(response->results, (response->resultCount + 1) * sizeof(bing_result_t));
+			if((i + 1) == (*c)) //At end of array, we can simply remove it
+			{
+				resultList = (bing_result_t*)realloc(resultList, ((*c) - 1) * sizeof(bing_result_t));
+				if(resultList)
+				{
+					*resultListSrc = resultList;
+					(*c)--;
+					ret = TRUE;
+				}
+			}
+			else
+			{
+				resultList = (bing_result_t*)calloc(((*c) - 1), sizeof(bing_result_t));
+				if(resultList) //Need to recreate array in order to resize it
+				{
+					memcpy(resultList, *resultListSrc, i * sizeof(bing_result_t));
+					memcpy(resultList + i, (*resultListSrc) + i + 1, ((*c) - i - 1) * sizeof(bing_result_t));
+					free(*resultListSrc);
+					*resultListSrc = resultList;
+					(*c)--;
+					ret = TRUE;
+				}
+			}
+			if(ret && freeResult)
+			{
+				free_result(result);
+			}
+		}
+	}
+	return ret;
+}
+
+BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal)
+{
+	BOOL ret = FALSE;
+	int i;
+	int* c;
+	bing_result_t* resultList;
+	bing_result_t** resultListSrc;
+	if(response && result)
+	{
+		//Get array data
+		if(internal)
+		{
+			c = &response->internalResultCount;
+			resultListSrc = &response->internalResults;
+		}
+		else
+		{
+			c = &response->resultCount;
+			resultListSrc = &response->results;
+		}
+		resultList = *resultListSrc;
+
+		//See if the result already exists
+		for(i = 0; i < (*c); i++)
+		{
+			if(resultList[i] == result)
+			{
+				break;
+			}
+		}
+
+		if(i == (*c)) //Result not found, add it
+		{
+			resultList = (bing_result_t*)realloc(resultList, ((*c) + 1) * sizeof(bing_result_t));
 			if(resultList)
 			{
-				response->results = resultList;
-				resultList[response->resultCount++] = result;
+				*resultListSrc = resultList;
+				resultList[(*c)++] = result;
 				ret = TRUE;
+			}
+		}
+	}
+	return ret;
+}
+
+BOOL response_swap_result(bing_response* response, bing_result* result, BOOL internal)
+{
+	BOOL ret = response_remove_result(response, result, internal, FALSE);
+	if(ret)
+	{
+		ret = response_add_result(response, result, !internal);
+		if(!ret)
+		{
+			//Error, re-add to original array
+			if(!response_add_result(response, result, internal))
+			{
+				//Error, free the result as we can't get it added to anything
+				free_result(result);
 			}
 		}
 	}
@@ -264,6 +365,9 @@ BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned 
 
 			res->resultCount = 0;
 			res->results = NULL;
+
+			res->internalResultCount = 0;
+			res->internalResults = NULL;
 
 			res->allocatedMemoryCount = 0;
 			res->allocatedMemory = NULL;
@@ -472,6 +576,13 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		}
 		free(res->results);
 
+		//Free internal results
+		while(res->internalResultCount > 0)
+		{
+			free_result((bing_result*)res->internalResults[--res->internalResultCount]);
+		}
+		free(res->internalResults);
+
 		free(res);
 	}
 }
@@ -659,6 +770,27 @@ void* allocateMemory(size_t size, bing_response* response)
 		}
 	}
 	return ret;
+}
+
+void* rallocateMemory(void* ptr, size_t size, bing_response* response)
+{
+	unsigned int i;
+	void* nptr = NULL;
+	//Find the memory
+	for(i = 0; i < response->allocatedMemoryCount; i++)
+	{
+		if(response->allocatedMemory[i] == ptr)
+		{
+			//Reallocate the memory
+			nptr = realloc(ptr, size);
+			if(nptr)
+			{
+				response->allocatedMemory[i] = nptr;
+			}
+			break;
+		}
+	}
+	return nptr;
 }
 
 void freeMemory(void* ptr, bing_response* response)

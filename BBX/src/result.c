@@ -17,6 +17,11 @@
 #define RES_IMAGE_HEIGHT "Height"
 #define RES_IMAGE_WIDTH "Width"
 #define RES_IMAGE_FILESIZE "FileSize"
+#define RES_IMAGE_CONTENTTYPE "ContentType"
+#define RES_IMAGE_URL "Url"
+#define RES_IMAGE_THUMBNAIL "Thumbnail"
+
+#define RES_VIDEO_STATICTHUMBNAIL "StaticThumbnail"
 
 #define RES_PHONE_LAT "Latitude"
 #define RES_PHONE_LONG "Longitude"
@@ -24,6 +29,32 @@
 #define RES_PHONE_REVW_COUNT "ReviewCount"
 
 #define RES_NEWS_BREAKINGNEWS "BreakingNews"
+#define RES_NEWS_COLLECTION "NewsCollection"
+
+//Common name conversions
+#define RES_COM_DEEPLINK_ARRAY "web:DeepLinks"
+#define RES_COM_DEEPLINK_ARRAY_NAME "DeepLinkArray"
+#define RES_COM_DEEPLINK "web:DeepLink"
+#define RES_COM_DEEPLINK_NAME "DeepLink"
+#define RES_COM_NEWS_ARRAY "news:NewsArticles"
+#define RES_COM_NEWS_ARRAY_NAME "NewsArticleArray"
+#define RES_COM_NEWSCOL "news:NewsCollection"
+#define RES_COM_NEWSCOL_NAME "NewsCollection"
+#define RES_COM_NEWSCOL_ARRAY "news:NewsCollections"
+#define RES_COM_NEWSCOL_ARRAY_NAME "NewsCollectionArray"
+#define RES_COM_RELSEARCH_ARRAY "news:RelatedSearches"
+#define RES_COM_RELSEARCH_ARRAY_NAME "RelatedSearchArray"
+#define RES_COM_RELSEARCH "news:NewsRelatedSearch"
+#define RES_COM_RELSEARCH_NAME "RelatedSearch"
+#define RES_COM_SEARCHTAG "web:WebSearchTag"
+#define RES_COM_SEARCHTAG_NAME "SearchTag"
+#define RES_COM_SEARCHTAG_ARRAY "web:SearchTags"
+#define RES_COM_SEARCHTAG_ARRAY_NAME "SearchTagArray"
+#define RES_COM_THUMBNAIL "mms:Thumbnail"
+#define RES_COM_STATICTHUMBNAIL "mms:StaticThumbnail"
+#define RES_COM_THUMBNAIL_NAME "Thumbnail"
+
+#define RES_COM_NEWS_COLLECTION "NewsCollection"
 
 //Creation/update functions
 
@@ -122,29 +153,295 @@ int result_error_create(const char* name, bing_result_t result, data_dictionary_
 	return ret;
 }
 
+int result_def_common_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	hashtable_t* table;
+	const char* str = NULL;
+	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
+	if(ret)
+	{
+		//We need to set expected names for the element
+		table = ((bing_result*)result)->data;
+		if(strcmp(name, RES_COM_DEEPLINK_ARRAY) == 0)
+		{
+			str = RES_COM_DEEPLINK_ARRAY_NAME;
+		}
+		else if(strcmp(name, RES_COM_DEEPLINK) == 0)
+		{
+			str = RES_COM_DEEPLINK_NAME;
+		}
+		else if(strcmp(name, RES_COM_NEWS_ARRAY) == 0)
+		{
+			str = RES_COM_NEWS_ARRAY_NAME;
+		}
+		else if(strcmp(name, RES_COM_NEWSCOL) == 0)
+		{
+			str = RES_COM_NEWSCOL_NAME;
+		}
+		else if(strcmp(name, RES_COM_NEWSCOL_ARRAY) == 0)
+		{
+			str = RES_COM_NEWSCOL_ARRAY_NAME;
+		}
+		else if(strcmp(name, RES_COM_RELSEARCH_ARRAY) == 0)
+		{
+			str = RES_COM_RELSEARCH_ARRAY_NAME;
+		}
+		else if(strcmp(name, RES_COM_RELSEARCH) == 0)
+		{
+			str = RES_COM_RELSEARCH_NAME;
+		}
+		else if(strcmp(name, RES_COM_SEARCHTAG) == 0)
+		{
+			str = RES_COM_SEARCHTAG_NAME;
+		}
+		else if(strcmp(name, RES_COM_SEARCHTAG_ARRAY) == 0)
+		{
+			str = RES_COM_SEARCHTAG_ARRAY_NAME;
+		}
+		else if(strcmp(name, RES_COM_THUMBNAIL) == 0 || strcmp(name, RES_COM_STATICTHUMBNAIL) == 0)
+		{
+			str = RES_COM_THUMBNAIL_NAME;
+		}
+		if(str)
+		{
+			hashtable_set_data(table, BING_RESULT_COMMON_TYPE, str, strlen(str) + 1);
+		}
+	}
+	return ret;
+}
+
+int result_common_thumbnail_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
+{
+	hashtable_t* table;
+	BOOL ret = (BOOL)result_def_common_create(name, result, dictionary);
+	if(ret)
+	{
+		table = ((bing_result*)result)->data;
+		ret = replace_string_with_longlong(table, RES_IMAGE_HEIGHT);
+		ret &= replace_string_with_longlong(table, RES_IMAGE_WIDTH);
+		ret &= replace_string_with_longlong(table, RES_IMAGE_FILESIZE);
+	}
+	return ret;
+}
+
 //Additional results
+void result_def_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	freeResult[0] = TRUE;
+}
+
 void result_web_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
 {
-	//TODO
+	int size;
+	char* str;
+	bing_result* res = (bing_result*)new_result;
+	bing_response* pres = ((bing_result*)result)->parent;
+	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
+	{
+		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
+		if(size > 0) //Does it contain a common type?
+		{
+			str = malloc(size);
+			if(str)
+			{
+				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
+				if(strcmp(str, RES_COM_DEEPLINK_ARRAY_NAME) == 0) //Is it the correct common type?
+				{
+					free(str);
+
+					//TODO
+				}
+				else if(strcmp(str, RES_COM_SEARCHTAG_ARRAY_NAME) == 0)
+				{
+					free(str);
+
+					//TODO
+				}
+				else
+				{
+					free(str);
+				}
+			}
+		}
+	}
+	freeResult[0] = TRUE;
+}
+
+void result_load_thumbnail(bing_result_t result, bing_result_t new_result, const char* destName)
+{
+	int size;
+	char* str;
+	bing_thumbnail_t thumbnail;
+	bing_result* res = (bing_result*)new_result;
+	bing_response* pres = ((bing_result*)result)->parent;
+	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
+	{
+		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
+		if(size > 0) //Does it contain a common type?
+		{
+			str = malloc(size);
+			if(str)
+			{
+				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
+				if(strcmp(str, RES_COM_THUMBNAIL_NAME) == 0) //Is it the correct common type?
+				{
+					//We need the string variable
+					free(str);
+
+					//Convert to thumbnail
+					thumbnail = (bing_thumbnail_t)malloc(sizeof(bing_thumbnail_s));
+					if(thumbnail)
+					{
+						//Setup the thumbnail
+						size = hashtable_get_string(res->data, RES_IMAGE_URL, NULL);
+						thumbnail->url = str = allocateMemory(size, pres);
+						if(str)
+						{
+							hashtable_get_string(res->data, RES_IMAGE_URL, str);
+						}
+
+						size = hashtable_get_string(res->data, RES_IMAGE_CONTENTTYPE, NULL);
+						thumbnail->content_type = str = allocateMemory(size, pres);
+						if(str)
+						{
+							hashtable_get_string(res->data, RES_IMAGE_CONTENTTYPE, str);
+						}
+
+						hashtable_get_data_key(res->data, RES_IMAGE_HEIGHT, &thumbnail->height, sizeof(long long));
+
+						hashtable_get_data_key(res->data, RES_IMAGE_WIDTH, &thumbnail->width, sizeof(long long));
+
+						hashtable_get_data_key(res->data, RES_IMAGE_FILESIZE, &thumbnail->file_size, sizeof(long long));
+
+						//Save the thumbnail
+						hashtable_set_data(((bing_result*)result)->data, destName, thumbnail, sizeof(bing_thumbnail_s));
+
+						//Free the thumbnail
+						free(thumbnail);
+					}
+				}
+				else
+				{
+					free(str);
+				}
+			}
+		}
+	}
 }
 
 void result_video_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
 {
-	//TODO
+	result_load_thumbnail(result, new_result, RES_VIDEO_STATICTHUMBNAIL);
+	freeResult[0] = TRUE;
 }
 
 void result_image_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
 {
-	//TODO
+	result_load_thumbnail(result, new_result, RES_IMAGE_THUMBNAIL);
+	freeResult[0] = TRUE;
 }
 
 void result_news_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
 {
-	//TODO
+	int size;
+	char* str;
+	bing_news_collection_t newsColl;
+	bing_result* res = (bing_result*)new_result;
+	bing_response* pres = ((bing_result*)result)->parent;
+	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
+	{
+		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
+		if(size > 0) //Does it contain a common type?
+		{
+			str = malloc(size);
+			if(str)
+			{
+				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
+				if(strcmp(str, RES_COM_NEWSCOL_ARRAY_NAME) == 0) //Is it the correct common type?
+				{
+					free(str);
+
+					//Get the current array
+					size = hashtable_get_string(res->data, RES_COM_NEWS_COLLECTION, NULL);
+					if(size > 0)
+					{
+						newsColl = (bing_news_collection_t)malloc(size);
+						hashtable_get_string(res->data, RES_COM_NEWS_COLLECTION, (char*)newsColl);
+
+						//Save the news collection
+						hashtable_set_data(((bing_result*)result)->data, RES_NEWS_COLLECTION, newsColl, size);
+
+						free(newsColl);
+					}
+				}
+				else
+				{
+					free(str);
+				}
+			}
+		}
+	}
+	freeResult[0] = TRUE;
 }
 
-void result_def_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+void result_common_deeplink_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
 {
+	//TODO: Convert result to bing_deep_link_s (iff it is a deep link)
+	freeResult[0] = TRUE;
+}
+
+void result_common_news_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO: news type
+	freeResult[0] = FALSE;
+}
+
+void result_common_news_col_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO: news article array
+	freeResult[0] = FALSE;
+}
+
+void result_common_news_col_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	int size;
+	char* str;
+	bing_result* res = (bing_result*)new_result;
+	bing_response* pres = ((bing_result*)result)->parent;
+	if(res->type == BING_RESULT_COMMON && pres) //Is this a "common" type, and does the result have a parent response?
+	{
+		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
+		if(size > 0) //Does it contain a common type?
+		{
+			str = malloc(size);
+			if(str)
+			{
+				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
+				if(strcmp(str, RES_COM_NEWSCOL_NAME) == 0) //Is it the correct common type?
+				{
+					free(str);
+
+					//TODO
+				}
+				else
+				{
+					free(str);
+				}
+			}
+		}
+	}
+	freeResult[0] = FALSE;
+}
+
+void result_common_related_search_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO: related search result
+	freeResult[0] = FALSE;
+}
+
+void result_common_search_tag_array_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult)
+{
+	//TODO: search tag
 	freeResult[0] = FALSE;
 }
 
@@ -166,16 +463,27 @@ static bing_result_creator_search result_def_creator[]=
 		{{"mms:VideoResult",		FALSE,	FALSE,	result_def_create,			result_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[3]},
 		{{"mms:ImageResult",		FALSE,	FALSE,	result_image_create,		result_image_additional_result},	BING_SOURCETYPE_IMAGE,				9,	&result_def_creator[4]},
 		{{"news:NewsResult",		FALSE,	FALSE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[5]},
-		{{"ads:AdResult",			FALSE,	FALSE,	result_ad_create,			result_def_additional_result},		BING_SOURCETYPE_AD, 				6,	&result_def_creator[6]},
-		{{"rs:RelatedSearchResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		2,	&result_def_creator[7]},
-		{{"tra:TranslationResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_TRANSLATION,		1,	&result_def_creator[8]},
-		{{"spl:SpellResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_SPELL,				1,	&result_def_creator[9]},
-		{{"mw:MobileWebResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_MOBILE_WEB,			5,	&result_def_creator[10]},
-		{{"ia:InstantAnswerResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_INSTANT_ANWSER,		5,	&result_def_creator[11]},
-		{{"Error",					FALSE,	FALSE,	result_error_create,		result_def_additional_result},		BING_RESULT_ERROR,					7,	NULL}
+		{{"news:NewsArticle",		FALSE,	TRUE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[6]}, //This is a special extra, same as news type but with different name
+		{{"ads:AdResult",			FALSE,	FALSE,	result_ad_create,			result_def_additional_result},		BING_SOURCETYPE_AD, 				6,	&result_def_creator[7]},
+		{{"rs:RelatedSearchResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		2,	&result_def_creator[8]},
+		{{"tra:TranslationResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_TRANSLATION,		1,	&result_def_creator[9]},
+		{{"spl:SpellResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_SPELL,				1,	&result_def_creator[10]},
+		{{"mw:MobileWebResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_MOBILE_WEB,			5,	&result_def_creator[11]},
+		{{"ia:InstantAnswerResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_INSTANT_ANWSER,		5,	&result_def_creator[12]},
+		{{"Error",					FALSE,	FALSE,	result_error_create,		result_def_additional_result},		BING_RESULT_ERROR,					7,	&result_def_creator[13]},
 
 		//Common
-		//TODO
+		{{RES_COM_DEEPLINK_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_deeplink_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[14]},
+		{{RES_COM_DEEPLINK,			FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[15]},
+		{{RES_COM_NEWS_ARRAY,		TRUE,	TRUE,	result_def_common_create,		result_common_news_array_additional_result},			BING_RESULT_COMMON,	2,	&result_def_creator[16]},
+		{{RES_COM_NEWSCOL,			TRUE,	TRUE,	result_def_common_create,		result_common_news_col_additional_result},				BING_RESULT_COMMON,	3,	&result_def_creator[17]},
+		{{RES_COM_NEWSCOL_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_news_col_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[18]},
+		{{RES_COM_RELSEARCH_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_related_search_array_additional_result},	BING_RESULT_COMMON,	2,	&result_def_creator[19]},
+		{{RES_COM_RELSEARCH,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[20]},
+		{{RES_COM_SEARCHTAG,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[21]},
+		{{RES_COM_SEARCHTAG_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_search_tag_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[22]},
+		{{RES_COM_THUMBNAIL,		FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	&result_def_creator[23]},
+		{{RES_COM_STATICTHUMBNAIL,	FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	NULL}
 };
 
 static bing_field_search result_fields[] =
@@ -206,12 +514,12 @@ static bing_field_search result_fields[] =
 		{{RESULT_FIELD_WIDTH,							FIELD_TYPE_LONG,	RES_IMAGE_WIDTH,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[15]},
 		{{RESULT_FIELD_FILE_SIZE,						FIELD_TYPE_LONG,	RES_IMAGE_FILESIZE,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[16]},
 		{{RESULT_FIELD_MEDIA_URL,						FIELD_TYPE_STRING,	"MediaUrl",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[17]},
-		{{RESULT_FIELD_URL,								FIELD_TYPE_STRING,	"Url",							7,	{BING_SOURCETYPE_IMAGE,
+		{{RESULT_FIELD_URL,								FIELD_TYPE_STRING,	RES_IMAGE_URL,					7,	{BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
 				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_WEB}},																						&result_fields[18]},
-		{{RESULT_FIELD_CONTENT_TYPE,					FIELD_TYPE_STRING,	"ContentType",					2,	{BING_SOURCETYPE_IMAGE,
+		{{RESULT_FIELD_CONTENT_TYPE,					FIELD_TYPE_STRING,	RES_IMAGE_CONTENTTYPE,			2,	{BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER}},																											&result_fields[19]},
-		{{RESULT_FIELD_THUMBNAIL,						FIELD_TYPE_ARRAY,	"Thumbnail",					1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[20]},
+		{{RESULT_FIELD_THUMBNAIL,						FIELD_TYPE_ARRAY,	RES_IMAGE_THUMBNAIL,			1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[20]},
 
 		//InstantAnswer
 		{{RESULT_FIELD_ATTRIBUTION,						FIELD_TYPE_STRING,	"Attribution",					1,	{BING_SOURCETYPE_INSTANT_ANWSER}},			&result_fields[21]},
@@ -226,7 +534,7 @@ static bing_field_search result_fields[] =
 		{{RESULT_FIELD_DATE,							FIELD_TYPE_STRING,	"Date",							1,	{BING_SOURCETYPE_NEWS}},					&result_fields[25]},
 		{{RESULT_FIELD_SNIPPET,							FIELD_TYPE_STRING,	"Snippet",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[26]},
 		{{RESULT_FIELD_SOURCE,							FIELD_TYPE_STRING,	"Source",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[27]},
-		{{RESULT_FIELD_NEWSCOLLECTION,					FIELD_TYPE_ARRAY,	"NewsCollection",				1,	{BING_SOURCETYPE_NEWS}},					&result_fields[28]},
+		{{RESULT_FIELD_NEWSCOLLECTION,					FIELD_TYPE_ARRAY,	RES_NEWS_COLLECTION,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[28]},
 
 		//PhoneBook
 		{{RESULT_FIELD_LATITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LAT,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[29]},
@@ -251,12 +559,15 @@ static bing_field_search result_fields[] =
 		{{RESULT_FIELD_RUN_TIME,						FIELD_TYPE_STRING,	"RunTime",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[44]},
 		{{RESULT_FIELD_PLAY_URL,						FIELD_TYPE_STRING,	"PlayUrl",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[45]},
 		{{RESULT_FIELD_CLICK_THROUGH_PAGE_URL,			FIELD_TYPE_STRING,	"ClickThroughPageUrl",			1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[46]},
-		{{RESULT_FIELD_STATIC_THUMBNAIL,				FIELD_TYPE_ARRAY,	"StaticThumbnail",				1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[47]},
+		{{RESULT_FIELD_STATIC_THUMBNAIL,				FIELD_TYPE_ARRAY,	RES_VIDEO_STATICTHUMBNAIL,		1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[47]},
 
 		//Web
 		{{RESULT_FIELD_CACHE_URL,						FIELD_TYPE_STRING,	"CacheUrl",						1,	{BING_SOURCETYPE_WEB}},						&result_fields[48]},
 		{{RESULT_FIELD_DEEP_LINKS,						FIELD_TYPE_ARRAY,	"DeepLink",						1,	{BING_SOURCETYPE_WEB}},						&result_fields[49]},
-		{{RESULT_FIELD_SEARCH_TAGS,						FIELD_TYPE_ARRAY,	"SearchTag",					1,	{BING_SOURCETYPE_WEB}},						NULL}
+		{{RESULT_FIELD_SEARCH_TAGS,						FIELD_TYPE_ARRAY,	"SearchTag",					1,	{BING_SOURCETYPE_WEB}},						NULL},
+
+		//Common
+		//TODO
 };
 
 //Functions
@@ -318,7 +629,7 @@ BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* 
 			if(res->data)
 			{
 				//Add result to response
-				if(response_add_result(responseParent, res))
+				if(response_add_result(responseParent, res, FALSE))
 				{
 					//Save the result
 					res->parent = responseParent;
@@ -345,12 +656,14 @@ BOOL result_is_common(const char* type)
 	bing_result_creator_search* cr;
 	int i;
 
+	//Check if it is common so it is a nice easy check, before we do the longer-to-run name comparison.
+
 	//First check built in types
 	for(cr = result_def_creator; cr != NULL; cr = cr->next)
 	{
-		if(strcmp(type, cr->creator.name) == 0)
+		if(cr->creator.common && strcmp(type, cr->creator.name) == 0)
 		{
-			return cr->creator.common;
+			return TRUE;
 		}
 	}
 
@@ -359,9 +672,9 @@ BOOL result_is_common(const char* type)
 
 	for(i = 0; i < bingSystem.bingResultCreatorCount; i++)
 	{
-		if(strcmp(type, bingSystem.bingResultCreators[i].name) == 0)
+		if(bingSystem.bingResultCreators[i].common && strcmp(type, bingSystem.bingResultCreators[i].name) == 0)
 		{
-			return bingSystem.bingResultCreators[i].common;
+			return TRUE;
 		}
 	}
 
