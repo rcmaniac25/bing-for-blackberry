@@ -23,7 +23,7 @@ public class SearchTagArray extends BingResult implements Array
 	
 	protected void inAdd(BingResult[] additions)
 	{
-		if(additions[0] instanceof DeepLink)
+		if(additions[0] instanceof SearchTag)
 		{
 			if(super.attrDict.containsKey("SearchTag"))
 			{

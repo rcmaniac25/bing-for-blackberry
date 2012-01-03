@@ -111,7 +111,7 @@ typedef void (*request_finish_get_options_func)(bing_request_t request, const ch
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
 typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary);
 typedef int (*result_creation_func)(const char* name, bing_result_t result, data_dictionary_t dictionary);
-typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result, int* freeResult);
+typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult);
 
 /*
  * Dictionary functions
@@ -1320,7 +1320,7 @@ void* result_custom_allocation(bing_result_t result, size_t size);
  * whatever manner is deemed appropriate. The name passed in is the
  * name of the additional result. Results registered with this function
  * can be additional results. Be sure to set if the result is should be
- * freed or not (non-zero means TRUE, zero means FALSE) to prevent memory
+ * kept or not (non-zero means TRUE, zero means FALSE) to prevent memory
  * leaks from occurring. This way a result can simply be stored or it can
  * be removed when no longer needed.
  *
