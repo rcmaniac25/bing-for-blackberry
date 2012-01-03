@@ -9,6 +9,7 @@
 
 #include "bing_internal.h"
 
+//Nmaes used in multiple functions
 #define RES_AD_RANK "Rank"
 #define RES_AD_TITLE "Title"
 
@@ -59,6 +60,7 @@
 #define RES_COM_STATICTHUMBNAIL "mms:StaticThumbnail"
 #define RES_COM_THUMBNAIL_NAME "Thumbnail"
 
+//Internal common names
 #define RES_COM_NEWS_COLLECTION "NewsCollection"
 
 #define RES_COM_NEWS_COL_NAME "Name"

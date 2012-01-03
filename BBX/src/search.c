@@ -10,7 +10,8 @@
 #include "bing_internal.h"
 
 //XXX Key thing to remember is to add result to another result or response at the end of the execution (this will prevent issues with execution, as some added results are expected to be filled in already)
-//XXX But make sure that response parent is set/added ASAP (double check when this is done in current creation code)
+//XXX Be sure to use response_def_create_standard_responses before using the actual creation function
+//XXX Don't forget to manually set query, altered query, and alterations over query
 
 //TODO: search_sync
 

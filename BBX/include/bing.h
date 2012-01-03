@@ -99,7 +99,7 @@ enum SOURCE_TYPE
 	BING_SOURCETYPE_COUNT
 };
 
-#define BING_RESULT_COMMON_TYPE "bingResult:CommonType"
+#define BING_RESULT_COMMON_TYPE "bb_result-common_type"
 
 /*
  * Function delegates
@@ -1001,14 +1001,15 @@ void* response_custom_allocation(bing_response_t response, size_t size);
  *
  * The @c result_register_result_creator() function allows developers to
  * register a set of callbacks and a name for a, as of now, unsupported
- * Bing response.
+ * Bing response within this library.
  *
  * The creation function is provided the internally allocated response,
  * the name the response is associated with, and a dictionary with all
  * the attributes that were passed with result. This can indicate if
  * creation has run successfully or not based on the return value
  * where a non-zero value means it ran successfully and zero means
- * it failed (and thus will not be returned).
+ * it failed (and thus will not be returned). Standard response values
+ * are handled regardless of what creation function is passed in.
  *
  * Some responses can actually contain additional data. That's where
  * the additional data function comes in. When additional data
@@ -1024,7 +1025,7 @@ void* response_custom_allocation(bing_response_t response, size_t size);
  * 	Names are the XML names that returned by the Bing service. If the
  * 	name already exists then this function fails.
  * @param creation_func The function that handles any data passed in to
- * 	a response. This function is required.
+ * 	a response. This is optional.
  * @param additional_func The function that handles any additional
  * 	data that are passed in to another response. This is optional.
  * 	If this is NULL and additional data is found, it is ignored.

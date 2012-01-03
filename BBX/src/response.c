@@ -9,9 +9,225 @@
 
 #include "bing_internal.h"
 
+#define RESPONSE_AD_API_VERSION "AdAPIVersion"
+#define RESPONSE_AD_PAGE_NUMBER "PageNumber"
+
+#define RESPONSE_PHONEBOOK_TITLE "Title"
+#define RESPONSE_PHONEBOOK_LOCAL_SERP_URL "LocalSerpUrl"
+
+#define RESPONSE_NEWS_RELATEDSEARCHES "RelatedSearches"
+
+//Taken from result.c
+#define RES_COM_RELSEARCH_ARRAY_NAME "RelatedSearchArray"
+#define RES_COM_WEB_RELATEDSEARCH "RelatedSearch"
+
 //Creation/update functions
 
-//TODO (make sure that offset and total are used by mobile web and spell)
+BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary)
+{
+	BOOL ret = TRUE;
+	int size;
+	void* data;
+	long long ll;
+	bing_response* res = (bing_response*)response;
+	if(dictionary)
+	{
+		size = hashtable_get_string((hashtable_t*)dictionary, "Total", NULL);
+		if(size > 0)
+		{
+			data = malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, "Total", (char*)data);
+
+				ll = atoll((char*)data);
+
+				hashtable_set_data(res->data, RESPONSE_TOTAL_STR, &ll, sizeof(long long));
+
+				free(data);
+			}
+		}
+
+		size = hashtable_get_string((hashtable_t*)dictionary, "Offset", NULL);
+		if(size > 0)
+		{
+			data = malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, "Offset", (char*)data);
+
+				ll = atoll((char*)data);
+
+				hashtable_set_data(res->data, RESPONSE_OFFSET_STR, &ll, sizeof(long long));
+
+				free(data);
+			}
+		}
+	}
+	return ret;
+}
+
+int response_def_create(const char* name, bing_response_t response, data_dictionary_t dictionary)
+{
+	//Nothing to do, no values are used by default
+	return TRUE;
+}
+
+void response_def_additional_data(bing_response_t response, data_dictionary_t dictionary)
+{
+	//Don't do anything. The dictionary is automatically freed.
+}
+
+void response_phonebook_additional_data(bing_response_t response, data_dictionary_t dictionary)
+{
+	int size;
+	void* data;
+	long long ll;
+	bing_response* res = (bing_response*)response;
+	if(dictionary)
+	{
+		//Get the data, then save the data
+
+		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_TITLE, NULL);
+		if(size > 0)
+		{
+			data = malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_TITLE, (char*)data);
+
+				hashtable_set_data(res->data, RESPONSE_PHONEBOOK_TITLE, data, strlen((char*)data) + 1);
+
+				free(data);
+			}
+		}
+
+		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, NULL);
+		if(size > 0)
+		{
+			data = malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, (char*)data);
+
+				hashtable_set_data(res->data, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, data, strlen((char*)data) + 1);
+
+				free(data);
+			}
+		}
+	}
+}
+
+void response_news_additional_data(bing_response_t response, data_dictionary_t dictionary)
+{
+	int size;
+	char* str;
+	bing_result* result;
+	bing_response* res = (bing_response*)response;
+	if(dictionary)
+	{
+		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_NEWS_RELATEDSEARCHES, NULL);
+		if(size > 0)
+		{
+			str = malloc(size);
+			if(str)
+			{
+				//We need to get the result
+				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_NEWS_RELATEDSEARCHES, str);
+				result = (bing_result*)str;
+
+				free(str);
+
+				//Make sure this is a valid result
+				if(result->type == BING_RESULT_COMMON)
+				{
+					size = hashtable_get_string(result->data, BING_RESULT_COMMON_TYPE, NULL);
+					if(size > 0) //Does it contain a common type?
+					{
+						str = malloc(size);
+						if(str)
+						{
+							hashtable_get_string(result->data, BING_RESULT_COMMON_TYPE, str);
+							if(strcmp(str, RES_COM_RELSEARCH_ARRAY_NAME) == 0) //Is it the correct common type?
+							{
+								free(str);
+
+								//It's a valid result, time to get the array
+								size = hashtable_get_string(result->data, RES_COM_WEB_RELATEDSEARCH, NULL);
+								if(size > 0)
+								{
+									str = malloc(size);
+									if(str)
+									{
+										hashtable_get_string(result->data, RES_COM_WEB_RELATEDSEARCH, str);
+
+										//Save the array
+										hashtable_set_data(res->data, RESPONSE_NEWS_RELATEDSEARCHES, str, size);
+
+										free(str);
+									}
+								}
+							}
+							else
+							{
+								free(str);
+							}
+						}
+					}
+				}
+
+				//We need to free the result. It was saved for passing into this function, but we processed it and can free it now
+				if(!response_remove_result(res, result, TRUE, TRUE))
+				{
+					//Wasn't an internal result (odd?), try normal result
+					response_remove_result(res, result, FALSE, TRUE);
+				}
+			}
+		}
+	}
+}
+
+void response_ad_additional_data(bing_response_t response, data_dictionary_t dictionary)
+{
+	int size;
+	void* data;
+	long long ll;
+	bing_response* res = (bing_response*)response;
+	if(dictionary)
+	{
+		//Get the data, then save the data
+
+		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_API_VERSION, NULL);
+		if(size > 0)
+		{
+			data = malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_API_VERSION, (char*)data);
+
+				hashtable_set_data(res->data, RESPONSE_AD_API_VERSION, data, strlen((char*)data) + 1);
+
+				free(data);
+			}
+		}
+
+		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_PAGE_NUMBER, NULL);
+		if(size > 0)
+		{
+			data = malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_PAGE_NUMBER, (char*)data);
+
+				ll = atoll((char*)data);
+
+				hashtable_set_data(res->data, RESPONSE_AD_PAGE_NUMBER, &ll, sizeof(long long));
+
+				free(data);
+			}
+		}
+	}
+}
 
 //Search structure
 
@@ -27,19 +243,18 @@ typedef struct BING_RESPONSE_CREATOR_SEARCH_S
 
 static bing_response_creator_search response_def_creator[]=
 {
-		//TODO: Replace NULL with dedicated options and count
-		{{"web:Web",			NULL, NULL}, BING_SOURCETYPE_WEB,				RESPONSE_DEF_COUNT,		&response_def_creator[1]},
-		{{"pho:Phonebook",		NULL, NULL}, BING_SOURCETYPE_PHONEBOOK,			RESPONSE_DEF_COUNT + 2,	&response_def_creator[2]},
-		{{"mms:Image",			NULL, NULL}, BING_SOURCETYPE_IMAGE, 			RESPONSE_DEF_COUNT,		&response_def_creator[3]},
-		{{"mms:Video",			NULL, NULL}, BING_SOURCETYPE_VIDEO,				RESPONSE_DEF_COUNT,		&response_def_creator[4]},
-		{{"news:News",			NULL, NULL}, BING_SOURCETYPE_NEWS,				RESPONSE_DEF_COUNT + 1,	&response_def_creator[5]},
-		{{"ads:Ad",				NULL, NULL}, BING_SOURCETYPE_AD, 				RESPONSE_DEF_COUNT + 5,	&response_def_creator[6]},
-		{{"rs:RelatedSearch",	NULL, NULL}, BING_SOURCETYPE_RELATED_SEARCH,	RESPONSE_DEF_COUNT,		&response_def_creator[7]},
-		{{"tra:Translation",	NULL, NULL}, BING_SOURCETYPE_TRANSLATION,		RESPONSE_DEF_COUNT,		&response_def_creator[8]},
-		{{"spl:Spell",			NULL, NULL}, BING_SOURCETYPE_SPELL,				RESPONSE_DEF_COUNT,		&response_def_creator[9]},
-		{{"mw:MobileWeb",		NULL, NULL}, BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[10]},
-		{{"ia:InstantAnswer",	NULL, NULL}, BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[11]},
-		{{"bundle",				NULL, NULL}, BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT,		NULL}
+		{{"web:Web",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_WEB,			RESPONSE_DEF_COUNT,		&response_def_creator[1]},
+		{{"pho:Phonebook",		response_def_create,	response_phonebook_additional_data},	BING_SOURCETYPE_PHONEBOOK,		RESPONSE_DEF_COUNT + 2,	&response_def_creator[2]},
+		{{"mms:Image",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_IMAGE, 			RESPONSE_DEF_COUNT,		&response_def_creator[3]},
+		{{"mms:Video",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_VIDEO,			RESPONSE_DEF_COUNT,		&response_def_creator[4]},
+		{{"news:News",			response_def_create,	response_news_additional_data},			BING_SOURCETYPE_NEWS,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[5]},
+		{{"ads:Ad",				response_def_create,	response_ad_additional_data},			BING_SOURCETYPE_AD, 			RESPONSE_DEF_COUNT + 2,	&response_def_creator[6]},
+		{{"rs:RelatedSearch",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_RELATED_SEARCH,	RESPONSE_DEF_COUNT,		&response_def_creator[7]},
+		{{"tra:Translation",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_TRANSLATION,	RESPONSE_DEF_COUNT,		&response_def_creator[8]},
+		{{"spl:Spell",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_SPELL,			RESPONSE_DEF_COUNT,		&response_def_creator[9]},
+		{{"mw:MobileWeb",		response_def_create,	response_def_additional_data},			BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[10]},
+		{{"ia:InstantAnswer",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[11]},
+		{{"bundle",				response_def_create,	response_def_additional_data},			BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT + 1,	NULL}
 };
 
 //Functions
@@ -520,15 +735,18 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 
 			pthread_mutex_unlock(&bingSystem.mutex);
 
-			if(creationFunc)
+			//Create the custom response
+			if(!creationFunc)
 			{
-				//Create the custom response
-				if(!additionalDataFunc)
-				{
-					//TODO: Replace with default ("do nothing") function
-				}
-				ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, additionalDataFunc, -1);
+				//The "do nothing" function
+				creationFunc = response_def_create;
 			}
+			if(!additionalDataFunc)
+			{
+				//The "do nothing" function
+				additionalDataFunc = response_def_additional_data;
+			}
+			ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, additionalDataFunc, -1);
 		}
 	}
 	return ret;
@@ -609,7 +827,7 @@ int response_get_string(bing_response_t response, char* buffer, const char* fiel
 
 int response_get_ad_api_version(bing_response_t response, char* buffer)
 {
-	return response_get_string(response, buffer, "AdAPIVersion", BING_SOURCETYPE_AD);
+	return response_get_string(response, buffer, RESPONSE_AD_API_VERSION, BING_SOURCETYPE_AD);
 }
 
 long long response_get_int64(bing_response_t response, const char* field, enum SOURCE_TYPE type)
@@ -633,7 +851,7 @@ long long response_get_int64(bing_response_t response, const char* field, enum S
 
 long long response_get_ad_page_number(bing_response_t response)
 {
-	return response_get_int64(response, "PageNumber", BING_SOURCETYPE_AD);
+	return response_get_int64(response, RESPONSE_AD_PAGE_NUMBER, BING_SOURCETYPE_AD);
 }
 
 int response_get_bundle_responses(bing_response_t response, bing_response_t* responses)
@@ -664,21 +882,21 @@ int response_get_bundle_responses(bing_response_t response, bing_response_t* res
 
 int response_get_phonebook_title(bing_response_t response, char* buffer)
 {
-	return response_get_string(response, buffer, "Title", BING_SOURCETYPE_PHONEBOOK);
+	return response_get_string(response, buffer, RESPONSE_PHONEBOOK_TITLE, BING_SOURCETYPE_PHONEBOOK);
 }
 
 int response_get_phonebook_local_serp_url(bing_response_t response, char* buffer)
 {
-	return response_get_string(response, buffer, "LocalSerpUrl", BING_SOURCETYPE_PHONEBOOK);
+	return response_get_string(response, buffer, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, BING_SOURCETYPE_PHONEBOOK);
 }
 
 int response_get_news_related_searches(bing_response_t response, bing_related_search_t searches)
 {
-	int ret = response_get_string(response, (char*)searches, "RelatedSearches", BING_SOURCETYPE_NEWS);
+	int ret = response_get_string(response, (char*)searches, RESPONSE_NEWS_RELATEDSEARCHES, BING_SOURCETYPE_NEWS);
 	if(ret != -1)
 	{
 		//We need to convert byte count to item count
-		ret /= sizeof(bing_related_search_t);
+		ret /= sizeof(bing_related_search_s);
 	}
 	return ret;
 }
@@ -864,7 +1082,7 @@ int response_register_response_creator(const char* name, response_creation_func 
 	bing_response_creator_search* cr;
 	char* nName;
 	size_t size;
-	if(name && creation_func)
+	if(name)
 	{
 		//Check if the name is a standard supported name, if so return
 		for(cr = response_def_creator; cr != NULL; cr = cr->next)

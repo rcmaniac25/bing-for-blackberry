@@ -224,6 +224,7 @@ bing* retrieveBing(unsigned int bingID);
 
 //Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);
+BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary);
 BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
 BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
 BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal);
