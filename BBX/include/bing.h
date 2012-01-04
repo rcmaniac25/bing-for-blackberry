@@ -1015,7 +1015,8 @@ void* response_custom_allocation(bing_response_t response, size_t size);
  * the additional data function comes in. When additional data
  * is loaded, this function gets called so the data can be handled in
  * whatever manner is deemed appropriate. The dictionary will be freed
- * when the callback function returns.
+ * when the callback function returns. If a result is contained
+ * within the dictionary, it will be freed on return from the function.
  *
  * The dictionaries that are passed in can be NULL.
  *

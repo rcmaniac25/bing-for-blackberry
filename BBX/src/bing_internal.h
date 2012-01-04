@@ -119,10 +119,13 @@ typedef struct BING_RESPONSE_S
 	response_creation_func creation;
 	response_additional_data_func additionalData;
 	hashtable_t* data;
+
 	int resultCount;
 	bing_result_t* results;
+
 	int internalResultCount;
 	bing_result_t* internalResults;
+
 	int allocatedMemoryCount;
 	void** allocatedMemory;
 } bing_response;
@@ -186,6 +189,7 @@ typedef struct list_s
  */
 
 static bing_system bingSystem;
+static int searchCount;
 
 /*
  * Functions

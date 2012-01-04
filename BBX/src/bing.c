@@ -17,6 +17,8 @@ void initialize()
 	{
 		initialized = TRUE; //Set this first so if another thread tries to initialize it, it doesn't work
 
+		searchCount = 0;
+
 		memset(&bingSystem, 0, sizeof(bing_system));
 
 		bingSystem.domainID = bps_register_domain();
@@ -64,6 +66,8 @@ void shutdown()
 		bingSystem.bingInstances = NULL;
 
 		pthread_mutex_destroy(&bingSystem.mutex);
+
+		searchCount = 0;
 
 		initialized = FALSE; //Set this last so that it only know's it's uninitialized after everything has been freed
 	}

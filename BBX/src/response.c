@@ -175,13 +175,6 @@ void response_news_additional_data(bing_response_t response, data_dictionary_t d
 						}
 					}
 				}
-
-				//We need to free the result. It was saved for passing into this function, but we processed it and can free it now
-				if(!response_remove_result(res, result, TRUE, TRUE))
-				{
-					//Wasn't an internal result (odd?), try normal result
-					response_remove_result(res, result, FALSE, TRUE);
-				}
 			}
 		}
 	}
