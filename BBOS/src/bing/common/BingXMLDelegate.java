@@ -303,7 +303,6 @@ public final class BingXMLDelegate extends DefaultHandler
 						/*
 						}
 						 */
-						return;
 					}
 					else
 					{
@@ -314,28 +313,24 @@ public final class BingXMLDelegate extends DefaultHandler
 						current.setAlteredQuery(alteredQuery);
 						current.setAlterationOverrideQuery(alterationOverrideQuery);
 						current.handleElements(loadDictionary(attributeDict));
+						
+						if (response == null && current != null)
+						{
+							response = current;
+						}
+						else if (BingBundleResponse.class.isInstance(response))
+						{
+							((BingBundleResponse)response).addResponse(current);
+							response.setQuery(query);
+						}
+						else if (response != current)
+						{ 
+							BingResponse tmp = response;
+							response = new BingBundleResponse();
+							((BingBundleResponse)response).addResponse(tmp);
+							((BingBundleResponse)response).addResponse(current);
+						}
 					}
-				}
-				else
-				{
-					return;
-				}
-				
-				if (response == null && current != null)
-				{
-					response = current;
-				}
-				else if (BingBundleResponse.class.isInstance(response))
-				{
-					((BingBundleResponse)response).addResponse(current);
-					response.setQuery(query);
-				}
-				else if (response != current)
-				{ 
-					BingResponse tmp = response;
-					response = new BingBundleResponse();
-					((BingBundleResponse)response).addResponse(tmp);
-					((BingBundleResponse)response).addResponse(current);
 				}
 			}
 		}

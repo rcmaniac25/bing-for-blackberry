@@ -330,6 +330,51 @@ int response_get_results(bing_response_t response, bing_result_t* results)
 	return ret;
 }
 
+BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal)
+{
+	BOOL ret = FALSE;
+	int i;
+	int* c;
+	bing_result_t* resultList;
+	bing_result_t** resultListSrc;
+	if(response && result)
+	{
+		//Get array data
+		if(internal)
+		{
+			c = &response->internalResultCount;
+			resultListSrc = &response->internalResults;
+		}
+		else
+		{
+			c = &response->resultCount;
+			resultListSrc = &response->results;
+		}
+		resultList = *resultListSrc;
+
+		//See if the result already exists
+		for(i = 0; i < (*c); i++)
+		{
+			if(resultList[i] == result)
+			{
+				break;
+			}
+		}
+
+		if(i == (*c)) //Result not found, add it
+		{
+			resultList = (bing_result_t*)realloc(resultList, ((*c) + 1) * sizeof(bing_result_t));
+			if(resultList)
+			{
+				*resultListSrc = resultList;
+				resultList[(*c)++] = result;
+				ret = TRUE;
+			}
+		}
+	}
+	return ret;
+}
+
 BOOL response_remove_result(bing_response* response, bing_result* result, BOOL internal, BOOL freeResult)
 {
 	BOOL ret = FALSE;
@@ -395,51 +440,6 @@ BOOL response_remove_result(bing_response* response, bing_result* result, BOOL i
 	return ret;
 }
 
-BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal)
-{
-	BOOL ret = FALSE;
-	int i;
-	int* c;
-	bing_result_t* resultList;
-	bing_result_t** resultListSrc;
-	if(response && result)
-	{
-		//Get array data
-		if(internal)
-		{
-			c = &response->internalResultCount;
-			resultListSrc = &response->internalResults;
-		}
-		else
-		{
-			c = &response->resultCount;
-			resultListSrc = &response->results;
-		}
-		resultList = *resultListSrc;
-
-		//See if the result already exists
-		for(i = 0; i < (*c); i++)
-		{
-			if(resultList[i] == result)
-			{
-				break;
-			}
-		}
-
-		if(i == (*c)) //Result not found, add it
-		{
-			resultList = (bing_result_t*)realloc(resultList, ((*c) + 1) * sizeof(bing_result_t));
-			if(resultList)
-			{
-				*resultListSrc = resultList;
-				resultList[(*c)++] = result;
-				ret = TRUE;
-			}
-		}
-	}
-	return ret;
-}
-
 BOOL response_swap_result(bing_response* response, bing_result* result, BOOL internal)
 {
 	BOOL ret = response_remove_result(response, result, internal, FALSE);
@@ -459,12 +459,12 @@ BOOL response_swap_result(bing_response* response, bing_result* result, BOOL int
 	return ret;
 }
 
-int response_add_to_bing(bing_response* res)
+int response_add_to_bing(bing_response* res, unsigned int bingID)
 {
 	BOOL ret = FALSE;
 	bing_response** t;
 	int i;
-	bing* bing = retrieveBing(res->bing);
+	bing* bing = retrieveBing(res->bing == 0 ? bingID : res->bing);
 
 	if(bing)
 	{
@@ -494,8 +494,9 @@ int response_add_to_bing(bing_response* res)
 	return ret;
 }
 
-void response_remove_from_bing(bing_response* res, BOOL bundle_free)
+BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
 {
+	BOOL ret = FALSE;
 	bing* bing;
 	bing_response** t;
 	unsigned int pos;
@@ -524,6 +525,7 @@ void response_remove_from_bing(bing_response* res, BOOL bundle_free)
 						{
 							bing->responses = t;
 							bing->responseCount--;
+							ret = TRUE;
 						}
 					}
 					else
@@ -539,7 +541,14 @@ void response_remove_from_bing(bing_response* res, BOOL bundle_free)
 							bing->responses = t;
 
 							bing->responseCount--;
+							ret = TRUE;
 						}
+					}
+
+					if(ret)
+					{
+						//Reset bing value
+						res->bing = 0;
 					}
 
 					//Stop execution
@@ -550,6 +559,112 @@ void response_remove_from_bing(bing_response* res, BOOL bundle_free)
 			pthread_mutex_unlock(&bing->mutex);
 		}
 	}
+	return ret;
+}
+
+BOOL response_add_to_bundle(bing_response* response, bing_response* responseParent)
+{
+	BOOL ret = FALSE;
+	list* list_v = NULL;
+	bing_response_t* responseList = NULL;
+
+	//Add response to bundle
+	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+	{
+		//Get the list
+		responseList = LIST_ELEMENTS(list_v, bing_response_t);
+	}
+	else
+	{
+		//Create the list
+		list_v = (list*)malloc(sizeof(list));
+		if(list_v)
+		{
+			list_v->count = 0;
+			responseList = list_v->listElements = (bing_response_t*)calloc(11, sizeof(bing_response_t));
+			if(list_v->listElements)
+			{
+				//Save the list
+				list_v->cap = 11;
+				if(hashtable_put_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
+				{
+					//List creation failed, cleanup
+					free(list_v);
+					list_v = NULL;
+				}
+			}
+			else
+			{
+				//List creation failed, cleanup
+				free(list_v);
+				list_v = NULL;
+			}
+		}
+	}
+	if(list_v)
+	{
+		if(list_v->count >= list_v->cap)
+		{
+			//Resize list
+			responseList = (bing_response_t*)realloc(responseList, sizeof(bing_response_t) * (list_v->cap * 2));
+			if(responseList)
+			{
+				list_v->cap *= 2;
+				list_v->listElements = responseList;
+			}
+			else
+			{
+				responseList = NULL;
+			}
+		}
+		if(responseList)
+		{
+			//Add the response to list
+			responseList[list_v->count++] = response;
+			response->bing = 0;
+			ret = TRUE;
+		}
+	}
+	return ret;
+}
+
+BOOL response_remove_from_bundle(bing_response* response, bing_response* responseParent)
+{
+	BOOL ret = FALSE;
+	list* list_v = NULL;
+	bing_response_t* responseList = NULL;
+	int i;
+
+	//Add response to bundle
+	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+	{
+		//Get the list
+		responseList = LIST_ELEMENTS(list_v, bing_response_t);
+
+		//Find the response
+		for(i = 0; i < list_v->count; i++)
+		{
+			if(responseList[i] == response)
+			{
+				//Found, move the results to cover it up
+				if(list_v->count > 1)
+				{
+					memmove(responseList + i, responseList + i + 1, (list_v->count - i - 1) * sizeof(bing_response_t));
+					LIST_ELEMENT(list_v, --list_v->count, bing_response_t) = NULL;
+				}
+				else
+				{
+					//There are no more elements, we can remove the list
+					free(list_v->listElements);
+					free(list_v);
+					hashtable_remove_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR);
+				}
+				ret = TRUE;
+				break;
+			}
+		}
+	}
+	return ret;
 }
 
 BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
@@ -587,92 +702,23 @@ BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned 
 				if(res->bing != 0)
 				{
 					//Add response to Bing object
-					if(response_add_to_bing(res))
-					{
-						//Save response
-						response[0] = res;
-						ret = TRUE;
-					}
-					else
-					{
-						//Couldn't save response
-						hashtable_free(res->data);
-						free(res);
-					}
+					ret = response_add_to_bing(res, bing);
 				}
 				else
 				{
 					//Add response to bundle
-					if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
-					{
-						//Get the list
-						responseList = LIST_ELEMENTS(list_v, bing_response_t);
-					}
-					else
-					{
-						//Create the list
-						list_v = (list*)malloc(sizeof(list));
-						if(list_v)
-						{
-							list_v->count = 0;
-							responseList = list_v->listElements = (bing_response_t*)calloc(11, sizeof(bing_response_t));
-							if(list_v->listElements)
-							{
-								//Save the list
-								list_v->cap = 11;
-								if(hashtable_put_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
-								{
-									//List creation failed, cleanup
-									free(list_v);
-									list_v = NULL;
-								}
-							}
-							else
-							{
-								//List creation failed, cleanup
-								free(list_v);
-								list_v = NULL;
-							}
-						}
-					}
-					if(list_v)
-					{
-						if(list_v->count >= list_v->cap)
-						{
-							//Resize list
-							responseList = (bing_response_t*)realloc(responseList, sizeof(bing_response_t) * (list_v->cap * 2));
-							if(responseList)
-							{
-								list_v->cap *= 2;
-								list_v->listElements = responseList;
-							}
-							else
-							{
-								responseList = NULL;
-							}
-						}
-						if(responseList)
-						{
-							//Add the response to list
-							responseList[list_v->count++] = res;
-
-							//Save response
-							response[0] = res;
-							ret = TRUE;
-						}
-						else
-						{
-							//List couldn't be resized
-							hashtable_free(res->data);
-							free(res);
-						}
-					}
-					else
-					{
-						//List couldn't be found/created
-						hashtable_free(res->data);
-						free(res);
-					}
+					ret = response_add_to_bundle(res, responseParent);
+				}
+				//Check if we succeeded or failed
+				if(ret)
+				{
+					//Save response
+					response[0] = res;
+				}
+				else
+				{
+					hashtable_free(res->data);
+					free(res);
 				}
 			}
 			else
@@ -801,6 +847,36 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 void free_response(bing_response_t response)
 {
 	free_response_in(response, FALSE);
+}
+
+BOOL response_swap_response(bing_response* response, bing_response* responseParent)
+{
+	BOOL ret = FALSE;
+	if(response && responseParent && response != responseParent)
+	{
+		//Remove from bundle
+		if(response_remove_from_bundle(response, responseParent))
+		{
+			//Add to Bing
+			ret = response_add_to_bing(response, responseParent->bing);
+			if(!ret)
+			{
+				//Error adding to Bing, revert to bundle
+				response_add_to_bundle(response, responseParent);
+			}
+		}
+		else if(response_remove_from_bing(response, FALSE)) //Remove from Bing
+		{
+			//Add to bundle
+			ret = response_add_to_bundle(response, responseParent);
+			if(!ret)
+			{
+				//Error adding to bundle, revert to Bing
+				response_add_to_bing(response, responseParent->bing);
+			}
+		}
+	}
+	return ret;
 }
 
 int response_get_string(bing_response_t response, char* buffer, const char* field, enum SOURCE_TYPE type)

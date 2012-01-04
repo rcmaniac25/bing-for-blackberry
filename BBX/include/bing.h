@@ -243,6 +243,12 @@ int set_error_return(unsigned int bing, int error);
  */
 int get_error_return(unsigned int bing);
 
+/**
+ * The print out function to use for messages.
+ * void printFunc(const char* msg, ...);
+ */
+#define BING_MSG_PRINTOUT printf
+
 #endif
 
 /**

@@ -709,7 +709,7 @@ BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* 
 			if(res->data)
 			{
 				//Add result to response
-				if(response_add_result(responseParent, res, FALSE))
+				if(response_add_result(responseParent, res, RESULT_CREATE_DEFAULT_INTERNAL))
 				{
 					//Save the result
 					res->parent = responseParent;

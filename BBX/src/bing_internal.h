@@ -37,6 +37,7 @@ __BEGIN_DECLS
 #endif
 
 #define DEFAULT_ERROR_RET TRUE
+#define RESULT_CREATE_DEFAULT_INTERNAL FALSE
 
 #if defined (__cplusplus) || defined(__CPLUSPLUS__)
 #define BOOL_TO_CPP_BOOL(x) (x) != FALSE
@@ -230,15 +231,14 @@ bing* retrieveBing(unsigned int bingID);
 const char* request_get_bundle_sourcetype(bing_request* bundle);
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary);
 BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
-BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize);
 BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal);
 BOOL response_remove_result(bing_response* response, bing_result* result, BOOL internal, BOOL freeResult);
 BOOL response_swap_result(bing_response* response, bing_result* result, BOOL internal);
+BOOL response_swap_response(bing_response* response, bing_response* responseParent);
 
 //Result functions
 BOOL result_is_common(const char* type);
 BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
-BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, BOOL array, result_creation_func creation, result_additional_result_func additionalResult, int tableSize);
 void free_result(bing_result* result);
 
 //Helper functions (primarily for creating/updating results/responses)
