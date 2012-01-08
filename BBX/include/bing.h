@@ -105,7 +105,7 @@ enum SOURCE_TYPE
  * Function delegates
  */
 
-typedef void (*receive_bing_response_func) (bing_response_t response);
+typedef void (*receive_bing_response_func) (bing_response_t response, void* user_data);
 typedef const char* (*request_get_options_func)(bing_request_t request);
 typedef void (*request_finish_get_options_func)(bing_request_t request, const char* options);
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
@@ -243,12 +243,6 @@ int set_error_return(unsigned int bing, int error);
  */
 int get_error_return(unsigned int bing);
 
-/**
- * The print out function to use for messages.
- * void printFunc(const char* msg, ...);
- */
-#define BING_MSG_PRINTOUT printf
-
 #endif
 
 /**
@@ -317,13 +311,14 @@ bing_response_t search_sync(unsigned int bing, const char* query, const bing_req
  * @param request The type of search to perform. This determines the response
  * 	that will be returned. If this is NULL, then the function function returns
  * 	a zero (false) value.
+ * @param user_data Any user data that will be passed to the response function.
  * @param response_func The function that will be called with a response from
  * 	the search. If this is NULL, then the function returns a zero (false) value.
  *
  * @return A boolean result which is non-zero for a successful query, otherwise
  * 	zero on error or bad query.
  */
-int search_async(unsigned int bing, const char* query, const bing_request_t request, receive_bing_response_func response_func);
+int search_async(unsigned int bing, const char* query, const bing_request_t request, void* user_data, receive_bing_response_func response_func);
 
 /**
  * @brief Perform a asynchronous search but returns with an event.

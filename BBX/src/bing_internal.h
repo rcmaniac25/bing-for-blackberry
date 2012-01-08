@@ -53,6 +53,20 @@ __BEGIN_DECLS
 #define RESPONSE_ALTERED_QUERY_STR "bb_res_alt_query"
 #define RESPONSE_ALTERATIONS_OVER_QUERY_STR "bb_res_alt_over_query"
 
+/**
+ * The print out function to use for messages.
+ * void printFunc(const char* msg, ...);
+ */
+#define BING_MSG_PRINTOUT printf
+
+/**
+ * Memory functions
+ */
+#define BING_MALLOC malloc
+#define BING_CALLOC calloc
+#define BING_REALLOC realloc
+#define BING_FREE free
+
 /*
  * Structures
  */
@@ -199,13 +213,13 @@ static int searchCount;
 /*
  * Setup the Bing subsystem.
  */
-void initialize();
+void initialize_bing();
 
 /*
  * Shutdown the Bing subsystem.
  */
 //TODO: Not sure how this will be called
-void shutdown();
+void shutdown_bing();
 
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType);
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize);

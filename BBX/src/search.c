@@ -8,7 +8,15 @@
  */
 
 #include "bing_internal.h"
+
 #include <libxml/parser.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
 
 typedef struct PARSER_STACK_S
 {
@@ -21,6 +29,7 @@ typedef struct PARSER_STACK_S
 
 typedef struct BING_PARSER_S
 {
+	//Freed on error
 	bing_response* response;
 	bing_response* current;
 	pstack* lastResult;
@@ -28,10 +37,16 @@ typedef struct BING_PARSER_S
 	const char* query;
 	const char* alteredQuery;
 	const char* alterationOverrideQuery;
-	BOOL errorRet;
 
+	//State info
 	unsigned int bing;
+	int socket;
+	receive_bing_response_func responseFunc;
+	void* userData;
 	BOOL parseError;
+#if defined(BING_DEBUG)
+	BOOL errorRet;
+#endif
 } bing_parser;
 
 //Processors
@@ -82,13 +97,13 @@ BOOL checkForError(bing_parser* parser)
 
 		//First clean the stacks
 
-		//Free result stack (we don't want to free the actual results)
+		//Free result stack (we don't want to BING_FREE the actual results)
 		while(parser->lastResult)
 		{
 			st = parser->lastResult;
 			parser->lastResult = st->prev;
 
-			free(st); //Object
+			BING_FREE(st); //Object
 		}
 
 		//Free the element
@@ -97,17 +112,17 @@ BOOL checkForError(bing_parser* parser)
 			st = parser->lastResultElement;
 			parser->lastResultElement = st->prev;
 
-			free(st->value); //Name
-			free(st); //Object
+			BING_FREE(st->value); //Name
+			BING_FREE(st); //Object
 		}
 
-		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
+		//Now BING_FREE the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will BING_FREE everything.)
 		free_response(parser->current);
 
-		//Finally, free any strings
-		free((void*)parser->query);
-		free((void*)parser->alteredQuery);
-		free((void*)parser->alterationOverrideQuery);
+		//Finally, BING_FREE any strings
+		BING_FREE((void*)parser->query);
+		BING_FREE((void*)parser->alteredQuery);
+		BING_FREE((void*)parser->alterationOverrideQuery);
 
 		//Mark everything as NULL to prevent errors later
 		parser->response = NULL;
@@ -155,7 +170,7 @@ hashtable_t* createHashtableFromAtts(const xmlChar** atts)
 
 void addResultToStack(bing_parser* parser, bing_result* result, const char* name, BOOL internal)
 {
-	pstack* pt = malloc(sizeof(pstack));
+	pstack* pt = BING_MALLOC(sizeof(pstack));
 	if(pt)
 	{
 		memset(pt, 0, sizeof(pstack));
@@ -166,7 +181,7 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 		pt->keepValue = TRUE;
 		pt->value = result;
 
-		pt = malloc(sizeof(pstack));
+		pt = BING_MALLOC(sizeof(pstack));
 		if(pt)
 		{
 			//Add to last result element
@@ -228,7 +243,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 					}
 					else
 					{
-						//Wasn't created correctly, free (this isn't a parser error. The creator ran into an error [or something]).
+						//Wasn't created correctly, BING_FREE (this isn't a parser error. The creator ran into an error [or something]).
 						response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
 					}
 					hashtable_free(table);
@@ -244,22 +259,22 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 				size = hashtable_get_string(table, "SearchTerms", NULL);
 				if(size > -1)
 				{
-					free((void*)parser->query);
-					parser->query = malloc(size);
+					BING_FREE((void*)parser->query);
+					parser->query = BING_MALLOC(size);
 					hashtable_get_string(table, "SearchTerms", (char*)parser->query);
 				}
 				size = hashtable_get_string(table, "AlteredQuery", NULL);
 				if(size > -1)
 				{
-					free((void*)parser->alteredQuery);
-					parser->alteredQuery = malloc(size);
+					BING_FREE((void*)parser->alteredQuery);
+					parser->alteredQuery = BING_MALLOC(size);
 					hashtable_get_string(table, "AlteredQuery", (char*)parser->alteredQuery);
 				}
 				size = hashtable_get_string(table, "AlterationOverrideQuery", NULL);
 				if(size > -1)
 				{
-					free((void*)parser->alterationOverrideQuery);
-					parser->alterationOverrideQuery = malloc(size);
+					BING_FREE((void*)parser->alterationOverrideQuery);
+					parser->alterationOverrideQuery = BING_MALLOC(size);
 					hashtable_get_string(table, "AlterationOverrideQuery", (char*)parser->alterationOverrideQuery);
 				}
 			}
@@ -286,20 +301,20 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 					{
 						//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
 
-						data = malloc(sizeof(long long));
+						data = BING_MALLOC(sizeof(long long));
 						result_get_64bit_int(result, RESULT_FIELD_CODE, (long long*)data);
 						BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
-						free(data);
+						BING_FREE(data);
 
-						data = malloc(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
+						data = BING_MALLOC(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
 						result_get_string(result, RESULT_FIELD_MESSAGE, data);
 						BING_MSG_PRINTOUT("Error Message = %s\n", data);
-						free(data);
+						BING_FREE(data);
 
-						data = malloc(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
+						data = BING_MALLOC(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
 						result_get_string(result, RESULT_FIELD_PARAMETER, data);
 						BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
-						free(data);
+						BING_FREE(data);
 					}
 					else
 					{
@@ -343,7 +358,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 						}
 						else
 						{
-							data = malloc(sizeof(int));
+							data = BING_MALLOC(sizeof(int));
 							if(data)
 							{
 								*((int*)data) = FALSE;
@@ -373,18 +388,18 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 							//Free the result (if we can)
 							if(!data || !(*((int*)data)))
 							{
-								//Try to free it from the internal result list
+								//Try to BING_FREE it from the internal result list
 								if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, TRUE, TRUE))
 								{
-									//Try to free it from the normal result list
+									//Try to BING_FREE it from the normal result list
 									if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, FALSE, TRUE))
 									{
-										//Just free it, no idea why it wasn't in either list
+										//Just BING_FREE it, no idea why it wasn't in either list
 										free_result((bing_result*)result);
 									}
 								}
 							}
-							free(data);
+							BING_FREE(data);
 						}
 					}
 					else
@@ -407,7 +422,19 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 					if(response_def_create_standard_responses(parser->current, (data_dictionary_t)table) &&
 							parser->current->creation((char*)name, (bing_response_t)parser->current, (data_dictionary_t)table))
 					{
-						//TODO: Setup remaining values
+						//Set remaining values
+						if(parser->query)
+						{
+							hashtable_set_data(parser->current->data, RESPONSE_QUERY_STR, parser->query, sizeof(parser->query) + 1);
+						}
+						if(parser->alteredQuery)
+						{
+							hashtable_set_data(parser->current->data, RESPONSE_ALTERED_QUERY_STR, parser->alteredQuery, sizeof(parser->alteredQuery) + 1);
+						}
+						if(parser->alterationOverrideQuery)
+						{
+							hashtable_set_data(parser->current->data, RESPONSE_ALTERATIONS_OVER_QUERY_STR, parser->alterationOverrideQuery, sizeof(parser->alterationOverrideQuery) + 1);
+						}
 
 						//Should we do any extra processing on the response?
 						if(parser->response)
@@ -445,7 +472,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 						//Darn it, that failed
 						if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
 						{
-							//This wasn't a bundled response, just free it (otherwise it will never get freed)
+							//This wasn't a bundled response, just BING_FREE it (otherwise it will never get freed)
 							free_response(parser->current);
 						}
 						parser->parseError = TRUE; //See parser error below for info why this is an actual error
@@ -508,30 +535,30 @@ void endElement(void *ctx, const xmlChar *name)
 			//Free the result if desired
 			if(!st->keepValue)
 			{
-				//Try to free it from the normal result list
+				//Try to BING_FREE it from the normal result list
 				if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, FALSE, TRUE))
 				{
-					//Try to free it from the internal result list
+					//Try to BING_FREE it from the internal result list
 					if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, TRUE, TRUE))
 					{
-						//Just free it, no idea why it wasn't in either list
+						//Just BING_FREE it, no idea why it wasn't in either list
 						free_result((bing_result*)st->value);
 					}
 				}
 			}
-			free(st); //Object
+			BING_FREE(st); //Object
 
 			//Free the element
 			st = parser->lastResultElement;
 			parser->lastResultElement = st->prev;
 
-			free(st->value); //Name
-			free(st); //Object
+			BING_FREE(st->value); //Name
+			BING_FREE(st); //Object
 		}
 	}
 }
 
-xmlSAXHandler parserHandler=
+static const xmlSAXHandler parserHandler=
 {
 		NULL,			//internalSubset
 		NULL,			//isStandalone
@@ -567,7 +594,7 @@ xmlSAXHandler parserHandler=
 		NULL			//serror
 };
 
-void serach_setup()
+void search_setup()
 {
 	LIBXML_TEST_VERSION
 
@@ -582,7 +609,35 @@ void serach_setup()
 
 void search_cleanup(xmlParserCtxtPtr ctx)
 {
+	bing_parser* parser = (bing_parser*)ctx->userData;
+
+	//First shutdown the connection
+	shutdown(parser->socket, SHUT_RDWR);
+
+	//Next close the socket
+	close(parser->socket);
+
+	//Now get rid of the bing context
+	parser->bing = 0;
+
+	//Close thread (if used)
 	//TODO
+
+	//Cleanup strings
+	BING_FREE((void*)parser->query);
+	BING_FREE((void*)parser->alteredQuery);
+	BING_FREE((void*)parser->alterationOverrideQuery);
+
+	//Free the bing parser
+	BING_FREE(parser);
+	ctx->userData = NULL;
+
+	//Free the document
+	xmlFreeDoc(ctx->myDoc);
+
+	//Free the actual context
+	xmlFreeParserCtxt(ctx);
+
 	searchCount--;
 	if(searchCount)
 	{
@@ -590,56 +645,238 @@ void search_cleanup(xmlParserCtxtPtr ctx)
 	}
 }
 
+int openUrl(const char* url)
+{
+	//Open's a socket and returns address info
+	int ret = -1;
+	int err;
+	struct addrinfo hint, *adRoot, *ad;
+
+	//Setup hints
+	memset(&hint, 0, sizeof(struct addrinfo));
+	hint.ai_socktype = SOCK_STREAM; //This is a standard HTTP connection
+	hint.ai_protocol = IPPROTO_TCP; //We need data in order
+
+	//DNS lookup
+	if((err = getaddrinfo(url, "80", &hint, &adRoot)) == 0)
+	{
+		for(ad = adRoot; ad; ad = ad->ai_next)
+		{
+			//Create a socket
+			if((ret = socket(ad->ai_family, ad->ai_socktype, ad->ai_protocol)) == -1)
+			{
+				//Error opening socket
+				continue;
+			}
+
+			//Establish a connection
+			if(connect(ret, ad->ai_addr, ad->ai_addrlen) == -1)
+			{
+				//Error connecting
+				close(ret);
+				continue;
+			}
+
+			//We made a connection, stop running
+			break;
+		}
+		if(!ad)
+		{
+			ret = -1;
+		}
+		freeaddrinfo(adRoot);
+	}
+#if defined(BING_DEBUG)
+	else
+	{
+		BING_MSG_PRINTOUT(gai_strerror(err));
+	}
+#endif
+
+	return ret;
+}
+
+BOOL setupParser(bing_parser* parser, unsigned int bingID, const char* url)
+{
+	BOOL ret = FALSE;
+	bing* bingI;
+
+	memset(parser, 0, sizeof(bing_parser));
+
+	parser->bing = bingID;
+	parser->socket = openUrl(url);
+	if(parser->socket != -1)
+	{
+#if defined(BING_DEBUG)
+		bingI = retrieveBing(bingID);
+		if(bingI)
+		{
+			pthread_mutex_lock(&bingI->mutex);
+
+			parser->errorRet = bingI->errorRet;
+
+			pthread_mutex_unlock(&bingI->mutex);
+
+			ret = TRUE;
+		}
+#else
+		ret = TRUE;
+#endif
+	}
+
+	return ret;
+}
+
 //Search functions
 bing_response_t search_sync(unsigned int bingID, const char* query, const bing_request_t request)
 {
 	const char* url;
+	bing_parser* parser;
 	bing_response_t ret = NULL;
+	char buffer[256];
+	ssize_t count;
+	xmlParserCtxtPtr ctx;
 
-	serach_setup();
+	search_setup();
 
+	//Get the url
 	url = request_url(bingID, query, request);
 	if(url)
 	{
-		//TODO
+		//Create the parser
+		parser = BING_MALLOC(sizeof(bing_parser));
+		if(parser)
+		{
+			//Setup the parser
+			if(setupParser(parser, bingID, url))
+			{
+				//Read the first 4 bytes of the xml (used to determine encoding)
+				count = read(parser->socket, buffer, 4);
+				if(count == 4)
+				{
+					//Create parser (we want a push parser so as we get data, we can push it to the parser)
+					ctx = xmlCreatePushParserCtxt((xmlSAXHandlerPtr)&parserHandler, parser, buffer, 4, NULL);
+					if(ctx)
+					{
+						//Read data
+						while ((count = read(parser->socket, buffer, 256)) > 0)
+						{
+							xmlParseChunk(ctx, buffer, count, FALSE);
+						}
 
-		free((void*)url);
+						//Finish parsing
+						xmlParseChunk(ctx, buffer, 0, TRUE);
+
+						//We check for an error, if none exists then we get the response
+						if(checkForError(parser))
+						{
+							ret = parser->response;
+						}
+
+						//Cleanup
+						search_cleanup(ctx);
+					}
+					else
+					{
+						//Error, shutdown connection
+						shutdown(parser->socket, SHUT_RDWR);
+						close(parser->socket);
+						BING_FREE(parser);
+					}
+				}
+				else
+				{
+					//Error, shutdown connection
+					shutdown(parser->socket, SHUT_RDWR);
+					close(parser->socket);
+					BING_FREE(parser);
+				}
+			}
+			else
+			{
+				//Couldn't setup parser
+				BING_FREE(parser);
+			}
+		}
+
+		//Free URL
+		BING_FREE((void*)url);
 	}
 
 	return ret;
 }
 
-int search_async(unsigned int bingID, const char* query, const bing_request_t request, receive_bing_response_func response_func)
+int search_async(unsigned int bingID, const char* query, const bing_request_t request, void* user_data, receive_bing_response_func response_func)
 {
 	const char* url;
+	bing_parser* parser;
 	BOOL ret = FALSE;
 
-	serach_setup();
+	search_setup();
 
+	//Get the url
 	url = request_url(bingID, query, request);
 	if(url)
 	{
-		//TODO
+		//Create the parser
+		parser = BING_MALLOC(sizeof(bing_parser));
+		if(parser)
+		{
+			//Setup the parser
+			if(setupParser(parser, bingID, url))
+			{
+				parser->responseFunc = response_func;
+				//TODO: create thread, start thread
+				//TODO: Within thread: read initial data, create context, read all data (check each time for error), get response and pass to response_func, search_cleanup
+			}
+			else
+			{
+				//Couldn't setup parser
+				BING_FREE(parser);
+			}
+		}
 
-		free((void*)url);
+		//Free URL
+		BING_FREE((void*)url);
 	}
 
 	return ret;
 }
+
+//TODO: event invocation function
 
 int search_event_async(unsigned int bingID, const char* query, const bing_request_t request)
 {
 	const char* url;
+	bing_parser* parser;
 	BOOL ret = FALSE;
 
-	serach_setup();
+	search_setup();
 
+	//Get the url
 	url = request_url(bingID, query, request);
 	if(url)
 	{
-		//TODO
+		//Create the parser
+		parser = BING_MALLOC(sizeof(bing_parser));
+		if(parser)
+		{
+			//Setup the parser
+			if(setupParser(parser, bingID, url))
+			{
+				//TODO: Set response func to event invocation function
+				//TODO: create thread, start thread
+				//TODO: Within thread: read initial data, create context, read all data (check each time for error), get response and pass to event invocation function, search_cleanup
+			}
+			else
+			{
+				//Couldn't setup parser
+				BING_FREE(parser);
+			}
+		}
 
-		free((void*)url);
+		//Free URL
+		BING_FREE((void*)url);
 	}
 
 	return ret;

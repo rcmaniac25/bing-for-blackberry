@@ -127,13 +127,13 @@ int result_news_create(const char* name, bing_result_t result, data_dictionary_t
 		strLen = hashtable_get_string(table, RES_NEWS_BREAKINGNEWS, NULL);
 		if(strLen > -1)
 		{
-			str = malloc(strLen);
+			str = BING_MALLOC(strLen);
 			if(str)
 			{
 				hashtable_get_string(table, RES_NEWS_BREAKINGNEWS, str);
 				b = str[0] == '1';
 				ret = hashtable_set_data(table, RES_NEWS_BREAKINGNEWS, &b, sizeof(int));
-				free(str);
+				BING_FREE(str);
 			}
 			else
 			{
@@ -255,19 +255,19 @@ void result_additional_result_helper(bing_result_t result, bing_result_t new_res
 		size = hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, NULL);
 		if(size > 0) //Does it contain a common type?
 		{
-			str = malloc(size);
+			str = BING_MALLOC(size);
 			if(str)
 			{
 				hashtable_get_string(res->data, BING_RESULT_COMMON_TYPE, str);
 				if(strcmp(str, commonType) == 0) //Is it the correct common type?
 				{
-					free(str);
+					BING_FREE(str);
 
 					specificProcessing(((bing_result*)result)->data, res->data, pres, data);
 				}
 				else
 				{
-					free(str);
+					BING_FREE(str);
 				}
 			}
 		}
@@ -280,13 +280,13 @@ void copyArray(hashtable_t* resultData, hashtable_t* new_resultData, bing_respon
 	int size = hashtable_get_string(new_resultData, name, NULL);
 	if(size > 0)
 	{
-		data = malloc(size); //We want a new item, so we add one to an existing array or create a new one
+		data = BING_MALLOC(size); //We want a new item, so we add one to an existing array or create a new one
 		hashtable_get_string(new_resultData, name, (char*)data); //If the collection doesn't exist, then nothing happens
 
 		//Save the array
 		hashtable_set_data(resultData, name, data, size);
 
-		free(data);
+		BING_FREE(data);
 	}
 }
 
@@ -302,7 +302,7 @@ void loadThumbnail(hashtable_t* resultData, hashtable_t* new_resultData, bing_re
 	char* str;
 
 	//Convert to thumbnail
-	bing_thumbnail_t thumbnail = (bing_thumbnail_t)malloc(sizeof(bing_thumbnail_s));
+	bing_thumbnail_t thumbnail = (bing_thumbnail_t)BING_MALLOC(sizeof(bing_thumbnail_s));
 	if(thumbnail)
 	{
 		//Setup the thumbnail
@@ -344,7 +344,7 @@ void loadThumbnail(hashtable_t* resultData, hashtable_t* new_resultData, bing_re
 		hashtable_set_data(resultData, (const char*)data, thumbnail, sizeof(bing_thumbnail_s));
 
 		//Free the thumbnail
-		free(thumbnail);
+		BING_FREE(thumbnail);
 	}
 }
 
@@ -364,13 +364,13 @@ void addNewsArray(hashtable_t* resultData, hashtable_t* new_resultData, bing_res
 	int size = hashtable_get_string(new_resultData, RES_COM_NEWS_COLLECTION, NULL);
 	if(size > 0)
 	{
-		data = malloc(size); //We want a new item, so we add one to an existing array or create a new one
+		data = BING_MALLOC(size); //We want a new item, so we add one to an existing array or create a new one
 		hashtable_get_string(new_resultData, RES_COM_NEWS_COLLECTION, (char*)data); //If the collection doesn't exist, then nothing happens
 
 		//Save the array
 		hashtable_set_data(resultData, RES_NEWS_COLLECTION, data, size);
 
-		free(data);
+		BING_FREE(data);
 	}
 }
 
@@ -387,10 +387,10 @@ void addDeepLink(hashtable_t* resultData, hashtable_t* new_resultData, bing_resp
 	int size = hashtable_get_string(resultData, name, NULL);
 	if(size > 0)
 	{
-		deeplinks = (bing_deep_link_t)malloc(size = max(size + sizeof(bing_deep_link_s), sizeof(bing_deep_link_s))); //We want a new item, so we add one to an existing array or create a new one
+		deeplinks = (bing_deep_link_t)BING_MALLOC(size = max(size + sizeof(bing_deep_link_s), sizeof(bing_deep_link_s))); //We want a new item, so we add one to an existing array or create a new one
 		hashtable_get_string(resultData, name, (char*)deeplinks); //If the collection doesn't exist, then nothing happens
 
-		i = max(size / sizeof(bing_deep_link_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+		i = max(size / sizeof(bing_deep_link_s), 1) - 1; //Get the new element index (remember, we increased the element size at BING_MALLOC)
 
 		//Get the deep link
 		size = hashtable_get_string(new_resultData, RES_AD_TITLE, NULL);
@@ -404,7 +404,7 @@ void addDeepLink(hashtable_t* resultData, hashtable_t* new_resultData, bing_resp
 		//Save the element (it will overwrite the old array)
 		hashtable_set_data(resultData, name, deeplinks, (i + 1) * sizeof(bing_deep_link_s));
 
-		free(deeplinks);
+		BING_FREE(deeplinks);
 	}
 }
 
@@ -426,10 +426,10 @@ void result_common_news_array_additional_result(const char* name, bing_result_t 
 		size = hashtable_get_string(((bing_result*)result)->data, RES_COM_NEWS_COL_ARTICLES, NULL);
 		if(size > 0)
 		{
-			articles = (bing_result_t*)malloc(size = max(size + sizeof(bing_result_t), sizeof(bing_result_t))); //We want a new item, so we add one to an existing array or create a new one
+			articles = (bing_result_t*)BING_MALLOC(size = max(size + sizeof(bing_result_t), sizeof(bing_result_t))); //We want a new item, so we add one to an existing array or create a new one
 			hashtable_get_string(((bing_result*)result)->data, RES_COM_NEWS_COL_ARTICLES, (char*)articles); //If the collection doesn't exist, then nothing happens
 
-			i = max(size / sizeof(bing_result_t), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+			i = max(size / sizeof(bing_result_t), 1) - 1; //Get the new element index (remember, we increased the element size at BING_MALLOC)
 
 			//Add the new array element
 			articles[i] = new_result;
@@ -437,7 +437,7 @@ void result_common_news_array_additional_result(const char* name, bing_result_t 
 			//Save the element (it will overwrite the old array)
 			hashtable_set_data(((bing_result*)result)->data, RES_COM_NEWS_COL_ARTICLES, articles, size);
 
-			free(articles);
+			BING_FREE(articles);
 		}
 	}
 	keepResult[0] = TRUE;
@@ -455,10 +455,10 @@ void addNewsCollection(hashtable_t* resultData, hashtable_t* new_resultData, bin
 	int size = hashtable_get_string(resultData, RES_COM_NEWS_COLLECTION, NULL);
 	if(size > 0)
 	{
-		col = (bing_news_collection_t)malloc(size = max(size + sizeof(bing_news_collection_s), sizeof(bing_news_collection_s))); //We want a new item, so we add one to an existing array or create a new one
+		col = (bing_news_collection_t)BING_MALLOC(size = max(size + sizeof(bing_news_collection_s), sizeof(bing_news_collection_s))); //We want a new item, so we add one to an existing array or create a new one
 		hashtable_get_string(resultData, RES_COM_NEWS_COLLECTION, (char*)col); //If the collection doesn't exist, then nothing happens
 
-		i = max(size / sizeof(bing_news_collection_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+		i = max(size / sizeof(bing_news_collection_s), 1) - 1; //Get the new element index (remember, we increased the element size at BING_MALLOC)
 
 		//First get the name
 		size = hashtable_get_string(new_resultData, RES_COM_NEWS_COL_NAME, NULL);
@@ -480,7 +480,7 @@ void addNewsCollection(hashtable_t* resultData, hashtable_t* new_resultData, bin
 		//Save the element (it will overwrite the old array)
 		hashtable_set_data(resultData, RES_COM_NEWS_COLLECTION, col, (i + 1) * sizeof(bing_news_collection_s));
 
-		free(col);
+		BING_FREE(col);
 	}
 }
 
@@ -502,10 +502,10 @@ void addSearchTag(hashtable_t* resultData, hashtable_t* new_resultData, bing_res
 	int size = hashtable_get_string(resultData, RES_COM_WEB_SEARCHTAGS, NULL);
 	if(size > 0)
 	{
-		tags = (bing_search_tag_t)malloc(size = max(size + sizeof(bing_search_tag_s), sizeof(bing_search_tag_s))); //We want a new item, so we add one to an existing array or create a new one
+		tags = (bing_search_tag_t)BING_MALLOC(size = max(size + sizeof(bing_search_tag_s), sizeof(bing_search_tag_s))); //We want a new item, so we add one to an existing array or create a new one
 		hashtable_get_string(resultData, RES_COM_WEB_SEARCHTAGS, (char*)tags); //If the collection doesn't exist, then nothing happens
 
-		i = max(size / sizeof(bing_search_tag_s), 1) - 1; //Get the new element index (remember, we increased the element size at malloc)
+		i = max(size / sizeof(bing_search_tag_s), 1) - 1; //Get the new element index (remember, we increased the element size at BING_MALLOC)
 
 		//Get the search tag
 		size = hashtable_get_string(new_resultData, RES_COM_NEWS_COL_NAME, NULL);
@@ -519,7 +519,7 @@ void addSearchTag(hashtable_t* resultData, hashtable_t* new_resultData, bing_res
 		//Save the element (it will overwrite the old array)
 		hashtable_set_data(resultData, RES_COM_WEB_SEARCHTAGS, tags, (i + 1) * sizeof(bing_search_tag_s));
 
-		free(tags);
+		BING_FREE(tags);
 	}
 }
 
@@ -686,7 +686,7 @@ void free_result(bing_result* result)
 	if(result)
 	{
 		hashtable_free(result->data);
-		free(result);
+		BING_FREE(result);
 	}
 }
 
@@ -696,7 +696,7 @@ BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* 
 	bing_result* res;
 	if(result && responseParent)
 	{
-		res = (bing_result*)malloc(sizeof(bing_result));
+		res = (bing_result*)BING_MALLOC(sizeof(bing_result));
 		if(res)
 		{
 			//Set variables
@@ -719,12 +719,12 @@ BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* 
 				else
 				{
 					hashtable_free(res->data);
-					free(res);
+					BING_FREE(res);
 				}
 			}
 			else
 			{
-				free(res);
+				BING_FREE(res);
 			}
 		}
 	}
@@ -996,14 +996,14 @@ int result_register_result_creator(const char* name, int array, int common, resu
 			{
 				//Reproduce the name
 				size = strlen(name) + 1;
-				nName = malloc(size);
+				nName = BING_MALLOC(size);
 
 				if(nName)
 				{
 					strlcpy(nName, name, size);
 
 					//Create the new version of the name
-					c = (bing_result_creator*)realloc(bingSystem.bingResultCreators, sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount + 1));
+					c = (bing_result_creator*)BING_REALLOC(bingSystem.bingResultCreators, sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount + 1));
 
 					if(c)
 					{
@@ -1019,7 +1019,7 @@ int result_register_result_creator(const char* name, int array, int common, resu
 					}
 					else
 					{
-						free(nName);
+						BING_FREE(nName);
 					}
 				}
 			}
@@ -1053,17 +1053,17 @@ int result_unregister_result_creator(const char* name)
 		if(i < bingSystem.bingResultCreatorCount)
 		{
 			//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
-			c = (bing_result_creator*)malloc(sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount - 1));
+			c = (bing_result_creator*)BING_MALLOC(sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount - 1));
 
 			if(c)
 			{
-				//If this is the last result then it's easy, we just free the data
+				//If this is the last result then it's easy, we just BING_FREE the data
 				if(i != bingSystem.bingResultCreatorCount - 1)
 				{
 					memmove(bingSystem.bingResultCreators + i, bingSystem.bingResultCreators + (i + 1), (bingSystem.bingResultCreatorCount - i - 1) * sizeof(bing_result_creator));
 				}
 				memcpy(c, bingSystem.bingResultCreators, (--bingSystem.bingResultCreatorCount) * sizeof(bing_result_creator));
-				free(bingSystem.bingResultCreators);
+				BING_FREE(bingSystem.bingResultCreators);
 				bingSystem.bingResultCreators = c;
 
 				ret = TRUE;

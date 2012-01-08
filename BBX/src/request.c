@@ -108,7 +108,7 @@ typedef struct request_source_type_s
 const char* request_def_get_options(bing_request_t request)
 {
 	bing_request* req;
-	char* ret = calloc(1, sizeof(char));
+	char* ret = BING_CALLOC(1, sizeof(char));
 	void* data = NULL;
 	size_t cursize = 0;
 	size_t retSize = 1;
@@ -125,7 +125,7 @@ const char* request_def_get_options(bing_request_t request)
 		APPEND("&UILanguage=%s",	REQ_LANGUAGE)
 		APPEND("&Radius=%f",		REQ_RADIUS)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -169,7 +169,7 @@ const char* request_bundle_get_options(bing_request_t request)
 					len += strlen(options);
 
 					//Resize the return data and append the results
-					rett = (char*)realloc(ret, len);
+					rett = (char*)BING_REALLOC(ret, len);
 					if(rett)
 					{
 						strlcat(rett, options, len);
@@ -177,14 +177,14 @@ const char* request_bundle_get_options(bing_request_t request)
 					}
 
 					//Free the options
-					free((void*)options);
+					BING_FREE((void*)options);
 				}
 			}
 		}
 	}
 	if(!ret)
 	{
-		ret = calloc(1, sizeof(char));
+		ret = BING_CALLOC(1, sizeof(char));
 	}
 	return ret;
 }
@@ -207,7 +207,7 @@ const char* request_ad_get_options(bing_request_t request)
 		APPEND("&Ad.MlAdcount=%llu",	REQ_AD_MLCOUNT)
 		APPEND("&Ad.SbAdCount=%llu",	REQ_AD_SBCOUNT)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -227,7 +227,7 @@ const char* request_image_get_options(bing_request_t request)
 		APPEND("&Image.Offset=%llu",	REQ_MULTI_OFFSET)
 		APPEND("&Image.Filters=%s",		REQ_MULTI_FILTERS)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -247,7 +247,7 @@ const char* request_mw_get_options(bing_request_t request)
 		APPEND("&MobileWeb.Offset=%llu",	REQ_MULTI_OFFSET)
 		APPEND("&MobileWeb.Options=%s",		REQ_MW_OPTIONS)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -269,7 +269,7 @@ const char* request_news_get_options(bing_request_t request)
 		APPEND("&News.LocationOverride=%s",	REQ_NEWS_LOCOVER)
 		APPEND("&News.SortBy=%s",			REQ_MULTI_SORTBY)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -291,7 +291,7 @@ const char* request_phone_get_options(bing_request_t request)
 		APPEND("&Phonebook.LocId=%s",		REQ_PHONE_LOCID)
 		APPEND("&Phonebook.SortBy=%s",		REQ_MULTI_SORTBY)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -310,7 +310,7 @@ const char* request_transl_get_options(bing_request_t request)
 		APPEND("&Translation.SourceLanguage=%s",	REQ_TRANS_SOURCE)
 		APPEND("&Translation.TargetLanguage=%s",	REQ_TRANS_TARGET)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -331,7 +331,7 @@ const char* request_video_get_options(bing_request_t request)
 		APPEND("&Video.Filters=%s",		REQ_MULTI_FILTERS)
 		APPEND("&Video.FileType=%s",	REQ_MULTI_SORTBY)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -352,7 +352,7 @@ const char* request_web_get_options(bing_request_t request)
 		APPEND("&Web.FileType=%s",	REQ_MULTI_FILETYPE)
 		APPEND("&Web.Options=%s",	REQ_WEB_OPTIONS)
 
-		free(data);
+		BING_FREE(data);
 	}
 	return ret;
 }
@@ -372,14 +372,14 @@ const char* request_custom_get_options(bing_request_t request)
 		ret = request_def_get_options(request);
 		custOptions = req->uGetOptions(request);
 
-		resultOptions = calloc(size = strlen(ret) + strlen(custOptions) + 2, sizeof(char));
+		resultOptions = BING_CALLOC(size = strlen(ret) + strlen(custOptions) + 2, sizeof(char));
 		if(resultOptions)
 		{
 			//First copy in the default options
 			memcpy(resultOptions, ret, strlen(ret));
 
 			//Free the return string
-			free((void*)ret);
+			BING_FREE((void*)ret);
 
 			//Conc. the user options
 			strlcat(resultOptions, custOptions, size);
@@ -389,7 +389,7 @@ const char* request_custom_get_options(bing_request_t request)
 		}
 		else
 		{
-			free((void*)ret);
+			BING_FREE((void*)ret);
 			ret = NULL;
 		}
 		if(req->uFinishGetOptions)
@@ -400,7 +400,7 @@ const char* request_custom_get_options(bing_request_t request)
 	//No return exists, create a empty string (that won't be invalid on "custom finish")
 	if(ret == NULL)
 	{
-		ret = calloc(1, sizeof(char));
+		ret = BING_CALLOC(1, sizeof(char));
 	}
 	return ret;
 }
@@ -450,7 +450,7 @@ enum SOURCE_TYPE request_get_source_type(bing_request_t request)
 const char* request_get_bundle_sourcetype(bing_request* bundle)
 {
 	char buffer[256];
-	char* result = calloc(1, sizeof(char));
+	char* result = BING_CALLOC(1, sizeof(char));
 	size_t len = 1;
 	list* list = NULL;
 	int i;
@@ -482,7 +482,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 				}
 				//Get the length and resize the string
 				len += strlen(buffer);
-				src = (char*)realloc(result, len);
+				src = (char*)BING_REALLOC(result, len);
 				if(src)
 				{
 					//Append the source type
@@ -501,7 +501,7 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 	bing_request* req;
 	if(request)
 	{
-		req = (bing_request*)malloc(sizeof(bing_request));
+		req = (bing_request*)BING_MALLOC(sizeof(bing_request));
 		if(req)
 		{
 			req->sourceType = source_type;
@@ -521,7 +521,7 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 			}
 			else
 			{
-				free(req);
+				BING_FREE(req);
 			}
 		}
 	}
@@ -535,11 +535,17 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 	request_source_type* type;
 	const char* sourceT;
 	request_get_options_func getOFun;
-	if(source_type >= BING_SOURCETYPE_AD && source_type <= BING_SOURCETYPE_WEB && source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
+	if((source_type >= BING_SOURCETYPE_AD && source_type <= BING_SOURCETYPE_WEB) || source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
 	{
 		tableSize = -1;
 
 		if(source_type == BING_SOURCETYPE_BUNDLE)
+		{
+			sourceT = NULL;
+			tableSize = DEFAULT_ELEMENT_COUNT + 1;
+			getOFun = request_bundle_get_options;
+		}
+		else
 		{
 			for(type = request_source_types; type; type = type->next)
 			{
@@ -551,12 +557,6 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 					break;
 				}
 			}
-		}
-		else
-		{
-			sourceT = NULL;
-			tableSize = DEFAULT_ELEMENT_COUNT + 1;
-			getOFun = request_bundle_get_options;
 		}
 		ret = request_create(sourceT, request, getOFun, tableSize);
 	}
@@ -659,11 +659,11 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 			else
 			{
 				//Create the list
-				list_v = (list*)malloc(sizeof(list));
+				list_v = (list*)BING_MALLOC(sizeof(list));
 				if(list_v)
 				{
 					list_v->count = 0;
-					requestList = list_v->listElements = (bing_request_t*)calloc(11, sizeof(bing_request_t));
+					requestList = list_v->listElements = (bing_request_t*)BING_CALLOC(11, sizeof(bing_request_t));
 					if(list_v->listElements)
 					{
 						//Save the list
@@ -671,14 +671,14 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 						if(hashtable_put_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
 						{
 							//List creation failed, cleanup
-							free(list_v);
+							BING_FREE(list_v);
 							list_v = NULL;
 						}
 					}
 					else
 					{
 						//List creation failed, cleanup
-						free(list_v);
+						BING_FREE(list_v);
 						list_v = NULL;
 					}
 				}
@@ -688,7 +688,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 				if(list_v->count >= list_v->cap)
 				{
 					//Resize list
-					requestList = (bing_request_t*)realloc(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
+					requestList = (bing_request_t*)BING_REALLOC(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
 					if(requestList)
 					{
 						list_v->cap *= 2;
@@ -741,13 +741,13 @@ void free_request(bing_request_t request)
 				{
 					free_request(LIST_ELEMENT(list, i, bing_request_t));
 				}
-				free((void*)list->listElements);
-				free((void*)list);
+				BING_FREE((void*)list->listElements);
+				BING_FREE((void*)list);
 			}
 			hashtable_free(req->data);
 		}
 
-		free(req);
+		BING_FREE(req);
 	}
 }
 
