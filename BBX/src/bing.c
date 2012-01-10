@@ -164,7 +164,7 @@ unsigned int create_bing(const char* application_ID)
 				if(bingSystem.bingInstancesCount > 1)
 				{
 					bingSystem.bingInstancesCount--;
-					if(loc == bingSystem.bingInstancesCount) //At end of instances, BING_FREE up some space
+					if(loc == bingSystem.bingInstancesCount) //At end of instances, free up some space
 					{
 						in = BING_REALLOC(bingSystem.bingInstances, bingSystem.bingInstancesCount * sizeof(bing*));
 
@@ -467,7 +467,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		//Free the strings
 		if(!req->sourceType)
 		{
-			//Need to BING_FREE source type for bundle
+			//Need to free source type for bundle
 			BING_FREE((void*)sourceType);
 		}
 		BING_FREE((void*)requestOptions);

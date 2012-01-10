@@ -109,7 +109,7 @@ BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable)
 		//Duplicate the table
 		if(c > dst->alloc)
 		{
-			//Need to expand the table, BING_FREE the old one and create the new one
+			//Need to expand the table, free the old one and create the new one
 
 			//First create the new one
 			src = xmlHashCopy(src, ht_copy);

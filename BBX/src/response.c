@@ -451,7 +451,7 @@ BOOL response_swap_result(bing_response* response, bing_result* result, BOOL int
 			//Error, re-add to original array
 			if(!response_add_result(response, result, internal))
 			{
-				//Error, BING_FREE the result as we can't get it added to anything
+				//Error, free the result as we can't get it added to anything
 				free_result(result);
 			}
 		}
@@ -1240,7 +1240,7 @@ int response_unregister_response_creator(const char* name)
 
 			if(c)
 			{
-				//If this is the last response then it's easy, we just BING_FREE the data
+				//If this is the last response then it's easy, we just free the data
 				if(i != bingSystem.bingResponseCreatorCount - 1)
 				{
 					memmove(bingSystem.bingResponseCreators + i, bingSystem.bingResponseCreators + (i + 1), (bingSystem.bingResponseCreatorCount - i - 1) * sizeof(bing_response_creator));
