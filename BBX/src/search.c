@@ -8,11 +8,14 @@
  */
 
 #include "bing_internal.h"
+#include <bps/event.h>
 
 #include <libxml/parser.h>
 
 #include <curl/curl.h>
 #include <curl/easy.h>
+
+#include <pthread.h>
 
 typedef struct PARSER_STACK_S
 {
@@ -37,6 +40,7 @@ typedef struct BING_PARSER_S
 	//State info
 	unsigned int bing;
 	CURL* curl;
+	pthread_t thread;
 	xmlParserCtxtPtr ctx; //Reciprocal pointer so we can pass the parser to get all the info and still get the context that the parser is contained in
 	receive_bing_response_func responseFunc;
 	void* userData;
@@ -660,7 +664,7 @@ void search_cleanup(xmlParserCtxtPtr ctx)
 	parser->bing = 0;
 
 	//Close thread (if used)
-	//TODO
+	parser->thread = NULL; //pthread_exit (called implicitly at end of execution) frees the thread
 
 	//Cleanup stacks
 	cleanStacks(parser);
@@ -786,6 +790,9 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 	char buffer[256];
 	ssize_t count;
 	xmlParserCtxtPtr ctx;
+#if defined(BING_DEBUG)
+	int curlCode;
+#endif
 
 	search_setup();
 
@@ -801,7 +808,11 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 			if(setupParser(parser, bingID, url))
 			{
 				//Invoke cURL
-				if(curl_easy_perform(parser->curl) == CURLE_OK)
+				if((
+#if defined(BING_DEBUG)
+						curlCode =
+#endif
+								curl_easy_perform(parser->curl)) == CURLE_OK)
 				{
 					//No errors
 
@@ -813,97 +824,201 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 					{
 						ret = parser->response;
 					}
+#if defined(BING_DEBUG)
+					else if(parser->errorRet)
+					{
+						BING_MSG_PRINTOUT("Parser error\n");
+					}
+#endif
 				}
+#if defined(BING_DEBUG)
+				if(parser->errorRet)
+				{
+					BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
+				}
+#endif
 
 				//Cleanup
 				search_cleanup(parser->ctx);
 			}
 			else
 			{
+#if defined(BING_DEBUG)
+				if(get_error_return(bingID))
+				{
+					BING_MSG_PRINTOUT("Could not setup parser\n");
+				}
+#endif
 				//Couldn't setup parser
 				BING_FREE(parser);
 			}
 		}
+#if defined(BING_DEBUG)
+		else if(get_error_return(bingID))
+		{
+			BING_MSG_PRINTOUT("Could not parser\n");
+		}
+#endif
 
 		//Free URL
 		BING_FREE((void*)url);
 	}
+#if defined(BING_DEBUG)
+	else if(get_error_return(bingID))
+	{
+		BING_MSG_PRINTOUT("Could not create URL\n");
+	}
+#endif
+
+	return ret;
+}
+
+void* async_search(void* ctx)
+{
+#if defined(BING_DEBUG)
+	int curlCode;
+#endif
+	bing_parser* parser = (bing_parser*)ctx;
+
+	//Invoke cURL
+	if((
+#if defined(BING_DEBUG)
+			curlCode =
+#endif
+					curl_easy_perform(parser->curl)) == CURLE_OK)
+	{
+		//No errors
+
+		//Finish parsing
+		xmlParseChunk(parser->ctx, NULL, 0, TRUE);
+
+		//We check for an error
+#if defined(BING_DEBUG)
+		if(
+#endif
+		checkForError(parser)
+#if defined(BING_DEBUG)
+		)
+		{
+			BING_MSG_PRINTOUT("ASYNC: Parser error\n");
+		}
+#else
+		;
+#endif
+
+		//Return response (NULL is fine for a response)
+		parser->responseFunc(parser->response, parser->userData);
+	}
+#if defined(BING_DEBUG)
+	if(parser->errorRet)
+	{
+		BING_MSG_PRINTOUT("ASYNC: Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
+	}
+#endif
+
+	//Cleanup
+	search_cleanup(parser->ctx);
+
+	return NULL;
+}
+
+//We need to free the event because the event could be seen by multiple applications and we don't want them all freeing it
+void event_done(bps_event_t *event)
+{
+	bps_event_payload_t* payload = bps_event_get_payload(event);
+	free_response((bing_response_t)payload->data1);
+}
+
+void event_invocation(bing_response_t response, void* user_data)
+{
+	bps_event_t* event = NULL;
+	bps_event_payload_t payload;
+	bing_parser* parser = (bing_parser*)user_data;
+
+	memset(&payload, 0, sizeof(bps_event_payload_t));
+	payload.data1 = (uintptr_t)response;
+
+	//Create the event
+	if(bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) != BPS_SUCCESS ||
+			bps_push_event(event) != BPS_SUCCESS) //Push event
+	{
+		//Since response will never be pushed, free it
+		free_response(response);
+	}
+}
+
+int search_async_in(unsigned int bingID, const char* query, const bing_request_t request, void* user_data, BOOL user_data_is_parser, receive_bing_response_func response_func)
+{
+	const char* url;
+	bing_parser* parser;
+	pthread_attr_t thread_atts;
+	BOOL ret = FALSE;
+
+	search_setup();
+
+	//Get the url
+	url = request_url(bingID, query, request);
+	if(url)
+	{
+		//Create the parser
+		parser = BING_MALLOC(sizeof(bing_parser));
+		if(parser)
+		{
+			//Setup the parser
+			if(setupParser(parser, bingID, url))
+			{
+				//Setup callback functions
+				parser->responseFunc = response_func;
+				parser->userData = user_data_is_parser ? parser : user_data;
+
+				//Setup thread attributes
+				pthread_attr_init(&thread_atts);
+				pthread_attr_setdetachstate(&thread_atts, PTHREAD_CREATE_DETACHED); //XXX This is how we want the thread to act, but we should do some extra checks as it could go wrong if the calling application exits before the thread returns. But if we leave it as joinable, the only thing we know that will happen is the application will hang as pthread_join would have to be called in search_shutdown, which is running on the same thread.
+
+				//Create thread
+				ret = pthread_create(&parser->thread, &thread_atts, async_search, parser) == EOK;
+
+				//Cleanup attributes
+				pthread_attr_destroy(&thread_atts);
+			}
+			else
+			{
+#if defined(BING_DEBUG)
+				if(get_error_return(bingID))
+				{
+					BING_MSG_PRINTOUT("Could not setup parser\n");
+				}
+#endif
+				//Couldn't setup parser
+				BING_FREE(parser);
+			}
+		}
+#if defined(BING_DEBUG)
+		else if(get_error_return(bingID))
+		{
+			BING_MSG_PRINTOUT("Could not parser\n");
+		}
+#endif
+
+		//Free URL
+		BING_FREE((void*)url);
+	}
+#if defined(BING_DEBUG)
+	else if(get_error_return(bingID))
+	{
+		BING_MSG_PRINTOUT("Could not create URL\n");
+	}
+#endif
 
 	return ret;
 }
 
 int search_async(unsigned int bingID, const char* query, const bing_request_t request, void* user_data, receive_bing_response_func response_func)
 {
-	const char* url;
-	bing_parser* parser;
-	BOOL ret = FALSE;
-
-	search_setup();
-
-	//Get the url
-	url = request_url(bingID, query, request);
-	if(url)
-	{
-		//Create the parser
-		parser = BING_MALLOC(sizeof(bing_parser));
-		if(parser)
-		{
-			//Setup the parser
-			if(setupParser(parser, bingID, url))
-			{
-				parser->responseFunc = response_func;
-				//TODO: create thread, start thread
-				//TODO: Within thread: inform cURL to execute, get response and pass to response_func, search_cleanup
-			}
-			else
-			{
-				//Couldn't setup parser
-				BING_FREE(parser);
-			}
-		}
-
-		//Free URL
-		BING_FREE((void*)url);
-	}
-
-	return ret;
+	return search_async_in(bingID, query, request, user_data, FALSE, response_func);
 }
-
-//TODO: event invocation function
 
 int search_event_async(unsigned int bingID, const char* query, const bing_request_t request)
 {
-	const char* url;
-	bing_parser* parser;
-	BOOL ret = FALSE;
-
-	search_setup();
-
-	//Get the url
-	url = request_url(bingID, query, request);
-	if(url)
-	{
-		//Create the parser
-		parser = BING_MALLOC(sizeof(bing_parser));
-		if(parser)
-		{
-			//Setup the parser
-			if(setupParser(parser, bingID, url))
-			{
-				//TODO: Set response func to event invocation function
-				//TODO: create thread, start thread
-				//TODO: Within thread: inform cURL to execute, get response and pass to event invocation function, search_cleanup
-			}
-			else
-			{
-				//Couldn't setup parser
-				BING_FREE(parser);
-			}
-		}
-
-		//Free URL
-		BING_FREE((void*)url);
-	}
-
-	return ret;
+	return search_async_in(bingID, query, request, NULL, TRUE, event_invocation);
 }

@@ -210,7 +210,7 @@ void free_bing(unsigned int bing);
 #if defined(BING_DEBUG)
 
 /**
- * @brief Set if the internal parser should return on search errors.
+ * @brief Set if the internal parser should return search errors.
  *
  * The @c set_error_return() function allows a developer to explicitly handle errors
  * that might show up from the service. Examples of such are bad Application IDs,
@@ -219,6 +219,9 @@ void free_bing(unsigned int bing);
  * If this is set to a non-zero value (true), then it will return a special response
  * that specifies error information. If it is a zero value (false) and an error
  * occurs, it will simply stop execution and clean up the IO connections.
+ *
+ * In addition, if the library was compiled in debug mode and this is set, it
+ * acts like a verbose option and returns where it failed.
  *
  * @param bing The unique Bing ID for each application ID.
  * @param error A boolean integer indicating if error cases should be returned.
@@ -230,7 +233,7 @@ void free_bing(unsigned int bing);
 int set_error_return(unsigned int bing, int error);
 
 /**
- * @brief Get if the internal parser should return on search errors.
+ * @brief Get if the internal parser should return search errors.
  *
  * If this is set to a non-zero value (true), then it will return a special response
  * that specifies error information. If it is a zero value (false) and an error
@@ -325,7 +328,7 @@ int search_async(unsigned int bing, const char* query, const bing_request_t requ
  *
  * The @c search_event_async() function allows developers to perform a non-blocking
  * search operation that will return immediately and delegate an event with
- * the response.
+ * the response. The response should NOT be freed by any receiving functions.
  *
  * To determine if the event is a Bing response, use the bing_get_domain() function.
  *
