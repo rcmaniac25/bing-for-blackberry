@@ -768,24 +768,28 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 				{
 					creationFunc = bingSystem.bingResponseCreators[i].creation;
 					additionalDataFunc = bingSystem.bingResponseCreators[i].additionalData;
+					ret = TRUE; //We only want a response to be created if we find something
 					break;
 				}
 			}
 
 			pthread_mutex_unlock(&bingSystem.mutex);
 
-			//Create the custom response
-			if(!creationFunc)
+			if(ret)
 			{
-				//The "do nothing" function
-				creationFunc = response_def_create;
+				//Create the custom response
+				if(!creationFunc)
+				{
+					//The "do nothing" function
+					creationFunc = response_def_create;
+				}
+				if(!additionalDataFunc)
+				{
+					//The "do nothing" function
+					additionalDataFunc = response_def_additional_data;
+				}
+				ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, additionalDataFunc, -1);
 			}
-			if(!additionalDataFunc)
-			{
-				//The "do nothing" function
-				additionalDataFunc = response_def_additional_data;
-			}
-			ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, additionalDataFunc, -1);
 		}
 	}
 	return ret;

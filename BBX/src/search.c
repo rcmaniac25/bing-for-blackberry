@@ -147,6 +147,7 @@ BOOL checkForError(bing_parser* parser)
 
 hashtable_t* createHashtableFromAtts(const xmlChar** atts)
 {
+	//XXX Should skip namespace components
 	hashtable_t* table = NULL;
 	int count;
 	if(atts)
@@ -221,16 +222,18 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 	}
 }
 
+//TODO Convert to SAX2
 void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 {
 	bing_result_t result = NULL;
 	hashtable_t* table;
 	int size;
 	char* data;
-	bing_parser* parser = (bing_parser*)((xmlParserCtxtPtr)ctx)->userData;
+	bing_parser* parser = (bing_parser*)ctx;
 	pstack* pt;
 
-	if(checkForError(parser))
+	if(checkForError(parser) &&
+			strcmp((char*)name, "SearchResponse") != 0) //We don't want the document element
 	{
 		//It's a result type
 		if(endsWith((char*)name, "Result"))
@@ -257,7 +260,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 				}
 			}
 		}
-		else if(strcmp((char*)name, "Query") == 0)
+		else if(strcmp((char*)name, "Query") == 0) //It's the query info
 		{
 			table = createHashtableFromAtts(atts);
 
@@ -294,7 +297,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 			hashtable_free(table);
 		}
 #if defined(BING_DEBUG)
-		else if(strcmp((char*)name, "Error") == 0)
+		else if(strcmp((char*)name, "Error") == 0) //Oops, error
 		{
 			table = createHashtableFromAtts(atts);
 
@@ -334,7 +337,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 #endif
 		else
 		{
-			if(result_is_common((char*)name))
+			if(result_is_common((char*)name)) //Is this a common data type (as opposed to a response)
 			{
 				table = createHashtableFromAtts(atts);
 
@@ -418,7 +421,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 
 				hashtable_free(table);
 			}
-			else
+			else //It's a response
 			{
 				parser->current = NULL;
 				if(response_create_raw((char*)name, (bing_response_t*)&parser->current, parser->bing,
@@ -500,7 +503,7 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 void endElement(void *ctx, const xmlChar *name)
 {
 	pstack* st;
-	bing_parser* parser = (bing_parser*)((xmlParserCtxtPtr)ctx)->userData;
+	bing_parser* parser = (bing_parser*)ctx;
 	hashtable_t* table;
 	if(checkForError(parser) && parser->lastResultElement)
 	{
@@ -594,7 +597,7 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//getParameterEntity
 		NULL,			//cdataBlock
 		NULL,			//externalSubset
-		FALSE,			//initialized
+		FALSE,			//initialized-We want a SAX parser, not SAX2 otherwise startElementNs could be called, which won't end well for this (to enable SAX2, this would have to be XML_SAX2_MAGIC)
 		NULL,			//_private
 		NULL,			//startElementNs
 		NULL,			//endElementNs
@@ -653,37 +656,48 @@ void search_setup()
 	}
 }
 
-void search_cleanup(xmlParserCtxtPtr ctx)
+void search_cleanup(bing_parser* parser)
 {
-	bing_parser* parser = (bing_parser*)ctx->userData;
+	xmlParserCtxtPtr ctx;
+	if(parser)
+	{
+		ctx = parser->ctx;
 
-	//Shutdown cURL
-	curl_easy_cleanup(parser->curl);
+		//Shutdown cURL
+		curl_easy_cleanup(parser->curl);
 
-	//Now get rid of the bing context
-	parser->bing = 0;
+		//Now get rid of the bing context
+		parser->bing = 0;
 
-	//Close thread (if used)
-	parser->thread = NULL; //pthread_exit (called implicitly at end of execution) frees the thread
+		//Close thread (if used)
+		parser->thread = NULL; //pthread_exit (called implicitly at end of execution) frees the thread
 
-	//Cleanup stacks
-	cleanStacks(parser);
+		//Cleanup stacks
+		cleanStacks(parser);
 
-	//Cleanup strings
-	BING_FREE((void*)parser->query);
-	BING_FREE((void*)parser->alteredQuery);
-	BING_FREE((void*)parser->alterationOverrideQuery);
+		//Cleanup strings
+		BING_FREE((void*)parser->query);
+		BING_FREE((void*)parser->alteredQuery);
+		BING_FREE((void*)parser->alterationOverrideQuery);
 
-	//Free the bing parser
-	BING_FREE(parser);
-	ctx->userData = NULL;
+		//Free the bing parser
+		BING_FREE(parser);
+		ctx->userData = NULL;
 
-	//Free the document
-	xmlFreeDoc(ctx->myDoc);
+		//Free the document
+		xmlFreeDoc(ctx->myDoc);
 
-	//Free the actual context
-	xmlFreeParserCtxt(ctx);
+		//Free the actual context
+		xmlFreeParserCtxt(ctx);
+	}
+#if defined(BING_DEBUG)
+	else
+	{
+		BING_MSG_PRINTOUT("Parser cleanup-parser is NULL\n");
+	}
+#endif
 
+	//Not desired to do this if parser is NULL (as the call shouldn't have happened with a NULL parser), but it's still a cleanup operation
 	searchCount--;
 	if(!searchCount)
 	{
@@ -832,14 +846,14 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 #endif
 				}
 #if defined(BING_DEBUG)
-				if(parser->errorRet)
+				else if(parser->errorRet)
 				{
 					BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
 				}
 #endif
 
 				//Cleanup
-				search_cleanup(parser->ctx);
+				search_cleanup(parser);
 			}
 			else
 			{
@@ -910,14 +924,14 @@ void* async_search(void* ctx)
 		parser->responseFunc(parser->response, parser->userData);
 	}
 #if defined(BING_DEBUG)
-	if(parser->errorRet)
+	else if(parser->errorRet)
 	{
 		BING_MSG_PRINTOUT("ASYNC: Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
 	}
 #endif
 
 	//Cleanup
-	search_cleanup(parser->ctx);
+	search_cleanup(parser);
 
 	return NULL;
 }
