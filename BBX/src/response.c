@@ -247,7 +247,8 @@ static bing_response_creator_search response_def_creator[]=
 		{{"spl:Spell",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_SPELL,			RESPONSE_DEF_COUNT,		&response_def_creator[9]},
 		{{"mw:MobileWeb",		response_def_create,	response_def_additional_data},			BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[10]},
 		{{"ia:InstantAnswer",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[11]},
-		{{"bundle",				response_def_create,	response_def_additional_data},			BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT + 1,	NULL}
+		{{"bundle",				response_def_create,	response_def_additional_data},			BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[12]},
+		{{"Errors",				response_def_create,	response_def_additional_data},			BING_RESULT_ERROR,				RESPONSE_DEF_COUNT,		NULL}
 };
 
 //Functions

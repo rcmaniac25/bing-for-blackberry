@@ -53,7 +53,13 @@ typedef struct BING_PARSER_S
 //Processors
 void errorCallback(void *ctx, const char *msg, ...)
 {
-	bing_parser* parser = (bing_parser*)((xmlParserCtxtPtr)ctx)->userData;
+	bing_parser* parser = (bing_parser*)ctx;
+	parser->parseError = TRUE; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
+}
+
+void serrorCallback(void* userData, xmlErrorPtr error)
+{
+	bing_parser* parser = (bing_parser*)userData;
 	parser->parseError = TRUE; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
@@ -145,31 +151,38 @@ BOOL checkForError(bing_parser* parser)
 	return TRUE; //No error, continue
 }
 
-hashtable_t* createHashtableFromAtts(const xmlChar** atts)
+hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
 {
-	//XXX Should skip namespace components
 	hashtable_t* table = NULL;
-	int count;
-	if(atts)
+	int i;
+	const char* localName;
+	char* value;
+	const char* end;
+	char tmp;
+	size_t size;
+	if(atts && att_count > 0)
 	{
-		//First count the number of elements
-		for(count = 0; atts[count]; count++)
-		{
-			//Attributes are name/value pairs, so if we have a value at 0, then we have one at 1. One at 2 means one at 3 as well. Etc.
-			count++;
-		}
-
-		table = hashtable_create(count);
+		//We don't need a element for each string, we just need it for the data itself
+		table = hashtable_create(att_count);
 		if(table)
 		{
-			//Fill table
-			for(count = 0; atts[count]; count++)
+			//Fill table (attributes are in quintuplets: localname/prefix/URI/value/end)
+			for(i = 0; i < att_count; i++)
 			{
-				hashtable_put_item(table,
-						(char*)atts[count],
-						atts[count + 1],
-						strlen((char*)atts[count + 1]) + 1);
-				count++;
+				//Get the attribute components
+				localName = (char*)atts[i * 5];		//The name of the attribute
+				value = (char*)atts[(i * 5) + 3];	//Pointer to the attribute value (start)
+				end = (char*)atts[(i * 5) + 4];		//Pointer to the attribute value (end)
+
+				//value isn't NULL terminated. So we will "play with fire" and change this value so it has a NULL term, then put it back
+				tmp = value[size = (end - value)];
+				value[size] = '\0';
+
+				//Save the value
+				hashtable_put_item(table, localName, value, size + 1);
+
+				//Replace the value
+				value[size] = tmp;
 			}
 		}
 	}
@@ -222,8 +235,41 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 	}
 }
 
-//TODO Convert to SAX2
-void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
+const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
+{
+	int size;
+	char* qualifiedName;
+	if(prefix)
+	{
+		size = strlen((char*)localname) + 1; //Get local name size
+		size += strlen((char*)prefix); //Get the prefix size
+		qualifiedName = BING_MALLOC(size);
+		if(qualifiedName)
+		{
+			//Zero out the memory
+			memset(qualifiedName, 0, size);
+
+			//Copy the prefix
+			strcpy(qualifiedName, (char*)prefix);
+
+			//Add the separator
+			qualifiedName[strlen((char*)prefix)] = ':';
+
+			//Now add the localname
+			strcat(qualifiedName, (char*)localname);
+		}
+	}
+	else
+	{
+		//There is nothing that requires changing
+		qualifiedName = (char*)localname;
+	}
+	return qualifiedName;
+}
+
+//The real "meat and potatoes" of the parser. Many if blocks for safety and to increase flexibility (and hopefully readability...)
+
+void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI, int nb_namespaces, const xmlChar** namespaces, int nb_attributes, int nb_defaulted, const xmlChar** attributes)
 {
 	bing_result_t result = NULL;
 	hashtable_t* table;
@@ -231,339 +277,380 @@ void startElement(void *ctx, const xmlChar *name, const xmlChar **atts)
 	char* data;
 	bing_parser* parser = (bing_parser*)ctx;
 	pstack* pt;
+	const char* qualifiedName;
 
 	if(checkForError(parser) &&
-			strcmp((char*)name, "SearchResponse") != 0) //We don't want the document element
+			strcmp((char*)localname, "SearchResponse") != 0) //We don't want the document element
 	{
-		//It's a result type
-		if(endsWith((char*)name, "Result"))
+		//We need to create the qualified name (as that is what we use for type checks)
+		qualifiedName = getQualifiedName(localname, prefix);
+
+		if(qualifiedName) //We need a qualified name
 		{
-			if(parser->current)
+			if(!endsWith(qualifiedName, ":Results")) //We don't want result arrays (we don't want to combine this with the qualified name check so that we don't unfree the qualified name if needed)
 			{
-				if(!result_is_common((char*)name) && //First check if the result is "common" which excludes it from this usage (especially since custom results could end in "Result" and be common)
-						result_create_raw((char*)name, &result, parser->current)) //Try to actually create the result (and adds it to the response)
+				//It's a result type
+				if(endsWith(qualifiedName, "Result"))
 				{
-					//Create the dictionary (if this fails then, o well. Maybe no hashtable is returned because there where no attributes).
-					table = createHashtableFromAtts(atts);
-
-					//Result created successfully, time to save state
-					if(((bing_result*)result)->creation((char*)name, result, (data_dictionary_t)table))
+					if(parser->current)
 					{
-						addResultToStack(parser, (bing_result*)result, (char*)name, RESULT_CREATE_DEFAULT_INTERNAL);
-					}
-					else
-					{
-						//Wasn't created correctly, free (this isn't a parser error. The creator ran into an error [or something]).
-						response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
-					}
-					hashtable_free(table);
-				}
-			}
-		}
-		else if(strcmp((char*)name, "Query") == 0) //It's the query info
-		{
-			table = createHashtableFromAtts(atts);
-
-			if(table)
-			{
-				size = hashtable_get_string(table, "SearchTerms", NULL);
-				if(size > -1)
-				{
-					BING_FREE((void*)parser->query);
-					parser->query = BING_MALLOC(size);
-					hashtable_get_string(table, "SearchTerms", (char*)parser->query);
-				}
-				size = hashtable_get_string(table, "AlteredQuery", NULL);
-				if(size > -1)
-				{
-					BING_FREE((void*)parser->alteredQuery);
-					parser->alteredQuery = BING_MALLOC(size);
-					hashtable_get_string(table, "AlteredQuery", (char*)parser->alteredQuery);
-				}
-				size = hashtable_get_string(table, "AlterationOverrideQuery", NULL);
-				if(size > -1)
-				{
-					BING_FREE((void*)parser->alterationOverrideQuery);
-					parser->alterationOverrideQuery = BING_MALLOC(size);
-					hashtable_get_string(table, "AlterationOverrideQuery", (char*)parser->alterationOverrideQuery);
-				}
-			}
-			else
-			{
-				//If the table is NULL then we have an issue as we need that table for query
-				parser->parseError = TRUE;
-			}
-
-			hashtable_free(table);
-		}
-#if defined(BING_DEBUG)
-		else if(strcmp((char*)name, "Error") == 0) //Oops, error
-		{
-			table = createHashtableFromAtts(atts);
-
-			//Can we create an actual error result?
-			if(table && parser->current && parser->errorRet)
-			{
-				if(result_create_raw("Error", &result, parser->current))
-				{
-					//Run the creation function
-					if(((bing_result*)result)->creation("Error", result, (data_dictionary_t)table))
-					{
-						//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
-
-						data = BING_MALLOC(sizeof(long long));
-						result_get_64bit_int(result, RESULT_FIELD_CODE, (long long*)data);
-						BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
-						BING_FREE(data);
-
-						data = BING_MALLOC(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
-						result_get_string(result, RESULT_FIELD_MESSAGE, data);
-						BING_MSG_PRINTOUT("Error Message = %s\n", data);
-						BING_FREE(data);
-
-						data = BING_MALLOC(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
-						result_get_string(result, RESULT_FIELD_PARAMETER, data);
-						BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
-						BING_FREE(data);
-					}
-					else
-					{
-						response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
-					}
-				}
-			}
-			hashtable_free(table);
-		}
-#endif
-		else
-		{
-			if(result_is_common((char*)name)) //Is this a common data type (as opposed to a response)
-			{
-				table = createHashtableFromAtts(atts);
-
-				if(result_create_raw((char*)name, &result, parser->current))
-				{
-					//Run the creation function
-					if(((bing_result*)result)->creation((char*)name, result, (data_dictionary_t)table))
-					{
-						//Make the result a internal result (if this doesn't work, then it means that it's already internal)
-						response_swap_result(parser->current, result, RESULT_CREATE_DEFAULT_INTERNAL);
-
-						//If an array, we want to store it so we can get internal values
-						if(((bing_result*)result)->array)
+						if(!result_is_common(qualifiedName) && //First check if the result is "common" which excludes it from this usage (especially since custom results could end in "Result" and be common)
+								result_create_raw(qualifiedName, &result, parser->current)) //Try to actually create the result (and adds it to the response)
 						{
-							addResultToStack(parser, (bing_result*)result, (char*)name, TRUE);
+							//Create the dictionary (if this fails then, o well. Maybe no hashtable is returned because there where no attributes).
+							table = createHashtableFromAtts(nb_attributes, attributes);
 
-							//Determine where it should be added to
-
-							//We can let endElement handle saving it
-							if(parser->lastResult && parser->lastResult->prev)
+							//Result created successfully, time to save state
+							if(((bing_result*)result)->creation(qualifiedName, result, (data_dictionary_t)table))
 							{
-								parser->lastResult->addToResult = (bing_result*)parser->lastResult->prev->value;
+								addResultToStack(parser, (bing_result*)result, qualifiedName, RESULT_CREATE_DEFAULT_INTERNAL);
 							}
 							else
 							{
-								parser->lastResult->addToResponse = parser->current;
+								//Wasn't created correctly, free (this isn't a parser error. The creator ran into an error [or something]).
+								response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
 							}
+							hashtable_free(table);
 						}
-						else
-						{
-							data = BING_MALLOC(sizeof(int));
-							if(data)
-							{
-								*((int*)data) = FALSE;
-
-								//Determine where it should be added to
-								if(parser->lastResult)
-								{
-									//This is getting added to a result
-									((bing_result*)parser->lastResult->value)->additionalResult((char*)name, (bing_result_t)parser->lastResult->value, result, ((int*)data));
-								}
-								else
-								{
-									hashtable_free(table);
-
-									//This is getting added to a response
-									table = hashtable_create(1);
-									if(table)
-									{
-										if(hashtable_put_item(table, strchr((char*)name, ':') + 1, &result, sizeof(bing_result_t)) != -1)
-										{
-											((bing_response*)parser->current)->additionalData((bing_response_t)parser->current, (data_dictionary_t)table);
-										}
-									}
-								}
-							}
-
-							//Free the result (if we can)
-							if(!data || !(*((int*)data)))
-							{
-								//Try to free it from the internal result list
-								if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, TRUE, TRUE))
-								{
-									//Try to free it from the normal result list
-									if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, FALSE, TRUE))
-									{
-										//Just free it, no idea why it wasn't in either list
-										free_result((bing_result*)result);
-									}
-								}
-							}
-							BING_FREE(data);
-						}
-					}
-					else
-					{
-						//Error, remove
-						response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
 					}
 				}
-
-				hashtable_free(table);
-			}
-			else //It's a response
-			{
-				parser->current = NULL;
-				if(response_create_raw((char*)name, (bing_response_t*)&parser->current, parser->bing,
-						(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE) ? parser->response : NULL)) //The general idea is that if there is already a response and it is bundle, it will be the parent. Otherwise add it to Bing
+				else if(strcmp(qualifiedName, "Query") == 0) //It's the query info
 				{
-					table = createHashtableFromAtts(atts);
+					table = createHashtableFromAtts(nb_attributes, attributes);
 
-					if(response_def_create_standard_responses(parser->current, (data_dictionary_t)table) &&
-							parser->current->creation((char*)name, (bing_response_t)parser->current, (data_dictionary_t)table))
+					if(table)
 					{
-						//Set remaining values
-						if(parser->query)
+						size = hashtable_get_string(table, "SearchTerms", NULL);
+						if(size > -1)
 						{
-							hashtable_set_data(parser->current->data, RESPONSE_QUERY_STR, parser->query, sizeof(parser->query) + 1);
+							BING_FREE((void*)parser->query);
+							parser->query = BING_MALLOC(size);
+							hashtable_get_string(table, "SearchTerms", (char*)parser->query);
 						}
-						if(parser->alteredQuery)
+						size = hashtable_get_string(table, "AlteredQuery", NULL);
+						if(size > -1)
 						{
-							hashtable_set_data(parser->current->data, RESPONSE_ALTERED_QUERY_STR, parser->alteredQuery, sizeof(parser->alteredQuery) + 1);
+							BING_FREE((void*)parser->alteredQuery);
+							parser->alteredQuery = BING_MALLOC(size);
+							hashtable_get_string(table, "AlteredQuery", (char*)parser->alteredQuery);
 						}
-						if(parser->alterationOverrideQuery)
+						size = hashtable_get_string(table, "AlterationOverrideQuery", NULL);
+						if(size > -1)
 						{
-							hashtable_set_data(parser->current->data, RESPONSE_ALTERATIONS_OVER_QUERY_STR, parser->alterationOverrideQuery, sizeof(parser->alterationOverrideQuery) + 1);
-						}
-
-						//Should we do any extra processing on the response?
-						if(parser->response)
-						{
-							//Response already exists. If it is a bundle then it is already added, otherwise we need to replace it
-							if(parser->response->type != BING_SOURCETYPE_BUNDLE)
-							{
-								//Save this temporarily
-								data = (char*)parser->response;
-
-								if(response_create_raw("bundle", (bing_response_t*)&parser->response, parser->bing, NULL))
-								{
-									//We need to take the original response and make it a child of the new bundle response
-									response_swap_response((bing_response*)data, parser->response);
-
-									//We also need the new current response to be a child of the new bundle response
-									response_swap_response(parser->current, parser->response);
-								}
-								else
-								{
-									//Darn it, that failed
-									free_response(parser->current);
-									parser->parseError = TRUE; //See parser error below for info why this is an actual error
-								}
-							}
-						}
-						else if(parser->current)
-						{
-							//Response doesn't exist, make current
-							parser->response = parser->current;
+							BING_FREE((void*)parser->alterationOverrideQuery);
+							parser->alterationOverrideQuery = BING_MALLOC(size);
+							hashtable_get_string(table, "AlterationOverrideQuery", (char*)parser->alterationOverrideQuery);
 						}
 					}
 					else
 					{
-						//Darn it, that failed
-						if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
-						{
-							//This wasn't a bundled response, just free it (otherwise it will never get freed)
-							free_response(parser->current);
-						}
-						parser->parseError = TRUE; //See parser error below for info why this is an actual error
+						//If the table is NULL then we have an issue as we need that table for query
+						parser->parseError = TRUE;
 					}
 
 					hashtable_free(table);
 				}
+#if defined(BING_DEBUG)
+				else if(strcmp(qualifiedName, "Error") == 0) //Oops, error
+				{
+					table = createHashtableFromAtts(nb_attributes, attributes);
+
+					//Can we create an actual error result?
+					if(table && parser->current && parser->errorRet)
+					{
+						if(result_create_raw("Error", &result, parser->current))
+						{
+							//Run the creation function
+							if(((bing_result*)result)->creation("Error", result, (data_dictionary_t)table))
+							{
+								//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
+
+								data = BING_MALLOC(sizeof(long long));
+								result_get_64bit_int(result, RESULT_FIELD_CODE, (long long*)data);
+								BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
+								BING_FREE(data);
+
+								data = BING_MALLOC(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
+								result_get_string(result, RESULT_FIELD_MESSAGE, data);
+								BING_MSG_PRINTOUT("Error Message = %s\n", data);
+								BING_FREE(data);
+
+								data = BING_MALLOC(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
+								result_get_string(result, RESULT_FIELD_PARAMETER, data);
+								BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
+								BING_FREE(data);
+							}
+							else
+							{
+								response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
+							}
+						}
+					}
+					hashtable_free(table);
+				}
+#endif
 				else
 				{
-					//Unlike "results" where missing one is unfortunate, the "response" type helps maintain the tree hierarchy and skipping one would mess up everything (possibly)
-					parser->parseError = TRUE;
+					if(result_is_common(qualifiedName)) //Is this a common data type (as opposed to a response)
+					{
+						table = createHashtableFromAtts(nb_attributes, attributes);
+
+						if(result_create_raw(qualifiedName, &result, parser->current))
+						{
+							//Run the creation function
+							if(((bing_result*)result)->creation(qualifiedName, result, (data_dictionary_t)table))
+							{
+								//Make the result a internal result (if this doesn't work, then it means that it's already internal)
+								response_swap_result(parser->current, result, RESULT_CREATE_DEFAULT_INTERNAL);
+
+								//If an array, we want to store it so we can get internal values
+								if(((bing_result*)result)->array)
+								{
+									addResultToStack(parser, (bing_result*)result, qualifiedName, TRUE);
+
+									//Determine where it should be added to
+
+									//We can let endElement handle saving it
+									if(parser->lastResult && parser->lastResult->prev)
+									{
+										parser->lastResult->addToResult = (bing_result*)parser->lastResult->prev->value;
+									}
+									else
+									{
+										parser->lastResult->addToResponse = parser->current;
+									}
+								}
+								else
+								{
+									data = BING_MALLOC(sizeof(int));
+									if(data)
+									{
+										*((int*)data) = FALSE;
+
+										//Determine where it should be added to
+										if(parser->lastResult)
+										{
+											//This is getting added to a result
+											((bing_result*)parser->lastResult->value)->additionalResult(qualifiedName, (bing_result_t)parser->lastResult->value, result, ((int*)data));
+										}
+										else
+										{
+											hashtable_free(table);
+
+											//This is getting added to a response
+											table = hashtable_create(1);
+											if(table)
+											{
+												if(hashtable_put_item(table, strchr(qualifiedName, ':') + 1, &result, sizeof(bing_result_t)) != -1)
+												{
+													((bing_response*)parser->current)->additionalData((bing_response_t)parser->current, (data_dictionary_t)table);
+												}
+											}
+										}
+									}
+
+									//Free the result (if we can)
+									if(!data || !(*((int*)data)))
+									{
+										//Try to free it from the internal result list
+										if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, TRUE, TRUE))
+										{
+											//Try to free it from the normal result list
+											if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, FALSE, TRUE))
+											{
+												//Just free it, no idea why it wasn't in either list
+												free_result((bing_result*)result);
+											}
+										}
+									}
+									BING_FREE(data);
+								}
+							}
+							else
+							{
+								//Error, remove
+								response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
+							}
+						}
+
+						hashtable_free(table);
+					}
+					else //It's a response
+					{
+						parser->current = NULL;
+						if(response_create_raw(qualifiedName, (bing_response_t*)&parser->current, parser->bing,
+								(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE) ? parser->response : NULL)) //The general idea is that if there is already a response and it is bundle, it will be the parent. Otherwise add it to Bing
+						{
+							table = createHashtableFromAtts(nb_attributes, attributes);
+
+							if(response_def_create_standard_responses(parser->current, (data_dictionary_t)table) &&
+									parser->current->creation(qualifiedName, (bing_response_t)parser->current, (data_dictionary_t)table))
+							{
+								//Set remaining values
+								if(parser->query)
+								{
+									hashtable_set_data(parser->current->data, RESPONSE_QUERY_STR, parser->query, sizeof(parser->query) + 1);
+								}
+								if(parser->alteredQuery)
+								{
+									hashtable_set_data(parser->current->data, RESPONSE_ALTERED_QUERY_STR, parser->alteredQuery, sizeof(parser->alteredQuery) + 1);
+								}
+								if(parser->alterationOverrideQuery)
+								{
+									hashtable_set_data(parser->current->data, RESPONSE_ALTERATIONS_OVER_QUERY_STR, parser->alterationOverrideQuery, sizeof(parser->alterationOverrideQuery) + 1);
+								}
+
+								//Should we do any extra processing on the response?
+								if(parser->response)
+								{
+									//Response already exists. If it is a bundle then it is already added, otherwise we need to replace it
+									if(parser->response->type != BING_SOURCETYPE_BUNDLE)
+									{
+										//Save this temporarily
+										data = (char*)parser->response;
+
+										if(response_create_raw("bundle", (bing_response_t*)&parser->response, parser->bing, NULL))
+										{
+											//We need to take the original response and make it a child of the new bundle response
+											response_swap_response((bing_response*)data, parser->response);
+
+											//We also need the new current response to be a child of the new bundle response
+											response_swap_response(parser->current, parser->response);
+										}
+										else
+										{
+											//Darn it, that failed
+											free_response(parser->current);
+											parser->parseError = TRUE; //See parser error below for info why this is an actual error
+										}
+									}
+								}
+								else if(parser->current)
+								{
+									//Response doesn't exist, make current
+									parser->response = parser->current;
+								}
+							}
+							else
+							{
+								//Darn it, that failed
+								if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
+								{
+									//This wasn't a bundled response, just free it (otherwise it will never get freed)
+									free_response(parser->current);
+								}
+								parser->parseError = TRUE; //See parser error below for info why this is an actual error
+							}
+
+							hashtable_free(table);
+						}
+						else
+						{
+							//Unlike "results" where missing one is unfortunate, the "response" type helps maintain the tree hierarchy and skipping one would mess up everything (possibly)
+							parser->parseError = TRUE;
+						}
+					}
 				}
 			}
+
+			//If prefix exists, then we have to free memory
+			if(prefix)
+			{
+				BING_FREE((void*)qualifiedName);
+			}
+		}
+		else
+		{
+			//No qualified name, error
+			parser->parseError = TRUE;
 		}
 	}
 }
 
-void endElement(void *ctx, const xmlChar *name)
+void endElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI)
 {
 	pstack* st;
 	bing_parser* parser = (bing_parser*)ctx;
 	hashtable_t* table;
+	const char* qualifiedName;
+
 	if(checkForError(parser) && parser->lastResultElement)
 	{
-		if(strcmp((char*)parser->lastResultElement->value, (char*)name) == 0)
+		//We need to create the qualified name (as that is what we use for type checks)
+		qualifiedName = getQualifiedName(localname, prefix);
+
+		if(qualifiedName) //We need a qualified name
 		{
-			//Free result
-			st = parser->lastResult;
-			parser->lastResult = st->prev;
-
-			if(st->keepValue) //Well we where told to keep the result, but it might be special...
+			if(!endsWith(qualifiedName, ":Results") && //We don't want result arrays
+					strcmp((char*)parser->lastResultElement->value, qualifiedName) == 0)
 			{
-				//The result might supposed to be added to another result/response.
+				//Free result
+				st = parser->lastResult;
+				parser->lastResult = st->prev;
 
-				st->keepValue = FALSE; //Just for the sake of it, we are going to say we don't want to keep the result...
+				if(st->keepValue) //Well we where told to keep the result, but it might be special...
+				{
+					//The result might supposed to be added to another result/response.
 
-				if(st->addToResult)
-				{
-					st->addToResult->additionalResult((char*)parser->lastResultElement->value, (bing_result_t)st->addToResult, (bing_result_t)st->value, &st->keepValue); //Because the addition function might want get rid of it
-				}
-				else if(st->addToResponse)
-				{
-					//Response is a little harder to do as it takes a dictionary (hashtable). We need to create the hashtable and store the result within it before passing it to the return
-					table = hashtable_create(1);
-					if(table)
+					st->keepValue = FALSE; //Just for the sake of it, we are going to say we don't want to keep the result...
+
+					if(st->addToResult)
 					{
-						if(hashtable_put_item(table, strchr((char*)name, ':') + 1, &st->value, sizeof(bing_result_t)) != -1)
+						st->addToResult->additionalResult((char*)parser->lastResultElement->value, (bing_result_t)st->addToResult, (bing_result_t)st->value, &st->keepValue); //Because the addition function might want get rid of it
+					}
+					else if(st->addToResponse)
+					{
+						//Response is a little harder to do as it takes a dictionary (hashtable). We need to create the hashtable and store the result within it before passing it to the return
+						table = hashtable_create(1);
+						if(table)
 						{
-							st->addToResponse->additionalData((bing_response_t)st->addToResponse, (data_dictionary_t)table);
+							if(hashtable_put_item(table, strchr(qualifiedName, ':') + 1, &st->value, sizeof(bing_result_t)) != -1)
+							{
+								st->addToResponse->additionalData((bing_response_t)st->addToResponse, (data_dictionary_t)table);
+							}
+							hashtable_free(table);
 						}
-						hashtable_free(table);
 					}
-				}
-				else
-				{
-					//Nothing to add the result to, we might as well keep the value (it will get freed with it's parent  [hopefully])
-					st->keepValue = TRUE;
-				}
-			}
-			//Free the result if desired
-			if(!st->keepValue)
-			{
-				//Try to free it from the normal result list
-				if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, FALSE, TRUE))
-				{
-					//Try to free it from the internal result list
-					if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, TRUE, TRUE))
+					else
 					{
-						//Just free it, no idea why it wasn't in either list
-						free_result((bing_result*)st->value);
+						//Nothing to add the result to, we might as well keep the value (it will get freed with it's parent  [hopefully])
+						st->keepValue = TRUE;
 					}
 				}
+				//Free the result if desired
+				if(!st->keepValue)
+				{
+					//Try to free it from the normal result list
+					if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, FALSE, TRUE))
+					{
+						//Try to free it from the internal result list
+						if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, TRUE, TRUE))
+						{
+							//Just free it, no idea why it wasn't in either list
+							free_result((bing_result*)st->value);
+						}
+					}
+				}
+				BING_FREE(st); //Object
+
+				//Free the element
+				st = parser->lastResultElement;
+				parser->lastResultElement = st->prev;
+
+				BING_FREE(st->value); //Name
+				BING_FREE(st); //Object
 			}
-			BING_FREE(st); //Object
 
-			//Free the element
-			st = parser->lastResultElement;
-			parser->lastResultElement = st->prev;
-
-			BING_FREE(st->value); //Name
-			BING_FREE(st); //Object
+			//If prefix exists, then we have to free memory
+			if(prefix)
+			{
+				BING_FREE((void*)qualifiedName);
+			}
+		}
+		else
+		{
+			//No qualified name, error
+			parser->parseError = TRUE;
 		}
 	}
 }
@@ -584,8 +671,8 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//setDocumentLocator
 		NULL,			//startDocument
 		NULL,			//endDocument
-		startElement,	//startElement
-		endElement,		//endElement
+		NULL,			//startElement
+		NULL,			//endElement
 		NULL,			//reference
 		NULL,			//characters
 		NULL,			//ignorableWhitespace
@@ -597,11 +684,11 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//getParameterEntity
 		NULL,			//cdataBlock
 		NULL,			//externalSubset
-		FALSE,			//initialized-We want a SAX parser, not SAX2 otherwise startElementNs could be called, which won't end well for this (to enable SAX2, this would have to be XML_SAX2_MAGIC)
+		XML_SAX2_MAGIC,	//initialized
 		NULL,			//_private
-		NULL,			//startElementNs
-		NULL,			//endElementNs
-		NULL			//serror
+		startElement,	//startElementNs
+		endElement,		//endElementNs
+		serrorCallback	//serror
 };
 
 //Memory handlers (we wrap the functions so that debug functions can be used)

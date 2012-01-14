@@ -512,7 +512,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 	char buffer[256];
 	buffer[0] = '\0';
 	char* rett;
-	size_t size = hashtable_get_item(table, key, NULL);
+	int size = hashtable_get_item(table, key, NULL);
 	if(size > 0)
 	{
 		//Make sure that the data buffer (for getting the data) is large enough (add one for safety)
