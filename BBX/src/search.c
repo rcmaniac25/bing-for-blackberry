@@ -11,11 +11,10 @@
 #include <bps/event.h>
 
 #include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
 
 #include <curl/curl.h>
 #include <curl/easy.h>
-
-#include <pthread.h>
 
 typedef struct PARSER_STACK_S
 {
@@ -174,14 +173,14 @@ hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
 				value = (char*)atts[(i * 5) + 3];	//Pointer to the attribute value (start)
 				end = (char*)atts[(i * 5) + 4];		//Pointer to the attribute value (end)
 
-				//value isn't NULL terminated. So we will "play with fire" and change this value so it has a NULL term, then put it back
+				//value isn't NULL terminated. So we will "play with fire" and change this value so it has a NULL term, then put it back later
 				tmp = value[size = (end - value)];
 				value[size] = '\0';
 
 				//Save the value
 				hashtable_put_item(table, localName, value, size + 1);
 
-				//Replace the value
+				//Put the value back in value
 				value[size] = tmp;
 			}
 		}
@@ -209,7 +208,7 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 			pt->prev = parser->lastResultElement;
 			parser->lastResultElement = pt;
 			pt->keepValue = TRUE;
-			pt->value = strdup(name);
+			pt->value = BING_STRDUP(name);
 			if(!pt->value)
 			{
 				//Darn, so close again
@@ -691,42 +690,6 @@ static const xmlSAXHandler parserHandler=
 		serrorCallback	//serror
 };
 
-//Memory handlers (we wrap the functions so that debug functions can be used)
-void* curl_malloc(size_t size)
-{
-	return BING_MALLOC(size);
-}
-
-void curl_free(void* ptr)
-{
-	BING_FREE(ptr);
-}
-
-void* curl_realloc(void* ptr, size_t size)
-{
-	return BING_REALLOC(ptr, size);
-}
-
-void* curl_calloc(size_t nmemb, size_t size)
-{
-	return BING_CALLOC(nmemb, size);
-}
-
-char* curl_strdup(const char* str)
-{
-	char* ret = NULL;
-	size_t size;
-	if(str)
-	{
-		ret = BING_MALLOC(size = strlen(str) + 1);
-		if(ret)
-		{
-			memcpy(ret, str, size);
-		}
-	}
-	return ret;
-}
-
 void search_setup()
 {
 	LIBXML_TEST_VERSION
@@ -735,11 +698,14 @@ void search_setup()
 
 	if(searchCount == 1)
 	{
+		//Setup XML
+		xmlGcMemSetup(xml_curl_free, xml_curl_malloc, xml_curl_malloc, xml_curl_realloc, xml_curl_strdup);
+
 		//On first run, setup the parser
 		xmlInitParser();
 
 		//Setup cURL
-		curl_global_init_mem(CURL_GLOBAL_ALL, curl_malloc, curl_free, curl_realloc, curl_strdup, curl_calloc); //THIS IS NOT THREAD SAFE!!
+		curl_global_init_mem(CURL_GLOBAL_ALL, xml_curl_malloc, xml_curl_free, xml_curl_realloc, xml_curl_strdup, xml_curl_calloc); //THIS IS NOT THREAD SAFE!!
 	}
 }
 
@@ -749,6 +715,7 @@ void search_cleanup(bing_parser* parser)
 	if(parser)
 	{
 		ctx = parser->ctx;
+		ctx->userData = NULL;
 
 		//Shutdown cURL
 		curl_easy_cleanup(parser->curl);
@@ -769,7 +736,6 @@ void search_cleanup(bing_parser* parser)
 
 		//Free the bing parser
 		BING_FREE(parser);
-		ctx->userData = NULL;
 
 		//Free the document
 		xmlFreeDoc(ctx->myDoc);

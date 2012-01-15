@@ -18,6 +18,9 @@ void initialize_bing()
 		bing_initialized = TRUE; //Set this first so if another thread tries to initialize it, it doesn't work
 
 		searchCount = 0;
+#if (defined(BING_MEM_TRACK) || defined(BING_STR_MEM_TRACK)) && defined(BING_DEBUG)
+		memAlloc = NULL;
+#endif
 
 		memset(&bingSystem, 0, sizeof(bing_system));
 
@@ -142,12 +145,11 @@ unsigned int create_bing(const char* application_ID)
 				//Copy application ID
 				if(application_ID)
 				{
-					size = strlen(application_ID) + 1;
-					bingI->appId = (char*)BING_MALLOC(size);
 					if(bingI->appId)
 					{
-						strlcpy(bingI->appId, application_ID, size);
+						BING_FREE(bingI->appId);
 					}
+					bingI->appId = BING_STRDUP(application_ID);
 					//If an error occurs, it's up to the developer to make sure that the app ID was copied
 				}
 #if defined(BING_DEBUG)
@@ -173,6 +175,7 @@ unsigned int create_bing(const char* application_ID)
 							bingSystem.bingInstances = in;
 						}
 					}
+					//We don't need to worry about this if it isn't at the end because it means the array element is already NULL and thus hasn't changed.
 				}
 				else
 				{

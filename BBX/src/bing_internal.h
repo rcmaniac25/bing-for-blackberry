@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <assert.h>
-#include <bps/bps.h>
 
 /*
  * Defines
@@ -61,11 +60,54 @@ __BEGIN_DECLS
 
 /**
  * Memory functions
+ *
+ * Tradeoff between flexibility and speed. This isn't a realtime library, it doesn't have to be extremely fast.
+ * The faster way to do it would be to have static variables, as it calls the function directly. But if understanding of errors (such as where a error occurred) is necessary, this doesn't work.
  */
-#define BING_MALLOC malloc
-#define BING_CALLOC calloc
-#define BING_REALLOC realloc
-#define BING_FREE free
+#if (defined(BING_MEM_TRACK) || defined(BING_STR_MEM_TRACK)) && defined(BING_DEBUG)
+struct memory_alloc
+{
+	void* ptr;
+	void* endPtr;
+#if defined(BING_STR_MEM_TRACK)
+	const char* file;
+	int line;
+#endif
+	struct memory_alloc* prev;
+};
+
+static volatile struct memory_alloc* memAlloc;
+
+#define BING_FREE free_dbg_track
+#endif
+
+#if defined(BING_DEBUG)
+#if defined(BING_MEM_TRACK)
+#define BING_MALLOC malloc_dbg_track
+#define BING_CALLOC calloc_dbg_track
+#define BING_REALLOC realloc_dbg_track
+#define BING_STRDUP strdup_dbg_track
+#elif defined(BING_STR_MEM_TRACK)
+#define BING_MALLOC(s) malloc_dbg_track(s,__FILE__,__LINE__)
+#define BING_CALLOC(c,s) calloc_dbg_track((c),(s),__FILE__,__LINE__)
+#define BING_REALLOC(p,s) realloc_dbg_track((p),(s),__FILE__,__LINE__)
+#define BING_STRDUP(s) strdup_dbg_track(s,__FILE__,__LINE__)
+#endif
+#endif
+
+#if !defined(BING_MALLOC)
+#define BING_MALLOC bing_malloc
+#define BING_CALLOC bing_calloc
+#define BING_REALLOC bing_realloc
+#define BING_FREE bing_free
+#define BING_STRDUP bing_strdup
+#endif
+
+void* xml_curl_malloc(size_t size);
+void xml_curl_free(void* ptr);
+void* xml_curl_realloc(void* ptr, size_t size);
+void* xml_curl_calloc(size_t nmemb, size_t size);
+char* xml_curl_strdup(const char* str);
 
 /*
  * Structures
@@ -218,7 +260,7 @@ void initialize_bing();
 /*
  * Shutdown the Bing subsystem.
  */
-//TODO: Not sure how this will be called
+//TODO: Not sure how this will be called (not really important as long as applications free their bing instances)
 void shutdown_bing();
 
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType);

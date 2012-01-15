@@ -43,6 +43,7 @@
 							</tool>
 							<tool id="com.qnx.qcc.tool.assembler.1942710938" name="QCC Assembler" superClass="com.qnx.qcc.tool.assembler">
 								<option id="com.qnx.qcc.option.assembler.debug.331322924" name="Debug (-g)" superClass="com.qnx.qcc.option.assembler.debug" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.assembler.defines.367170219" name="Defines (-D)" superClass="com.qnx.qcc.option.assembler.defines"/>
 								<inputType id="com.qnx.qcc.inputType.assembler.358191144" superClass="com.qnx.qcc.inputType.assembler"/>
 							</tool>
 							<tool id="com.qnx.qcc.tool.linker.692041387" name="QCC Linker" superClass="com.qnx.qcc.tool.linker">

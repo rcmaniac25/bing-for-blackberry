@@ -18,6 +18,8 @@
 
 __BEGIN_DECLS
 
+size_t getMemoryAllocated(); //XXX Temp
+
 /*
  * The full Bing library.
  *
@@ -364,6 +366,9 @@ int search_event_async(unsigned int bing, const char* query, const bing_request_
  * 	free it to avoid memory leaks.
  */
 const char* request_url(unsigned int bing, const char* query, const bing_request_t request);
+
+//TODO: Document/Implement
+void set_bing_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(size_t,size_t), void* (*bing_realloc)(void*,size_t), void (*bing_free)(void*), char* (*bing_strdup)(const char*));
 
 /*
  * Request functions
