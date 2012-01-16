@@ -67,7 +67,6 @@ __BEGIN_DECLS
 #if (defined(BING_MEM_TRACK) || defined(BING_STR_MEM_TRACK)) && defined(BING_DEBUG)
 struct memory_alloc
 {
-	void* ptr;
 	void* endPtr;
 #if defined(BING_STR_MEM_TRACK)
 	const char* file;
@@ -76,7 +75,8 @@ struct memory_alloc
 	struct memory_alloc* prev;
 };
 
-static volatile struct memory_alloc* memAlloc;
+//static volatile struct memory_alloc* memAlloc;
+static volatile size_t memAlloc;
 
 #define BING_FREE free_dbg_track
 #endif
@@ -96,6 +96,21 @@ static volatile struct memory_alloc* memAlloc;
 #endif
 
 #if !defined(BING_MALLOC)
+//Memory types
+typedef void* (*bing_malloc_handler)(size_t);
+typedef void* (*bing_calloc_handler)(size_t,size_t);
+typedef void* (*bing_realloc_handler)(void*,size_t);
+typedef void (*bing_free_handler)(void*);
+typedef char* (*bing_strdup_handler)(const char*);
+
+//Memory handlers
+static bing_malloc_handler bing_malloc = (bing_malloc_handler)malloc;
+static bing_calloc_handler bing_calloc = (bing_calloc_handler)calloc;
+static bing_realloc_handler bing_realloc = (bing_realloc_handler)realloc;
+static bing_free_handler bing_free = (bing_free_handler)free;
+static bing_strdup_handler bing_strdup = (bing_strdup_handler)strdup;
+
+//Memory macros
 #define BING_MALLOC bing_malloc
 #define BING_CALLOC bing_calloc
 #define BING_REALLOC bing_realloc

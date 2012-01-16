@@ -350,9 +350,9 @@ int search_event_async(unsigned int bing, const char* query, const bing_request_
  * @brief Get a URL that can invoke a Bing search request.
  *
  * The @c request_url() function allows developers to create a URL for performing
- * 	a custom search query. This is not the same as a custom request, but can allow
- * 	a developer to custom tailor the search URL and handle the result in whatever
- * 	manner they deem necessary.
+ * a custom search query. This is not the same as a custom request, but can allow
+ * a developer to custom tailor the search URL and handle the result in whatever
+ * manner they deem necessary.
  *
  * @param bing The unique Bing ID to generate a URL for.
  * @param query The search query to perform. If this is NULL, then the function
@@ -367,7 +367,21 @@ int search_event_async(unsigned int bing, const char* query, const bing_request_
  */
 const char* request_url(unsigned int bing, const char* query, const bing_request_t request);
 
-//TODO: Document/Implement
+/**
+ * @brief Set memory handlers to be used by Bing.
+ *
+ * The @c set_bing_memory_handlers function allows developers to set the memory
+ * handler functions to use in place of normal malloc/free/etc. handlers. All
+ * handlers must be set for them to be used.
+ *
+ * @param bing_malloc The "malloc"-like memory handler.
+ * @param bing_calloc The "calloc"-like memory handler.
+ * @param bing_realloc The "realloc"-like memory handler.
+ * @param bing_free The "free"-like memory handler.
+ * @param bing_strdup The "strdup"-like memory handler.
+ *
+ * @return Nothing is returned.
+ */
 void set_bing_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(size_t,size_t), void* (*bing_realloc)(void*,size_t), void (*bing_free)(void*), char* (*bing_strdup)(const char*));
 
 /*

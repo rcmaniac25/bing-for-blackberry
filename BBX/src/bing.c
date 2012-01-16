@@ -19,7 +19,7 @@ void initialize_bing()
 
 		searchCount = 0;
 #if (defined(BING_MEM_TRACK) || defined(BING_STR_MEM_TRACK)) && defined(BING_DEBUG)
-		memAlloc = NULL;
+        memAlloc = NULL;
 #endif
 
 		memset(&bingSystem, 0, sizeof(bing_system));

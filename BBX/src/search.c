@@ -737,6 +737,15 @@ void search_cleanup(bing_parser* parser)
 		//Free the bing parser
 		BING_FREE(parser);
 
+		//Fix potential segfault
+		if(ctx->encoding && //We only want to do this if an encoding exists. If it doesn't then it doesn't matter
+				((ctx->myDoc && !ctx->myDoc->encoding) || //If the document exists, the encoding could be copied from it so we don't want to just set it to NULL
+				(!ctx->input->encoding))) //If the input exists, the encoding could be copied from it so we don't want to just set it to NULL
+		{
+			//Encoding is usually freed in xmlFreeParserCtxt, but it causes a segfault for whatever reason. So we set it to NULL (for now). Once memory tracking can be established, we can see if any memory is left unfreed.
+			ctx->encoding = NULL;
+		}
+
 		//Free the document
 		xmlFreeDoc(ctx->myDoc);
 
