@@ -38,10 +38,8 @@ __BEGIN_DECLS
 #define DEFAULT_ERROR_RET TRUE
 #define RESULT_CREATE_DEFAULT_INTERNAL FALSE
 
-#if defined (__cplusplus) || defined(__CPLUSPLUS__)
 #define BOOL_TO_CPP_BOOL(x) (x) != FALSE
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
-#endif
 
 #define REQUEST_BUNDLE_SUBBUNDLES_STR "bb_req_bundle_sub-bundles"
 #define RESPONSE_BUNDLE_SUBBUNDLES_STR "bb_res_bundle_sub-bundles"

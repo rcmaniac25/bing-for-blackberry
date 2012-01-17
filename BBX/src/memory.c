@@ -10,8 +10,6 @@
 #include "bing_internal.h"
 
 #if (defined(BING_MEM_TRACK) || defined(BING_STR_MEM_TRACK)) && defined(BING_DEBUG)
-//This wacky memory management system is primarily so that memory that is not the beginning of the pointer can be passed into free (as can already be done with the C-libraries free function... I think).
-
 size_t getMemoryAllocated()
 {
 	/*

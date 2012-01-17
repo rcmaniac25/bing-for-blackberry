@@ -8,6 +8,7 @@
  */
 
 #include "bing_internal.h"
+#include <stdbool.h>
 #include <bps/event.h>
 
 #include <libxml/parser.h>
@@ -857,6 +858,16 @@ BOOL setupParser(bing_parser* parser, unsigned int bingID, const char* url)
 	return ret;
 }
 
+BOOL check_for_connection()
+{
+	bool av;
+	if(netstatus_get_availability(&av) == BPS_SUCCESS)
+	{
+		return CPP_BOOL_TO_BOOL(av);
+	}
+	return FALSE; //Return false as a precaution because if we can't get netstatus, well, we might not be able to use the network in general.
+}
+
 //Search functions
 bing_response_t search_sync(unsigned int bingID, const char* query, const bing_request_t request)
 {
@@ -870,81 +881,84 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 	int curlCode;
 #endif
 
-	search_setup();
-
-	//Get the url
-	url = request_url(bingID, query, request);
-	if(url)
+	if(check_for_connection())
 	{
-		//Create the parser
-		parser = BING_MALLOC(sizeof(bing_parser));
-		if(parser)
+		search_setup();
+
+		//Get the url
+		url = request_url(bingID, query, request);
+		if(url)
 		{
-			//Setup the parser
-			if(setupParser(parser, bingID, url))
+			//Create the parser
+			parser = BING_MALLOC(sizeof(bing_parser));
+			if(parser)
 			{
-				//Invoke cURL
-				if((
-#if defined(BING_DEBUG)
-						curlCode =
-#endif
-								curl_easy_perform(parser->curl)) == CURLE_OK)
+				//Setup the parser
+				if(setupParser(parser, bingID, url))
 				{
-					//No errors
-
-					//Finish parsing
-					xmlParseChunk(parser->ctx, NULL, 0, TRUE);
-
-					//We check for an error, if none exists then we get the response
-					if(checkForError(parser))
+					//Invoke cURL
+					if((
+#if defined(BING_DEBUG)
+							curlCode =
+#endif
+									curl_easy_perform(parser->curl)) == CURLE_OK)
 					{
-						ret = parser->response;
+						//No errors
+
+						//Finish parsing
+						xmlParseChunk(parser->ctx, NULL, 0, TRUE);
+
+						//We check for an error, if none exists then we get the response
+						if(checkForError(parser))
+						{
+							ret = parser->response;
+						}
+#if defined(BING_DEBUG)
+						else if(parser->errorRet)
+						{
+							BING_MSG_PRINTOUT("Parser error\n");
+						}
+#endif
 					}
 #if defined(BING_DEBUG)
 					else if(parser->errorRet)
 					{
-						BING_MSG_PRINTOUT("Parser error\n");
+						BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
 					}
 #endif
+
+					//Cleanup
+					search_cleanup(parser);
 				}
-#if defined(BING_DEBUG)
-				else if(parser->errorRet)
+				else
 				{
-					BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
+#if defined(BING_DEBUG)
+					if(get_error_return(bingID))
+					{
+						BING_MSG_PRINTOUT("Could not setup parser\n");
+					}
+#endif
+					//Couldn't setup parser
+					BING_FREE(parser);
 				}
+			}
+#if defined(BING_DEBUG)
+			else if(get_error_return(bingID))
+			{
+				BING_MSG_PRINTOUT("Could not parser\n");
+			}
 #endif
 
-				//Cleanup
-				search_cleanup(parser);
-			}
-			else
-			{
-#if defined(BING_DEBUG)
-				if(get_error_return(bingID))
-				{
-					BING_MSG_PRINTOUT("Could not setup parser\n");
-				}
-#endif
-				//Couldn't setup parser
-				BING_FREE(parser);
-			}
+			//Free URL
+			BING_FREE((void*)url);
 		}
 #if defined(BING_DEBUG)
 		else if(get_error_return(bingID))
 		{
-			BING_MSG_PRINTOUT("Could not parser\n");
+			BING_MSG_PRINTOUT("Could not create URL\n");
 		}
 #endif
-
-		//Free URL
-		BING_FREE((void*)url);
 	}
-#if defined(BING_DEBUG)
-	else if(get_error_return(bingID))
-	{
-		BING_MSG_PRINTOUT("Could not create URL\n");
-	}
-#endif
 
 	return ret;
 }
@@ -1030,61 +1044,64 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 	pthread_attr_t thread_atts;
 	BOOL ret = FALSE;
 
-	search_setup();
-
-	//Get the url
-	url = request_url(bingID, query, request);
-	if(url)
+	if(check_for_connection())
 	{
-		//Create the parser
-		parser = BING_MALLOC(sizeof(bing_parser));
-		if(parser)
+		search_setup();
+
+		//Get the url
+		url = request_url(bingID, query, request);
+		if(url)
 		{
-			//Setup the parser
-			if(setupParser(parser, bingID, url))
+			//Create the parser
+			parser = BING_MALLOC(sizeof(bing_parser));
+			if(parser)
 			{
-				//Setup callback functions
-				parser->responseFunc = response_func;
-				parser->userData = user_data_is_parser ? parser : user_data;
-
-				//Setup thread attributes
-				pthread_attr_init(&thread_atts);
-				pthread_attr_setdetachstate(&thread_atts, PTHREAD_CREATE_DETACHED); //XXX This is how we want the thread to act, but we should do some extra checks as it could go wrong if the calling application exits before the thread returns. But if we leave it as joinable, the only thing we know that will happen is the application will hang as pthread_join would have to be called in search_shutdown, which is running on the same thread.
-
-				//Create thread
-				ret = pthread_create(&parser->thread, &thread_atts, async_search, parser) == EOK;
-
-				//Cleanup attributes
-				pthread_attr_destroy(&thread_atts);
-			}
-			else
-			{
-#if defined(BING_DEBUG)
-				if(get_error_return(bingID))
+				//Setup the parser
+				if(setupParser(parser, bingID, url))
 				{
-					BING_MSG_PRINTOUT("Could not setup parser\n");
+					//Setup callback functions
+					parser->responseFunc = response_func;
+					parser->userData = user_data_is_parser ? parser : user_data;
+
+					//Setup thread attributes
+					pthread_attr_init(&thread_atts);
+					pthread_attr_setdetachstate(&thread_atts, PTHREAD_CREATE_DETACHED); //XXX This is how we want the thread to act, but we should do some extra checks as it could go wrong if the calling application exits before the thread returns. But if we leave it as joinable, the only thing we know that will happen is the application will hang as pthread_join would have to be called in search_shutdown, which is running on the same thread.
+
+					//Create thread
+					ret = pthread_create(&parser->thread, &thread_atts, async_search, parser) == EOK;
+
+					//Cleanup attributes
+					pthread_attr_destroy(&thread_atts);
 				}
+				else
+				{
+#if defined(BING_DEBUG)
+					if(get_error_return(bingID))
+					{
+						BING_MSG_PRINTOUT("Could not setup parser\n");
+					}
 #endif
-				//Couldn't setup parser
-				BING_FREE(parser);
+					//Couldn't setup parser
+					BING_FREE(parser);
+				}
 			}
+#if defined(BING_DEBUG)
+			else if(get_error_return(bingID))
+			{
+				BING_MSG_PRINTOUT("Could not parser\n");
+			}
+#endif
+
+			//Free URL
+			BING_FREE((void*)url);
 		}
 #if defined(BING_DEBUG)
 		else if(get_error_return(bingID))
 		{
-			BING_MSG_PRINTOUT("Could not parser\n");
+			BING_MSG_PRINTOUT("Could not create URL\n");
 		}
 #endif
-
-		//Free URL
-		BING_FREE((void*)url);
 	}
-#if defined(BING_DEBUG)
-	else if(get_error_return(bingID))
-	{
-		BING_MSG_PRINTOUT("Could not create URL\n");
-	}
-#endif
 
 	return ret;
 }
