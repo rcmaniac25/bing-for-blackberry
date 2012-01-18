@@ -18,8 +18,6 @@
 
 __BEGIN_DECLS
 
-size_t getMemoryAllocated(); //XXX Temp
-
 /*
  * The full Bing library.
  *

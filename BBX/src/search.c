@@ -10,6 +10,7 @@
 #include "bing_internal.h"
 #include <stdbool.h>
 #include <bps/event.h>
+#include <bps/netstatus.h>
 
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
@@ -105,7 +106,7 @@ void cleanStacks(bing_parser* parser)
 		st = parser->lastResult;
 		parser->lastResult = st->prev;
 
-		BING_FREE(st); //Object
+		bing_free(st); //Object
 	}
 
 	//Free the element
@@ -114,8 +115,8 @@ void cleanStacks(bing_parser* parser)
 		st = parser->lastResultElement;
 		parser->lastResultElement = st->prev;
 
-		BING_FREE(st->value); //Name
-		BING_FREE(st); //Object
+		bing_free(st->value); //Name
+		bing_free(st); //Object
 	}
 }
 
@@ -133,9 +134,9 @@ BOOL checkForError(bing_parser* parser)
 		free_response(parser->current);
 
 		//Finally, free any strings
-		BING_FREE((void*)parser->query);
-		BING_FREE((void*)parser->alteredQuery);
-		BING_FREE((void*)parser->alterationOverrideQuery);
+		bing_free((void*)parser->query);
+		bing_free((void*)parser->alteredQuery);
+		bing_free((void*)parser->alterationOverrideQuery);
 
 		//Mark everything as NULL to prevent errors later
 		parser->response = NULL;
@@ -191,7 +192,7 @@ hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
 
 void addResultToStack(bing_parser* parser, bing_result* result, const char* name, BOOL internal)
 {
-	pstack* pt = BING_MALLOC(sizeof(pstack));
+	pstack* pt = bing_malloc(sizeof(pstack));
 	if(pt)
 	{
 		memset(pt, 0, sizeof(pstack));
@@ -202,14 +203,14 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 		pt->keepValue = TRUE;
 		pt->value = result;
 
-		pt = BING_MALLOC(sizeof(pstack));
+		pt = bing_malloc(sizeof(pstack));
 		if(pt)
 		{
 			//Add to last result element
 			pt->prev = parser->lastResultElement;
 			parser->lastResultElement = pt;
 			pt->keepValue = TRUE;
-			pt->value = BING_STRDUP(name);
+			pt->value = bing_strdup(name);
 			if(!pt->value)
 			{
 				//Darn, so close again
@@ -237,32 +238,21 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 
 const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 {
-	int size;
+	size_t size;
 	char* qualifiedName;
 	if(prefix)
 	{
-		size = strlen((char*)localname) + 1; //Get local name size
-		size += strlen((char*)prefix); //Get the prefix size
-		qualifiedName = BING_MALLOC(size);
+		qualifiedName = bing_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 2);
 		if(qualifiedName)
 		{
-			//Zero out the memory
-			memset(qualifiedName, 0, size);
-
-			//Copy the prefix
-			strcpy(qualifiedName, (char*)prefix);
-
-			//Add the separator
-			qualifiedName[strlen((char*)prefix)] = ':';
-
-			//Now add the localname
-			strcat(qualifiedName, (char*)localname);
+			snprintf(qualifiedName, size, "%s:%s", prefix, localname);
+			qualifiedName[size] = '\0';
 		}
 	}
 	else
 	{
 		//There is nothing that requires changing
-		qualifiedName = (char*)localname;
+		qualifiedName = bing_strdup((char*)localname);
 	}
 	return qualifiedName;
 }
@@ -323,22 +313,22 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 						size = hashtable_get_string(table, "SearchTerms", NULL);
 						if(size > -1)
 						{
-							BING_FREE((void*)parser->query);
-							parser->query = BING_MALLOC(size);
+							bing_free((void*)parser->query);
+							parser->query = bing_malloc(size);
 							hashtable_get_string(table, "SearchTerms", (char*)parser->query);
 						}
 						size = hashtable_get_string(table, "AlteredQuery", NULL);
 						if(size > -1)
 						{
-							BING_FREE((void*)parser->alteredQuery);
-							parser->alteredQuery = BING_MALLOC(size);
+							bing_free((void*)parser->alteredQuery);
+							parser->alteredQuery = bing_malloc(size);
 							hashtable_get_string(table, "AlteredQuery", (char*)parser->alteredQuery);
 						}
 						size = hashtable_get_string(table, "AlterationOverrideQuery", NULL);
 						if(size > -1)
 						{
-							BING_FREE((void*)parser->alterationOverrideQuery);
-							parser->alterationOverrideQuery = BING_MALLOC(size);
+							bing_free((void*)parser->alterationOverrideQuery);
+							parser->alterationOverrideQuery = bing_malloc(size);
 							hashtable_get_string(table, "AlterationOverrideQuery", (char*)parser->alterationOverrideQuery);
 						}
 					}
@@ -365,20 +355,20 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 							{
 								//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
 
-								data = BING_MALLOC(sizeof(long long));
+								data = bing_malloc(sizeof(long long));
 								result_get_64bit_int(result, RESULT_FIELD_CODE, (long long*)data);
 								BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
-								BING_FREE(data);
+								bing_free(data);
 
-								data = BING_MALLOC(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
+								data = bing_malloc(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
 								result_get_string(result, RESULT_FIELD_MESSAGE, data);
 								BING_MSG_PRINTOUT("Error Message = %s\n", data);
-								BING_FREE(data);
+								bing_free(data);
 
-								data = BING_MALLOC(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
+								data = bing_malloc(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
 								result_get_string(result, RESULT_FIELD_PARAMETER, data);
 								BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
-								BING_FREE(data);
+								bing_free(data);
 							}
 							else
 							{
@@ -422,7 +412,7 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 								}
 								else
 								{
-									data = BING_MALLOC(sizeof(int));
+									data = bing_malloc(sizeof(int));
 									if(data)
 									{
 										*((int*)data) = FALSE;
@@ -463,7 +453,7 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 											}
 										}
 									}
-									BING_FREE(data);
+									bing_free(data);
 								}
 							}
 							else
@@ -553,11 +543,7 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 				}
 			}
 
-			//If prefix exists, then we have to free memory
-			if(prefix)
-			{
-				BING_FREE((void*)qualifiedName);
-			}
+			bing_free((void*)qualifiedName);
 		}
 		else
 		{
@@ -631,21 +617,17 @@ void endElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, cons
 						}
 					}
 				}
-				BING_FREE(st); //Object
+				bing_free(st); //Object
 
 				//Free the element
 				st = parser->lastResultElement;
 				parser->lastResultElement = st->prev;
 
-				BING_FREE(st->value); //Name
-				BING_FREE(st); //Object
+				bing_free(st->value); //Name
+				bing_free(st); //Object
 			}
 
-			//If prefix exists, then we have to free memory
-			if(prefix)
-			{
-				BING_FREE((void*)qualifiedName);
-			}
+			bing_free((void*)qualifiedName);
 		}
 		else
 		{
@@ -731,21 +713,12 @@ void search_cleanup(bing_parser* parser)
 		cleanStacks(parser);
 
 		//Cleanup strings
-		BING_FREE((void*)parser->query);
-		BING_FREE((void*)parser->alteredQuery);
-		BING_FREE((void*)parser->alterationOverrideQuery);
+		bing_free((void*)parser->query);
+		bing_free((void*)parser->alteredQuery);
+		bing_free((void*)parser->alterationOverrideQuery);
 
 		//Free the bing parser
-		BING_FREE(parser);
-
-		//Fix potential segfault
-		if(ctx->encoding && //We only want to do this if an encoding exists. If it doesn't then it doesn't matter
-				((ctx->myDoc && !ctx->myDoc->encoding) || //If the document exists, the encoding could be copied from it so we don't want to just set it to NULL
-				(!ctx->input->encoding))) //If the input exists, the encoding could be copied from it so we don't want to just set it to NULL
-		{
-			//Encoding is usually freed in xmlFreeParserCtxt, but it causes a segfault for whatever reason. So we set it to NULL (for now). Once memory tracking can be established, we can see if any memory is left unfreed.
-			ctx->encoding = NULL;
-		}
+		bing_free(parser);
 
 		//Free the document
 		xmlFreeDoc(ctx->myDoc);
@@ -890,7 +863,7 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 		if(url)
 		{
 			//Create the parser
-			parser = BING_MALLOC(sizeof(bing_parser));
+			parser = bing_malloc(sizeof(bing_parser));
 			if(parser)
 			{
 				//Setup the parser
@@ -939,7 +912,7 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 					}
 #endif
 					//Couldn't setup parser
-					BING_FREE(parser);
+					bing_free(parser);
 				}
 			}
 #if defined(BING_DEBUG)
@@ -950,7 +923,7 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 #endif
 
 			//Free URL
-			BING_FREE((void*)url);
+			bing_free((void*)url);
 		}
 #if defined(BING_DEBUG)
 		else if(get_error_return(bingID))
@@ -1053,7 +1026,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 		if(url)
 		{
 			//Create the parser
-			parser = BING_MALLOC(sizeof(bing_parser));
+			parser = bing_malloc(sizeof(bing_parser));
 			if(parser)
 			{
 				//Setup the parser
@@ -1082,7 +1055,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 					}
 #endif
 					//Couldn't setup parser
-					BING_FREE(parser);
+					bing_free(parser);
 				}
 			}
 #if defined(BING_DEBUG)
@@ -1093,7 +1066,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 #endif
 
 			//Free URL
-			BING_FREE((void*)url);
+			bing_free((void*)url);
 		}
 #if defined(BING_DEBUG)
 		else if(get_error_return(bingID))
