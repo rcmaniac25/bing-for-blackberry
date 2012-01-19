@@ -682,13 +682,13 @@ void search_setup()
 	if(searchCount == 1)
 	{
 		//Setup XML
-		xmlGcMemSetup(xml_curl_free, xml_curl_malloc, xml_curl_malloc, xml_curl_realloc, xml_curl_strdup);
+		xmlGcMemSetup(bing_free, bing_malloc, bing_malloc, bing_realloc, bing_strdup);
 
 		//On first run, setup the parser
 		xmlInitParser();
 
 		//Setup cURL
-		curl_global_init_mem(CURL_GLOBAL_ALL, xml_curl_malloc, xml_curl_free, xml_curl_realloc, xml_curl_strdup, xml_curl_calloc); //THIS IS NOT THREAD SAFE!!
+		curl_global_init_mem(CURL_GLOBAL_ALL, bing_malloc, bing_free, bing_realloc, bing_strdup, bing_calloc); //THIS IS NOT THREAD SAFE!!
 	}
 }
 

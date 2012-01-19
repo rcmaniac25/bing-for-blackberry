@@ -29,6 +29,13 @@ void initialize_bing()
 		bingSystem.bingResponseCreators = NULL;
 		bingSystem.bingResultCreators = NULL;
 		pthread_mutex_init(&bingSystem.mutex, NULL);
+
+		//Set these as a precaution
+		bing_malloc = (bing_malloc_handler)malloc;
+		bing_calloc = (bing_calloc_handler)calloc;
+		bing_realloc = (bing_realloc_handler)realloc;
+		bing_free = (bing_free_handler)free;
+		bing_strdup = (bing_strdup_handler)strdup;
 	}
 }
 
@@ -587,4 +594,19 @@ BOOL replace_string_with_double(hashtable_t* table, const char* field)
 		}
 	}
 	return ret;
+}
+
+BOOL set_bing_memory_handlers(bing_malloc_handler bm, bing_calloc_handler bc, bing_realloc_handler br, bing_free_handler bf, bing_strdup_handler bs)
+{
+	//We want everything to be set to prevent issues
+	if(bm && bc && br && bf && bs)
+	{
+		bing_malloc = bm;
+		bing_calloc = bc;
+		bing_realloc = br;
+		bing_free = bf;
+		bing_strdup = bs;
+		return TRUE;
+	}
+	return FALSE;
 }

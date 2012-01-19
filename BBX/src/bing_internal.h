@@ -77,12 +77,6 @@ static bing_realloc_handler bing_realloc = (bing_realloc_handler)realloc;
 static bing_free_handler bing_free = (bing_free_handler)free;
 static bing_strdup_handler bing_strdup = (bing_strdup_handler)strdup;
 
-void* xml_curl_malloc(size_t size);
-void xml_curl_free(void* ptr);
-void* xml_curl_realloc(void* ptr, size_t size);
-void* xml_curl_calloc(size_t nmemb, size_t size);
-char* xml_curl_strdup(const char* str);
-
 /*
  * Structures
  */

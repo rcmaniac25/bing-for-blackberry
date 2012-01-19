@@ -372,15 +372,20 @@ const char* request_url(unsigned int bing, const char* query, const bing_request
  * handler functions to use in place of normal malloc/free/etc. handlers. All
  * handlers must be set for them to be used.
  *
+ * Be careful to only set this when you start using your program otherwise
+ * there is a risk of memory issues of using two or more memory handlers
+ * through out execution of the program.
+ *
  * @param bing_malloc The "malloc"-like memory handler.
  * @param bing_calloc The "calloc"-like memory handler.
  * @param bing_realloc The "realloc"-like memory handler.
  * @param bing_free The "free"-like memory handler.
  * @param bing_strdup The "strdup"-like memory handler.
  *
- * @return Nothing is returned.
+ * @return A boolean result which is non-zero for a successful set, otherwise
+ * 	zero if not every field is set.
  */
-void set_bing_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(size_t,size_t), void* (*bing_realloc)(void*,size_t), void (*bing_free)(void*), char* (*bing_strdup)(const char*));
+int set_bing_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(size_t,size_t), void* (*bing_realloc)(void*,size_t), void (*bing_free)(void*), char* (*bing_strdup)(const char*));
 
 /*
  * Request functions
