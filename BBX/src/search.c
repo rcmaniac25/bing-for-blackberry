@@ -8,6 +8,7 @@
  */
 
 #include "bing_internal.h"
+
 #include <stdbool.h>
 #include <bps/event.h>
 #include <bps/netstatus.h>
@@ -677,9 +678,7 @@ void search_setup()
 {
 	LIBXML_TEST_VERSION
 
-	searchCount++;
-
-	if(searchCount == 1)
+	if(atomic_add_value(&searchCount, 1) == 0)
 	{
 		//Setup XML
 		xmlGcMemSetup(bing_free, bing_malloc, bing_malloc, bing_realloc, bing_strdup);
@@ -734,8 +733,7 @@ void search_cleanup(bing_parser* parser)
 #endif
 
 	//Not desired to do this if parser is NULL (as the call shouldn't have happened with a NULL parser), but it's still a cleanup operation
-	searchCount--;
-	if(!searchCount)
+	if(atomic_sub_value(&searchCount, 1) == 1)
 	{
 		xmlCleanupParser();
 
@@ -941,6 +939,9 @@ void* async_search(void* ctx)
 #if defined(BING_DEBUG)
 	int curlCode;
 #endif
+	receive_bing_response_func responseFunc = NULL;
+	bing_response* response;
+	void* userData;
 	bing_parser* parser = (bing_parser*)ctx;
 
 	//Invoke cURL
@@ -969,8 +970,10 @@ void* async_search(void* ctx)
 		;
 #endif
 
-		//Return response (NULL is fine for a response)
-		parser->responseFunc(parser->response, parser->userData);
+		//Get response (do this so we can free before any error might occur)
+		responseFunc = parser->responseFunc;
+		response = parser->response;
+		userData = parser->userData;
 	}
 #if defined(BING_DEBUG)
 	else if(parser->errorRet)
@@ -981,6 +984,12 @@ void* async_search(void* ctx)
 
 	//Cleanup
 	search_cleanup(parser);
+
+	//Return response (NULL is fine for a response)
+	if(responseFunc)
+	{
+		responseFunc(response, userData);
+	}
 
 	return NULL;
 }

@@ -181,6 +181,30 @@ void bing_event_get_response(bps_event_t* event, bing_response_t* response);
  */
 
 /**
+ * @brief Initialize the Bing subsystem.
+ *
+ * This can be called multiple times because it will only run once. This will
+ * be automatically called internally if not called already.
+ *
+ * @return Nothing is returned.
+ */
+void initialize_bing();
+
+/**
+ * @brief Shutdown the Bing subsystem.
+ *
+ * This will shutdown and clean up all Bing instances, results, and responses.
+ * Requests will still need to be freed manually. Be careful when you call
+ * this because it will clean up everything.
+ *
+ * @return A boolean integer indicating if the subsystem was shutdown or not.
+ * 	Zero is false, non-zero is true. Possible reasons for not shutting down
+ * 	include the subsystem was not initialized in the first place and the
+ * 	that searches are still occurring when this is called.
+ */
+int shutdown_bing();
+
+/**
  * @brief Create a new Bing service.
  *
  * The @c create_bing() function allows developers to allocate a Bing service object to
@@ -306,7 +330,9 @@ bing_response_t search_sync(unsigned int bing, const char* query, const bing_req
  *
  * The @c search_async() function allows developers to perform a non-blocking
  * search operation that will return immediately and call the specified callback
- * function with the response.
+ * function with the response. Remember, the callback will be called by a
+ * different thread other than the one calling this function. So plan synchronization
+ * out properly with your callback function.
  *
  * @param bing The unique Bing ID to perform a search with.
  * @param query The search query to perform. If this is NULL, then the function

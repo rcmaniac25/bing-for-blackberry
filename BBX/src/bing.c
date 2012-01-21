@@ -13,13 +13,14 @@ static volatile BOOL bing_initialized = FALSE;
 
 void initialize_bing()
 {
-	if(!bing_initialized)
+	if(atomic_set_value((unsigned int*)&bing_initialized, TRUE) == FALSE) //Set this first so if another thread tries to initialize it, it doesn't work
 	{
-		bing_initialized = TRUE; //Set this first so if another thread tries to initialize it, it doesn't work
-
-		searchCount = 0;
+		atomic_clr(&searchCount, sizeof(unsigned int));
 
 		memset(&bingSystem, 0, sizeof(bing_system));
+
+		pthread_mutex_init(&bingSystem.mutex, NULL);
+		pthread_mutex_lock(&bingSystem.mutex);
 
 		bingSystem.domainID = bps_register_domain();
 		bingSystem.bingInstancesCount = 0;
@@ -28,7 +29,6 @@ void initialize_bing()
 		bingSystem.bingResultCreatorCount = 0;
 		bingSystem.bingResponseCreators = NULL;
 		bingSystem.bingResultCreators = NULL;
-		pthread_mutex_init(&bingSystem.mutex, NULL);
 
 		//Set these as a precaution
 		bing_malloc = (bing_malloc_handler)malloc;
@@ -36,48 +36,66 @@ void initialize_bing()
 		bing_realloc = (bing_realloc_handler)realloc;
 		bing_free = (bing_free_handler)free;
 		bing_strdup = (bing_strdup_handler)strdup;
+
+		pthread_mutex_unlock(&bingSystem.mutex);
 	}
 }
 
-void shutdown_bing()
+BOOL shutdown_bing()
 {
-	unsigned int i = 0;
-	if(bing_initialized)
+	BOOL ret = FALSE;
+
+	unsigned int i;
+	if(atomic_set_value((unsigned int*)&bing_initialized, FALSE) == TRUE) //FALSE = 0 so it is the equivalent of ORing 0 (which doesn't do anything). This guarantees that nothing else will edit the value, so we know we will get the value
 	{
-		//Free all the creator strings, then the creators themselves
-		while(bingSystem.bingResponseCreatorCount > 0)
-		{
-			bing_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
-		}
-		while(bingSystem.bingResultCreatorCount > 0)
-		{
-			bing_free((void*)bingSystem.bingResultCreators[--bingSystem.bingResultCreatorCount].name);
-		}
-		bing_free(bingSystem.bingResponseCreators);
-		bing_free(bingSystem.bingResultCreators);
-		bingSystem.bingResponseCreators = NULL;
-		bingSystem.bingResultCreators = NULL;
+		pthread_mutex_lock(&bingSystem.mutex);
 
-		//Free and the Bing instances
-		while(bingSystem.bingInstancesCount > 0)
+		if(!atomic_set_value(&searchCount, 0))
 		{
-			if(bingSystem.bingInstances[i])
+			//Free all the creator strings, then the creators themselves
+			while(bingSystem.bingResponseCreatorCount > 0)
 			{
-				free_bing(++i);
+				bing_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
 			}
+			while(bingSystem.bingResultCreatorCount > 0)
+			{
+				bing_free((void*)bingSystem.bingResultCreators[--bingSystem.bingResultCreatorCount].name);
+			}
+			bing_free(bingSystem.bingResponseCreators);
+			bing_free(bingSystem.bingResultCreators);
+			bingSystem.bingResponseCreators = NULL;
+			bingSystem.bingResultCreators = NULL;
+
+			//Free and the Bing instances
+			i = 0;
+			while(bingSystem.bingInstancesCount > 0)
+			{
+				if(bingSystem.bingInstances[i])
+				{
+					free_bing(++i);
+				}
+			}
+
+			//Reset the instance system
+			bingSystem.bingInstancesCount = 0;
+			bing_free(bingSystem.bingInstances);
+			bingSystem.bingInstances = NULL;
+
+			pthread_mutex_destroy(&bingSystem.mutex);
+
+			atomic_clr(&searchCount, sizeof(unsigned int));
+
+			atomic_clr((unsigned int*)&bing_initialized, sizeof(BOOL)); //Set this last so that it only know's it's uninitialized after everything has been freed
+
+			ret = TRUE;
 		}
-
-		//Reset the instance system
-		bingSystem.bingInstancesCount = 0;
-		bing_free(bingSystem.bingInstances);
-		bingSystem.bingInstances = NULL;
-
-		pthread_mutex_destroy(&bingSystem.mutex);
-
-		searchCount = 0;
-
-		bing_initialized = FALSE; //Set this last so that it only know's it's uninitialized after everything has been freed
+		else
+		{
+			pthread_mutex_unlock(&bingSystem.mutex);
+		}
 	}
+
+	return ret;
 }
 
 int bing_get_domain()
@@ -274,7 +292,11 @@ int set_error_return(unsigned int bingID, int error)
 
 	if(bingI)
 	{
+		pthread_mutex_lock(&bingI->mutex);
+
 		bingI->errorRet = error;
+
+		pthread_mutex_unlock(&bingI->mutex);
 
 		return TRUE;
 	}
@@ -288,7 +310,11 @@ int get_error_return(unsigned int bingID)
 
 	if(bingI)
 	{
+		pthread_mutex_lock(&bingI->mutex);
+
 		res = bingI->errorRet;
+
+		pthread_mutex_unlock(&bingI->mutex);
 	}
 
 	return res;
@@ -598,14 +624,21 @@ BOOL replace_string_with_double(hashtable_t* table, const char* field)
 
 BOOL set_bing_memory_handlers(bing_malloc_handler bm, bing_calloc_handler bc, bing_realloc_handler br, bing_free_handler bf, bing_strdup_handler bs)
 {
+	initialize_bing();
+
 	//We want everything to be set to prevent issues
 	if(bm && bc && br && bf && bs)
 	{
+		pthread_mutex_lock(&bingSystem.mutex);
+
 		bing_malloc = bm;
 		bing_calloc = bc;
 		bing_realloc = br;
 		bing_free = bf;
 		bing_strdup = bs;
+
+		pthread_mutex_unlock(&bingSystem.mutex);
+
 		return TRUE;
 	}
 	return FALSE;

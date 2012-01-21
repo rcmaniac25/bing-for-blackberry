@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <assert.h>
+#include <atomic.h>
 
 /*
  * Defines
@@ -214,22 +215,11 @@ typedef struct list_s
  */
 
 static bing_system bingSystem;
-static int searchCount;
+static volatile unsigned int searchCount;
 
 /*
  * Functions
  */
-
-/*
- * Setup the Bing subsystem.
- */
-void initialize_bing();
-
-/*
- * Shutdown the Bing subsystem.
- */
-//TODO: Not sure how this will be called (not really important as long as applications free their bing instances)
-void shutdown_bing();
 
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType);
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize);
