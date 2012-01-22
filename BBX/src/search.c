@@ -158,9 +158,9 @@ hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
 	hashtable_t* table = NULL;
 	int i;
 	const char* localName;
-	char* value;
+	const char* value;
 	const char* end;
-	char tmp;
+	char* tmp;
 	size_t size;
 	if(atts && att_count > 0)
 	{
@@ -176,15 +176,16 @@ hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
 				value = (char*)atts[(i * 5) + 3];	//Pointer to the attribute value (start)
 				end = (char*)atts[(i * 5) + 4];		//Pointer to the attribute value (end)
 
-				//value isn't NULL terminated. So we will "play with fire" and change this value so it has a NULL term, then put it back later
-				tmp = value[size = (end - value)];
-				value[size] = '\0';
+				//Get the value ONLY (we need to do this because if we just copy the data, we will get a non-NULL terminated string and if we add one extra char, we will still get a non-NULL terminated string.)
+				tmp = bing_malloc(size = (end - value) + 1);
+				if(tmp)
+				{
+					strlcpy(tmp, value, size);
 
-				//Save the value
-				hashtable_put_item(table, localName, value, size + 1);
+					hashtable_put_item(table, localName, tmp, size);
 
-				//Put the value back in value
-				value[size] = tmp;
+					bing_free(tmp);
+				}
 			}
 		}
 	}
@@ -1005,17 +1006,18 @@ void event_invocation(bing_response_t response, void* user_data)
 {
 	bps_event_t* event = NULL;
 	bps_event_payload_t payload;
-	bing_parser* parser = (bing_parser*)user_data;
-
-	memset(&payload, 0, sizeof(bps_event_payload_t));
-	payload.data1 = (uintptr_t)response;
-
-	//Create the event
-	if(bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) != BPS_SUCCESS ||
-			bps_push_event(event) != BPS_SUCCESS) //Push event
+	if(response) //We only want to push an event if we have something to push.
 	{
-		//Since response will never be pushed, free it
-		free_response(response);
+		memset(&payload, 0, sizeof(bps_event_payload_t));
+		payload.data1 = (uintptr_t)response;
+
+		//Create the event
+		if(bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) != BPS_SUCCESS ||
+				bps_push_event(event) != BPS_SUCCESS) //Push event
+		{
+			//Since response will never be pushed, free it
+			free_response(response);
+		}
 	}
 }
 

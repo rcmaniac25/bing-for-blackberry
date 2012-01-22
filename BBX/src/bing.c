@@ -41,7 +41,7 @@ void initialize_bing()
 	}
 }
 
-BOOL shutdown_bing()
+int shutdown_bing()
 {
 	BOOL ret = FALSE;
 
