@@ -107,7 +107,7 @@ int bing_get_domain()
 
 int findFreeIndex()
 {
-	int i;
+	unsigned int i;
 	if(bingSystem.domainID != -1)
 	{
 		if(bingSystem.bingInstances)
@@ -126,12 +126,10 @@ int findFreeIndex()
 
 unsigned int create_bing(const char* application_ID)
 {
-	int appIdLen;
 	int ret = 0; //Zero is reserved for bad
 	int loc;
 	bing* bingI;
 	bing** in;
-	size_t size;
 
 	initialize_bing();
 
@@ -217,7 +215,6 @@ unsigned int create_bing(const char* application_ID)
 void free_bing(unsigned int bingID)
 {
 	bing* bingI;
-	bing** in;
 
 	initialize_bing(); //This shouldn't be here but put it here for safety
 
@@ -543,9 +540,11 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize)
 {
 	char buffer[256];
-	buffer[0] = '\0';
 	char* rett;
-	int size = hashtable_get_item(table, key, NULL);
+	size_t size;
+
+	buffer[0] = '\0';
+	size = hashtable_get_item(table, key, NULL);
 	if(size > 0)
 	{
 		//Make sure that the data buffer (for getting the data) is large enough (add one for safety)
@@ -562,6 +561,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 			hashtable_get_item(table, key, data[0]);
 
 			snprintf(buffer, 256, format, data[0]);
+			buffer[255] = '\0';
 
 			returnDataSize[0] += strlen(buffer);
 			rett = bing_realloc(returnData[0], returnDataSize[0]);

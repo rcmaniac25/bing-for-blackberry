@@ -139,7 +139,7 @@ const char* request_bundle_get_options(bing_request_t request)
 	const char* options;
 	list* list = NULL;
 	size_t len = 0;
-	int i = 0;
+	unsigned int i = 0;
 	if(request)
 	{
 		req = (bing_request*)request;
@@ -453,7 +453,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 	char* result = bing_calloc(1, sizeof(char));
 	size_t len = 1;
 	list* list = NULL;
-	int i;
+	unsigned int i;
 	char* src;
 	if(bundle && result)
 	{
@@ -538,6 +538,8 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 	if((source_type >= BING_SOURCETYPE_AD && source_type <= BING_SOURCETYPE_WEB) || source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
 	{
 		tableSize = -1;
+		sourceT = NULL;
+		getOFun = NULL;
 
 		if(source_type == BING_SOURCETYPE_BUNDLE)
 		{
@@ -643,7 +645,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 	bing_request* req;
 	list* list_v = NULL;
 	bing_request_t* requestList = NULL;
-	int i;
+	unsigned int i;
 
 	if(request && request_to_add && request != request_to_add)
 	{
@@ -727,7 +729,7 @@ void free_request(bing_request_t request)
 {
 	bing_request* req;
 	list* list;
-	int i;
+	unsigned int i;
 	if(request)
 	{
 		req = (bing_request*)request;
@@ -798,6 +800,8 @@ int request_create_custom_request(const char* source_type, bing_request_t* reque
 	request_get_options_func uGet;
 	request_finish_get_options_func uDone;
 	request_source_type* type;
+
+	uGet = NULL;
 
 	//Only do the comparison if a source type exists, otherwise it will fail regardless when request creation occurs.
 	if(source_type)

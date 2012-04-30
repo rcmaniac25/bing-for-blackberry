@@ -146,13 +146,13 @@ typedef struct BING_RESPONSE_S
 	response_additional_data_func additionalData;
 	hashtable_t* data;
 
-	int resultCount;
+	unsigned int resultCount;
 	bing_result_t* results;
 
-	int internalResultCount;
+	unsigned int internalResultCount;
 	bing_result_t* internalResults;
 
-	int allocatedMemoryCount;
+	unsigned int allocatedMemoryCount;
 	void** allocatedMemory;
 } bing_response;
 
@@ -190,20 +190,20 @@ typedef struct BING_SYSTEM_S
 	int domainID;
 	pthread_mutex_t mutex;
 
-	int bingInstancesCount;
+	unsigned int bingInstancesCount;
 	bing** bingInstances;
 
-	int bingResponseCreatorCount;
+	unsigned int bingResponseCreatorCount;
 	bing_response_creator* bingResponseCreators;
 
-	int bingResultCreatorCount;
+	unsigned int bingResultCreatorCount;
 	bing_result_creator* bingResultCreators;
 } bing_system;
 
 typedef struct list_s
 {
-	int count;
-	int cap;
+	unsigned int count;
+	unsigned int cap;
 	void* listElements;
 } list;
 

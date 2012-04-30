@@ -25,9 +25,11 @@ typedef struct hashTable
 //Internal functions
 hashtable_t* hashtable_create(int size)
 {
+	ht* hash;
+
 	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
 
-	ht* hash = (ht*)bing_malloc(sizeof(ht));
+	hash = (ht*)bing_malloc(sizeof(ht));
 	if(hash)
 	{
 		hash->alloc = size < MIN_ALLOC ? MIN_ALLOC : size;
@@ -237,7 +239,6 @@ int hashtable_get_item(hashtable_t* table, const char* name, void* data)
 int hashtable_remove_item(hashtable_t* table, const char* key)
 {
 	int ret = -1;
-	int keyIndex;
 	if(table && key)
 	{
 		ret = xmlHashRemoveEntry(((ht*)table)->table, (xmlChar*)key, ht_data_deallocator);

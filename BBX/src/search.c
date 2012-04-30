@@ -46,6 +46,7 @@ typedef struct BING_PARSER_S
 	xmlParserCtxtPtr ctx; //Reciprocal pointer so we can pass the parser to get all the info and still get the context that the parser is contained in
 	receive_bing_response_func responseFunc;
 	void* userData;
+	int bpsChannel;
 	BOOL parseError;
 #if defined(BING_DEBUG)
 	BOOL errorRet;
@@ -123,7 +124,6 @@ void cleanStacks(bing_parser* parser)
 
 BOOL checkForError(bing_parser* parser)
 {
-	pstack* st;
 	if(parser->parseError)
 	{
 		//Error, cleanup everything
@@ -261,14 +261,13 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 
 //The real "meat and potatoes" of the parser. Many if blocks for safety and to increase flexibility (and hopefully readability...)
 
-void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI, int nb_namespaces, const xmlChar** namespaces, int nb_attributes, int nb_defaulted, const xmlChar** attributes)
+void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI, int nb_namespaces, const xmlChar** namespaces, int nb_attributes, int nb_defaulted, const xmlChar** attributes)
 {
 	bing_result_t result = NULL;
 	hashtable_t* table;
 	int size;
 	char* data;
 	bing_parser* parser = (bing_parser*)ctx;
-	pstack* pt;
 	const char* qualifiedName;
 
 	if(checkForError(parser) &&
@@ -403,13 +402,16 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 									//Determine where it should be added to
 
 									//We can let endElement handle saving it
-									if(parser->lastResult && parser->lastResult->prev)
+									if(parser->lastResult)
 									{
-										parser->lastResult->addToResult = (bing_result*)parser->lastResult->prev->value;
-									}
-									else
-									{
-										parser->lastResult->addToResponse = parser->current;
+										if(parser->lastResult->prev)
+										{
+											parser->lastResult->addToResult = (bing_result*)parser->lastResult->prev->value;
+										}
+										else
+										{
+											parser->lastResult->addToResponse = parser->current;
+										}
 									}
 								}
 								else
@@ -555,7 +557,7 @@ void startElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 	}
 }
 
-void endElement(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI)
+void endElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI)
 {
 	pstack* st;
 	bing_parser* parser = (bing_parser*)ctx;
@@ -670,8 +672,8 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//externalSubset
 		XML_SAX2_MAGIC,	//initialized
 		NULL,			//_private
-		startElement,	//startElementNs
-		endElement,		//endElementNs
+		startElementNs,	//startElementNs
+		endElementNs,	//endElementNs
 		serrorCallback	//serror
 };
 
@@ -846,9 +848,6 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 	const char* url;
 	bing_parser* parser;
 	bing_response_t ret = NULL;
-	char buffer[256];
-	ssize_t count;
-	xmlParserCtxtPtr ctx;
 #if defined(BING_DEBUG)
 	int curlCode;
 #endif
@@ -868,36 +867,39 @@ bing_response_t search_sync(unsigned int bingID, const char* query, const bing_r
 				//Setup the parser
 				if(setupParser(parser, bingID, url))
 				{
-					//Invoke cURL
-					if((
-#if defined(BING_DEBUG)
-							curlCode =
-#endif
-									curl_easy_perform(parser->curl)) == CURLE_OK)
+					if(check_for_connection())
 					{
-						//No errors
-
-						//Finish parsing
-						xmlParseChunk(parser->ctx, NULL, 0, TRUE);
-
-						//We check for an error, if none exists then we get the response
-						if(checkForError(parser))
+						//Invoke cURL
+						if((
+#if defined(BING_DEBUG)
+								curlCode =
+#endif
+										curl_easy_perform(parser->curl)) == CURLE_OK)
 						{
-							ret = parser->response;
+							//No errors
+
+							//Finish parsing
+							xmlParseChunk(parser->ctx, NULL, 0, TRUE);
+
+							//We check for an error, if none exists then we get the response
+							if(checkForError(parser))
+							{
+								ret = parser->response;
+							}
+#if defined(BING_DEBUG)
+							else if(parser->errorRet)
+							{
+								BING_MSG_PRINTOUT("Parser error\n");
+							}
+	#endif
 						}
 #if defined(BING_DEBUG)
 						else if(parser->errorRet)
 						{
-							BING_MSG_PRINTOUT("Parser error\n");
+							BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
 						}
 #endif
 					}
-#if defined(BING_DEBUG)
-					else if(parser->errorRet)
-					{
-						BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
-					}
-#endif
 
 					//Cleanup
 					search_cleanup(parser);
@@ -945,43 +947,46 @@ void* async_search(void* ctx)
 	void* userData;
 	bing_parser* parser = (bing_parser*)ctx;
 
-	//Invoke cURL
-	if((
-#if defined(BING_DEBUG)
-			curlCode =
-#endif
-					curl_easy_perform(parser->curl)) == CURLE_OK)
+	if(check_for_connection())
 	{
-		//No errors
-
-		//Finish parsing
-		xmlParseChunk(parser->ctx, NULL, 0, TRUE);
-
-		//We check for an error
+		//Invoke cURL
+		if((
 #if defined(BING_DEBUG)
-		if(
+				curlCode =
 #endif
-		checkForError(parser)
-#if defined(BING_DEBUG)
-		)
+						curl_easy_perform(parser->curl)) == CURLE_OK)
 		{
-			BING_MSG_PRINTOUT("ASYNC: Parser error\n");
-		}
+			//No errors
+
+			//Finish parsing
+			xmlParseChunk(parser->ctx, NULL, 0, TRUE);
+
+			//We check for an error
+#if defined(BING_DEBUG)
+			if(
+#endif
+				checkForError(parser)
+#if defined(BING_DEBUG)
+			)
+			{
+				BING_MSG_PRINTOUT("ASYNC: Parser error\n");
+			}
 #else
-		;
+			;
 #endif
 
-		//Get response (do this so we can free before any error might occur)
-		responseFunc = parser->responseFunc;
-		response = parser->response;
-		userData = parser->userData;
+			//Get response (do this so we can free before any error might occur)
+			responseFunc = parser->responseFunc;
+			response = parser->response;
+			userData = parser->userData;
 	}
 #if defined(BING_DEBUG)
-	else if(parser->errorRet)
-	{
-		BING_MSG_PRINTOUT("ASYNC: Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
-	}
+		else if(parser->errorRet)
+		{
+			BING_MSG_PRINTOUT("ASYNC: Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
+		}
 #endif
+	}
 
 	//Cleanup
 	search_cleanup(parser);
@@ -1006,15 +1011,22 @@ void event_invocation(bing_response_t response, void* user_data)
 {
 	bps_event_t* event = NULL;
 	bps_event_payload_t payload;
+	bing_parser* parser = (bing_parser*)user_data;
 	if(response) //We only want to push an event if we have something to push.
 	{
 		memset(&payload, 0, sizeof(bps_event_payload_t));
 		payload.data1 = (uintptr_t)response;
 
 		//Create the event
-		if(bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) != BPS_SUCCESS ||
-				bps_push_event(event) != BPS_SUCCESS) //Push event
+		if((bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) | //Create event
+				(parser->bpsChannel >= 0 ? bps_channel_push_event(parser->bpsChannel, event) : bps_push_event(event))) != BPS_SUCCESS) //Push event (if we have a BPS channel, use it)
 		{
+			//Since the event will never be pushed, free it
+			if(event)
+			{
+				bps_event_destroy(event);
+			}
+
 			//Since response will never be pushed, free it
 			free_response(response);
 		}
@@ -1046,6 +1058,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 					//Setup callback functions
 					parser->responseFunc = response_func;
 					parser->userData = user_data_is_parser ? parser : user_data;
+					parser->bpsChannel = user_data_is_parser ? bps_channel_get_active() : -1;
 
 					//Setup thread attributes
 					pthread_attr_init(&thread_atts);

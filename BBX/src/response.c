@@ -82,7 +82,6 @@ void response_phonebook_additional_data(bing_response_t response, data_dictionar
 {
 	int size;
 	void* data;
-	long long ll;
 	bing_response* res = (bing_response*)response;
 	if(dictionary)
 	{
@@ -334,8 +333,8 @@ int response_get_results(bing_response_t response, bing_result_t* results)
 BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal)
 {
 	BOOL ret = FALSE;
-	int i;
-	int* c;
+	unsigned int i;
+	unsigned int* c;
 	bing_result_t* resultList;
 	bing_result_t** resultListSrc;
 	if(response && result)
@@ -379,8 +378,8 @@ BOOL response_add_result(bing_response* response, bing_result* result, BOOL inte
 BOOL response_remove_result(bing_response* response, bing_result* result, BOOL internal, BOOL freeResult)
 {
 	BOOL ret = FALSE;
-	int i;
-	int* c;
+	unsigned int i;
+	unsigned int* c;
 	bing_result_t* resultList;
 	bing_result_t** resultListSrc;
 	if(response && result)
@@ -464,7 +463,7 @@ int response_add_to_bing(bing_response* res, unsigned int bingID)
 {
 	BOOL ret = FALSE;
 	bing_response** t;
-	int i;
+	unsigned int i;
 	bing* bing = retrieveBing(res->bing == 0 ? bingID : res->bing);
 
 	if(bing)
@@ -634,7 +633,7 @@ BOOL response_remove_from_bundle(bing_response* response, bing_response* respons
 	BOOL ret = FALSE;
 	list* list_v = NULL;
 	bing_response_t* responseList = NULL;
-	int i;
+	unsigned int i;
 
 	//Add response to bundle
 	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
@@ -738,7 +737,7 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 	bing_response_creator_search* cr;
 	response_creation_func creationFunc;
 	response_additional_data_func additionalDataFunc;
-	int i;
+	unsigned int i;
 	if(type && response &&
 			(!(responseParent && responseParent->bing == 0) || bing > 0))
 	{
@@ -800,7 +799,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 {
 	bing_response* res;
 	list* list;
-	int i;
+	unsigned int i;
 	if(response)
 	{
 		res = (bing_response*)response;

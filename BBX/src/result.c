@@ -415,7 +415,6 @@ void result_common_news_array_additional_result(const char* name, bing_result_t 
 {
 	int size;
 	int i;
-	char* str;
 	bing_result_t* articles;
 	bing_result* res = (bing_result*)new_result;
 	if(res->type == BING_SOURCETYPE_NEWS) //Is this a "common" type?
@@ -726,7 +725,7 @@ BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* 
 BOOL result_is_common(const char* type)
 {
 	bing_result_creator_search* cr;
-	int i;
+	unsigned int i;
 
 	//Check if it is common so it is a nice easy check, before we do the longer-to-run name comparison.
 
@@ -763,7 +762,7 @@ BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* r
 	result_creation_func creationFunc;
 	result_additional_result_func additionalResultFunc;
 	BOOL array;
-	int i;
+	unsigned int i;
 	if(type && result && responseParent)
 	{
 		//Check default options
