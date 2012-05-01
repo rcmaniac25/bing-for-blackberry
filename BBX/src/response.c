@@ -519,13 +519,24 @@ BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
 					//Found the response
 					if(pos == bing->responseCount - 1)
 					{
-						//Simply remove the last item
-						t = bing_realloc(bing->responses, (bing->responseCount - 1) * sizeof(bing_response*));
-						if(t)
+						if(bing->responseCount == 1)
 						{
-							bing->responses = t;
-							bing->responseCount--;
+							//Only response in the list
+							bing_free(bing->responses);
+							bing->responses = NULL;
+							bing->responseCount = 0;
 							ret = TRUE;
+						}
+						else
+						{
+							//Simply remove the last item
+							t = bing_realloc(bing->responses, (bing->responseCount - 1) * sizeof(bing_response*));
+							if(t)
+							{
+								bing->responses = t;
+								bing->responseCount--;
+								ret = TRUE;
+							}
 						}
 					}
 					else

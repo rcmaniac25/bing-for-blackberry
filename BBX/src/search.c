@@ -979,7 +979,7 @@ void* async_search(void* ctx)
 			responseFunc = parser->responseFunc;
 			response = parser->response;
 			userData = parser->userData;
-	}
+		}
 #if defined(BING_DEBUG)
 		else if(parser->errorRet)
 		{
