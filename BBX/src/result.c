@@ -125,7 +125,7 @@ int result_news_create(const char* name, bing_result_t result, data_dictionary_t
 	{
 		table = ((bing_result*)result)->data;
 		strLen = hashtable_get_string(table, RES_NEWS_BREAKINGNEWS, NULL);
-		if(strLen > -1)
+		if(strLen > 0)
 		{
 			str = bing_malloc(strLen);
 			if(str)

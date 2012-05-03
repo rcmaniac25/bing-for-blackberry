@@ -312,21 +312,21 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 					if(table)
 					{
 						size = hashtable_get_string(table, "SearchTerms", NULL);
-						if(size > -1)
+						if(size > 0)
 						{
 							bing_free((void*)parser->query);
 							parser->query = bing_malloc(size);
 							hashtable_get_string(table, "SearchTerms", (char*)parser->query);
 						}
 						size = hashtable_get_string(table, "AlteredQuery", NULL);
-						if(size > -1)
+						if(size > 0)
 						{
 							bing_free((void*)parser->alteredQuery);
 							parser->alteredQuery = bing_malloc(size);
 							hashtable_get_string(table, "AlteredQuery", (char*)parser->alteredQuery);
 						}
 						size = hashtable_get_string(table, "AlterationOverrideQuery", NULL);
-						if(size > -1)
+						if(size > 0)
 						{
 							bing_free((void*)parser->alterationOverrideQuery);
 							parser->alterationOverrideQuery = bing_malloc(size);
@@ -963,7 +963,7 @@ void* async_search(void* ctx)
 
 			//We check for an error
 #if defined(BING_DEBUG)
-			if(
+			if(!
 #endif
 				checkForError(parser)
 #if defined(BING_DEBUG)

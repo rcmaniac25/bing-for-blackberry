@@ -217,19 +217,19 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 	return ret;
 }
 
-int hashtable_get_item(hashtable_t* table, const char* name, void* data)
+size_t hashtable_get_item(hashtable_t* table, const char* name, void* data)
 {
-	int ret = -1;
+	size_t ret = 0;
 	void* dat = NULL;
 	if(table && name)
 	{
 		dat = xmlHashLookup(((ht*)table)->table, (xmlChar*)name);
 		if(dat)
 		{
-			ret = (int)(*((size_t*)dat));
+			ret = *((size_t*)dat);
 			if(data)
 			{
-				memcpy(data, dat + sizeof(size_t), *((size_t*)dat));
+				memcpy(data, dat + sizeof(size_t), ret);
 			}
 		}
 	}
@@ -272,7 +272,7 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 		//Get the number of names
 		hash = (ht*)table;
 		ret = xmlHashSize(hash->table);
-		if(keys)
+		if(keys && ret > 0)
 		{
 			dat = bing_malloc(sizeof(char**) + sizeof(int));
 			if(dat)
@@ -295,7 +295,7 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 	return ret;
 }
 
-int hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size)
+BOOL hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size)
 {
 	BOOL ret = FALSE;
 	if(table && value)
@@ -316,17 +316,22 @@ int hashtable_get_string(hashtable_t* table, const char* field, char* value)
 	if(table)
 	{
 		//Now get the data
-		ret = hashtable_get_item(table, field, value);
+		ret = (int)hashtable_get_item(table, field, value);
+		if(ret == 0)
+		{
+			//There is no content to the string, don't say it even exists
+			ret = -1;
+		}
 	}
 	return ret;
 }
 
-int hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size)
+BOOL hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size)
 {
 	BOOL ret = FALSE;
 	if(table && field)
 	{
-		if(!value && hashtable_get_item(table, field, NULL) != -1)
+		if(!value && hashtable_get_item(table, field, NULL) > 0)
 		{
 			hashtable_remove_item(table, field);
 		}
@@ -344,7 +349,8 @@ int hashtable_set_data(hashtable_t* table, const char* field, const void* value,
 //Public functions
 int dictionary_get_data(data_dictionary_t dict, const char* name, void* data)
 {
-	return hashtable_get_item((hashtable_t*)dict, name, data);
+	size_t ret = hashtable_get_item((hashtable_t*)dict, name, data);
+	return ret > 0 ? (int)ret : -1;
 }
 
 int dictionary_get_element_names(data_dictionary_t dict, char** names)

@@ -580,7 +580,7 @@ BOOL replace_string_with_longlong(hashtable_t* table, const char* field)
 	char* str;
 	long long ll;
 	int strLen = hashtable_get_string(table, field, NULL);
-	if(strLen > -1)
+	if(strLen > 0)
 	{
 		str = bing_malloc(strLen);
 		if(str)
@@ -604,7 +604,7 @@ BOOL replace_string_with_double(hashtable_t* table, const char* field)
 	char* str;
 	double d;
 	int strLen = hashtable_get_string(table, field, NULL);
-	if(strLen > -1)
+	if(strLen > 0)
 	{
 		str = bing_malloc(strLen);
 		if(str)

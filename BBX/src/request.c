@@ -653,7 +653,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 
 		if(!req->sourceType) //Bundle's source type is null
 		{
-			if(hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+			if(hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
 			{
 				//Get the list
 				requestList = LIST_ELEMENTS(list_v, bing_request_t);
@@ -737,7 +737,7 @@ void free_request(bing_request_t request)
 		if(req->data)
 		{
 			//Bundle, make sure data is freed
-			if(!req->sourceType && hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list) != -1)
+			if(!req->sourceType && hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list) > 0)
 			{
 				for(i = 0; i < list->count; i++)
 				{

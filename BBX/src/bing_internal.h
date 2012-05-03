@@ -230,13 +230,13 @@ void hashtable_free(hashtable_t* table);
 BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable);
 int hashtable_key_exists(hashtable_t* table, const char* key);
 int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
-int hashtable_get_item(hashtable_t* table, const char* name, void* data);
+size_t hashtable_get_item(hashtable_t* table, const char* name, void* data);
 int hashtable_remove_item(hashtable_t* table, const char* key);
 int hashtable_get_keys(hashtable_t* table, char** keys);
 //-Helper dictionary functions
-int hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size);
+BOOL hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size);
 int hashtable_get_string(hashtable_t* table, const char* field, char* value);
-int hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size);
+BOOL hashtable_set_data(hashtable_t* table, const char* field, const void* value, size_t size);
 
 //Bing functions
 bing* retrieveBing(unsigned int bingID);

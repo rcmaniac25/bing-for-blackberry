@@ -280,7 +280,12 @@ int response_get(bing_response_t response, const char* name, void* data)
 	if(response)
 	{
 		res = (bing_response*)response;
-		ret = hashtable_get_item(res->data, name, data);
+		ret = (int)hashtable_get_item(res->data, name, data);
+		if(ret == 0)
+		{
+			//If there size == 0, there is nothing valid to get (even if there is, there is no substance to it. It simply exists)
+			ret = -1;
+		}
 	}
 	return ret;
 }
@@ -580,7 +585,7 @@ BOOL response_add_to_bundle(bing_response* response, bing_response* responsePare
 	bing_response_t* responseList = NULL;
 
 	//Add response to bundle
-	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
 	{
 		//Get the list
 		responseList = LIST_ELEMENTS(list_v, bing_response_t);
@@ -647,7 +652,7 @@ BOOL response_remove_from_bundle(bing_response* response, bing_response* respons
 	unsigned int i;
 
 	//Add response to bundle
-	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
 	{
 		//Get the list
 		responseList = LIST_ELEMENTS(list_v, bing_response_t);
@@ -828,7 +833,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		//Free data
 		if(res->data)
 		{
-			if(hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list) != -1)
+			if(hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list) > 0)
 			{
 				for(i = 0; i < list->count; i++)
 				{
@@ -948,7 +953,7 @@ int response_get_bundle_responses(bing_response_t response, bing_response_t* res
 	{
 		res = (bing_response*)response;
 		if(res->type == BING_SOURCETYPE_BUNDLE && //Make sure of the proper type
-				hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) != -1)
+				hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
 		{
 			ret = list_v->count;
 			if(responses)
