@@ -677,6 +677,7 @@ void free_result(bing_result* result)
 	if(result)
 	{
 		hashtable_free(result->data);
+		result->data = NULL;
 		bing_free(result);
 	}
 }

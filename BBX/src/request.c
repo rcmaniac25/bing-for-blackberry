@@ -748,6 +748,7 @@ void free_request(bing_request_t request)
 			}
 			hashtable_free(req->data);
 		}
+		req->data = NULL;
 
 		bing_free(req);
 	}

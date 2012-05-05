@@ -415,12 +415,22 @@ BOOL response_remove_result(bing_response* response, bing_result* result, BOOL i
 		{
 			if((i + 1) == (*c)) //At end of array, we can simply remove it
 			{
-				resultList = (bing_result_t*)bing_realloc(resultList, ((*c) - 1) * sizeof(bing_result_t));
-				if(resultList)
+				if((*c) == 1) //If there is only one item, simply free the array
 				{
-					*resultListSrc = resultList;
-					(*c)--;
+					bing_free(resultList);
+					*resultListSrc = NULL;
+					(*c) = 0;
 					ret = TRUE;
+				}
+				else
+				{
+					resultList = (bing_result_t*)bing_realloc(resultList, ((*c) - 1) * sizeof(bing_result_t));
+					if(resultList)
+					{
+						*resultListSrc = resultList;
+						(*c)--;
+						ret = TRUE;
+					}
 				}
 			}
 			else
@@ -829,6 +839,8 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 			bing_free(res->allocatedMemory[i]);
 		}
 		bing_free(res->allocatedMemory);
+		res->allocatedMemory = NULL;
+		res->allocatedMemoryCount = 0;
 
 		//Free data
 		if(res->data)
@@ -845,6 +857,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 
 			hashtable_free(res->data);
 		}
+		res->data = NULL;
 
 		//Free results
 		while(res->resultCount > 0)
@@ -852,6 +865,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 			free_result((bing_result*)res->results[--res->resultCount]);
 		}
 		bing_free(res->results);
+		res->results = NULL;
 
 		//Free internal results
 		while(res->internalResultCount > 0)
@@ -859,6 +873,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 			free_result((bing_result*)res->internalResults[--res->internalResultCount]);
 		}
 		bing_free(res->internalResults);
+		res->internalResults = NULL;
 
 		bing_free(res);
 	}
