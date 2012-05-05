@@ -74,24 +74,20 @@ BOOL endsWith(const char* str1, const char* str2)
 	//First we need the length of the string (we can ignore the null char)
 	int len = str2 ? strlen(str2) : 0;
 
-	//Next we need to see if we can find an initial instance of the string
+	//If we can find the last instance of the string, we can check length and compare
 	const char* sub = NULL;
 	if(len > 0)
 	{
-		sub = strchr(str1, str2[0]);
-	}
-
-	//If we found an instance, see if it is the correct instance...
-	while(sub)
-	{
-		//We do this by first checking length, if it is the same length then it could be it..
-		if(strlen(sub) == len)
+		sub = strrchr(str1, str2[0]);
+		if(sub)
 		{
-			//strcmp will tell us if it matches, if it doesn't match the string would be too short to run anyway so just return
-			return strcmp(sub, str2) == 0;
+			//We do this by first checking length, if it is the same length then it could be it..
+			if(strlen(sub) == len)
+			{
+				//strcmp will tell us if it matches, if it doesn't match the string would be too short to run anyway so just return
+				return strcmp(sub, str2) == 0;
+			}
 		}
-		//String was too big, try again (don't forget to skip to the next char)
-		sub = strchr(sub + 1, str2[0]);
 	}
 
 	//Didn't find anything
