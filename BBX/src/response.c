@@ -261,7 +261,7 @@ void bing_event_get_response(bps_event_t* event, bing_response_t* response)
 	}
 }
 
-enum BING_SOURCE_TYPE response_get_source_type(bing_response_t response)
+enum BING_SOURCE_TYPE bing_response_get_source_type(bing_response_t response)
 {
 	enum BING_SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
 	bing_response* res;
@@ -290,36 +290,36 @@ int response_get(bing_response_t response, const char* name, void* data)
 	return ret;
 }
 
-long long response_get_total(bing_response_t response)
+long long bing_response_get_total(bing_response_t response)
 {
 	long long ret = -1;
 	response_get(response, RESPONSE_TOTAL_STR, &ret);
 	return ret;
 }
 
-long long response_get_offset(bing_response_t response)
+long long bing_response_get_offset(bing_response_t response)
 {
 	long long ret = -1;
 	response_get(response, RESPONSE_OFFSET_STR, &ret);
 	return ret;
 }
 
-int response_get_query(bing_response_t response, char* buffer)
+int bing_response_get_query(bing_response_t response, char* buffer)
 {
 	return response_get(response, RESPONSE_QUERY_STR, buffer);
 }
 
-int response_get_altered_query(bing_response_t response, char* buffer)
+int bing_response_get_altered_query(bing_response_t response, char* buffer)
 {
 	return response_get(response, RESPONSE_ALTERED_QUERY_STR, buffer);
 }
 
-int response_get_alterations_override_query(bing_response_t response, char* buffer)
+int bing_response_get_alterations_override_query(bing_response_t response, char* buffer)
 {
 	return response_get(response, RESPONSE_ALTERATIONS_OVER_QUERY_STR, buffer);
 }
 
-int response_get_results(bing_response_t response, bing_result_t* results)
+int bing_response_get_results(bing_response_t response, bing_result_t* results)
 {
 	int ret = -1;
 	bing_response* res;
@@ -879,7 +879,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 	}
 }
 
-void free_response(bing_response_t response)
+void bing_response_free(bing_response_t response)
 {
 	free_response_in(response, FALSE);
 }
@@ -929,7 +929,7 @@ int response_get_string(bing_response_t response, char* buffer, const char* fiel
 	return ret;
 }
 
-int response_get_ad_api_version(bing_response_t response, char* buffer)
+int bing_response_get_ad_api_version(bing_response_t response, char* buffer)
 {
 	return response_get_string(response, buffer, RESPONSE_AD_API_VERSION, BING_SOURCETYPE_AD);
 }
@@ -953,12 +953,12 @@ long long response_get_int64(bing_response_t response, const char* field, enum B
 	return ret;
 }
 
-long long response_get_ad_page_number(bing_response_t response)
+long long bing_response_get_ad_page_number(bing_response_t response)
 {
 	return response_get_int64(response, RESPONSE_AD_PAGE_NUMBER, BING_SOURCETYPE_AD);
 }
 
-int response_get_bundle_responses(bing_response_t response, bing_response_t* responses)
+int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses)
 {
 	int ret = -1;
 	bing_response* res;
@@ -984,17 +984,17 @@ int response_get_bundle_responses(bing_response_t response, bing_response_t* res
 	return ret;
 }
 
-int response_get_phonebook_title(bing_response_t response, char* buffer)
+int bing_response_get_phonebook_title(bing_response_t response, char* buffer)
 {
 	return response_get_string(response, buffer, RESPONSE_PHONEBOOK_TITLE, BING_SOURCETYPE_PHONEBOOK);
 }
 
-int response_get_phonebook_local_serp_url(bing_response_t response, char* buffer)
+int bing_response_get_phonebook_local_serp_url(bing_response_t response, char* buffer)
 {
 	return response_get_string(response, buffer, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, BING_SOURCETYPE_PHONEBOOK);
 }
 
-int response_get_news_related_searches(bing_response_t response, bing_related_search_t searches)
+int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches)
 {
 	int ret = response_get_string(response, (char*)searches, RESPONSE_NEWS_RELATEDSEARCHES, BING_SOURCETYPE_NEWS);
 	if(ret != -1)
@@ -1005,7 +1005,7 @@ int response_get_news_related_searches(bing_response_t response, bing_related_se
 	return ret;
 }
 
-int response_custom_is_field_supported(bing_response_t response, const char* field)
+int bing_response_custom_is_field_supported(bing_response_t response, const char* field)
 {
 	BOOL ret = FALSE;
 	bing_response* res;
@@ -1017,52 +1017,52 @@ int response_custom_is_field_supported(bing_response_t response, const char* fie
 	return ret;
 }
 
-int response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value)
+int bing_response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value)
 {
 	return hashtable_get_data_key(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(long long));
 }
 
-int response_custom_get_string(bing_response_t response, const char* field, char* value)
+int bing_response_custom_get_string(bing_response_t response, const char* field, char* value)
 {
 	return hashtable_get_string(response ? ((bing_response*)response)->data : NULL, field, value);
 }
 
-int response_custom_get_double(bing_response_t response, const char* field, double* value)
+int bing_response_custom_get_double(bing_response_t response, const char* field, double* value)
 {
-	return response_custom_get_64bit_int(response, field, (long long*)value);
+	return bing_response_custom_get_64bit_int(response, field, (long long*)value);
 }
 
-int response_custom_get_boolean(bing_response_t response, const char* field, int* value)
+int bing_response_custom_get_boolean(bing_response_t response, const char* field, int* value)
 {
 	return hashtable_get_data_key(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
 }
 
-int response_custom_get_array(bing_response_t response, const char* field, void* value)
+int bing_response_custom_get_array(bing_response_t response, const char* field, void* value)
 {
-	return response_custom_get_string(response, field, (char*)value);
+	return bing_response_custom_get_string(response, field, (char*)value);
 }
 
-int response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value)
+int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value)
 {
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(long long));
 }
 
-int response_custom_set_string(bing_response_t response, const char* field, const char* value)
+int bing_response_custom_set_string(bing_response_t response, const char* field, const char* value)
 {
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
 }
 
-int response_custom_set_double(bing_response_t response, const char* field, double* value)
+int bing_response_custom_set_double(bing_response_t response, const char* field, double* value)
 {
-	return response_custom_set_64bit_int(response, field, (long long*)value);
+	return bing_response_custom_set_64bit_int(response, field, (long long*)value);
 }
 
-int response_custom_set_boolean(bing_response_t response, const char* field, int* value)
+int bing_response_custom_set_boolean(bing_response_t response, const char* field, int* value)
 {
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
 }
 
-int response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size)
+int bing_response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size)
 {
 	//This could be a safety hazard but we have no way of checking the size of the data passed in
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, size);
@@ -1161,7 +1161,7 @@ void freeMemory(void* ptr, bing_response* response)
 	}
 }
 
-void* response_custom_allocation(bing_response_t response, size_t size)
+void* bing_response_custom_allocation(bing_response_t response, size_t size)
 {
 	void* ret = NULL;
 	bing_response* res;
@@ -1177,7 +1177,7 @@ void* response_custom_allocation(bing_response_t response, size_t size)
 	return ret;
 }
 
-int response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func)
+int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func)
 {
 	BOOL ret = FALSE;
 	BOOL cont = TRUE;
@@ -1248,7 +1248,7 @@ int response_register_response_creator(const char* name, response_creation_func 
 	return ret;
 }
 
-int response_unregister_response_creator(const char* name)
+int bing_response_unregister_response_creator(const char* name)
 {
 	BOOL ret = FALSE;
 	unsigned int i;

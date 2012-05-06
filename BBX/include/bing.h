@@ -766,19 +766,19 @@ int bing_request_create_custom_request(const char* source_type, bing_request_t* 
 /**
  * @brief Get the Bing response source type.
  *
- * The @c response_get_source_type() function allows developers to retrieve the
+ * The @c bing_response_get_source_type() function allows developers to retrieve the
  * source type of Bing response that is passed in.
  *
  * @param response The Bing response to get the source type of.
  *
  * @return The Bing response source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-enum BING_SOURCE_TYPE response_get_source_type(bing_response_t response);
+enum BING_SOURCE_TYPE bing_response_get_source_type(bing_response_t response);
 
 /**
  * @brief Get the estimated total number of results for a Bing response.
  *
- * The @c response_get_total() function allows developers to retrieve the
+ * The @c bing_response_get_total() function allows developers to retrieve the
  * estimated total number of results that response can get.
  *
  * This is not how any results that a response will have. This is the
@@ -788,12 +788,12 @@ enum BING_SOURCE_TYPE response_get_source_type(bing_response_t response);
  *
  * @return The estimated Bing response total.
  */
-long long response_get_total(bing_response_t response);
+long long bing_response_get_total(bing_response_t response);
 
 /**
  * @brief Get the offset within the results for a Bing response.
  *
- * The @c response_get_offset() function allows developers to retrieve the
+ * The @c bing_response_get_offset() function allows developers to retrieve the
  * zero-based offset within the results results that response can get.
  * This allows for easier searching through many results.
  *
@@ -801,12 +801,12 @@ long long response_get_total(bing_response_t response);
  *
  * @return The Bing response offset.
  */
-long long response_get_offset(bing_response_t response);
+long long bing_response_get_offset(bing_response_t response);
 
 /**
  * @brief Get the query used to search for this Bing response.
  *
- * The @c response_get_query() function allows developers to retrieve the
+ * The @c bing_response_get_query() function allows developers to retrieve the
  * actual query used to get this Bing response.
  *
  * @param response The Bing response to get the query of.
@@ -815,12 +815,12 @@ long long response_get_offset(bing_response_t response);
  * @return The size of the Bing response query in bytes, or -1
  * 	if an error occurred.
  */
-int response_get_query(bing_response_t response, char* buffer);
+int bing_response_get_query(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the altered query used to search for this Bing response.
  *
- * The @c response_get_altered_query() function allows developers
+ * The @c bing_response_get_altered_query() function allows developers
  * to retrieve the altered search query, if appropriate, to get
  * this Bing response.
  *
@@ -830,12 +830,12 @@ int response_get_query(bing_response_t response, char* buffer);
  * @return The size of the Bing response altered query in bytes, or
  * 	-1 if an error occurred.
  */
-int response_get_altered_query(bing_response_t response, char* buffer);
+int bing_response_get_altered_query(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the unaltered query used to search for this Bing response.
  *
- * The @c response_get_alterations_override_query() function allows
+ * The @c bing_response_get_alterations_override_query() function allows
  * developers to retrieve the original, unaltered search query that
  * can be used to research with that won't be altered.
  *
@@ -845,12 +845,12 @@ int response_get_altered_query(bing_response_t response, char* buffer);
  * @return The size of the Bing response unaltered query in bytes, or
  * 	-1 if an error occurred.
  */
-int response_get_alterations_override_query(bing_response_t response, char* buffer);
+int bing_response_get_alterations_override_query(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the results from a Bing response.
  *
- * The @c response_get_results() function allows developers to
+ * The @c bing_response_get_results() function allows developers to
  * get the actual search results.
  *
  * @param response The Bing response to get the results of.
@@ -859,12 +859,12 @@ int response_get_alterations_override_query(bing_response_t response, char* buff
  * @return The Bing response result count, or -1 if an error
  * 	occurred.
  */
-int response_get_results(bing_response_t response, bing_result_t* results);
+int bing_response_get_results(bing_response_t response, bing_result_t* results);
 
 /**
  * @brief Free a Bing response from memory.
  *
- * The @c free_response() function allows developers to free
+ * The @c bing_response_free() function allows developers to free
  * entire Bing response.
  *
  * This frees the response itself, the results the response
@@ -875,14 +875,14 @@ int response_get_results(bing_response_t response, bing_result_t* results);
  *
  * @return Nothing is returned.
  */
-void free_response(bing_response_t response);
+void bing_response_free(bing_response_t response);
 
 //Specific functions
 
 /**
  * @brief Get the Ad API version for an Bing Ad response.
  *
- * The @c response_get_ad_api_version() function allows developers to
+ * The @c bing_response_get_ad_api_version() function allows developers to
  * get the API version of a Bing Ad response.
  *
  * @param response The Bing response to get the Ad API version from.
@@ -891,12 +891,12 @@ void free_response(bing_response_t response);
  * @return The size of the Bing Ad response API version in bytes, or
  * 	-1 if an error occurred or if the response is not an Ad type.
  */
-int response_get_ad_api_version(bing_response_t response, char* buffer);
+int bing_response_get_ad_api_version(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the Ad page number for an Bing Ad response.
  *
- * The @c response_get_ad_page_number() function allows developers to
+ * The @c bing_response_get_ad_page_number() function allows developers to
  * get the Ad page number of a Bing Ad response.
  *
  * @param response The Bing response to get the Ad page number from.
@@ -904,12 +904,12 @@ int response_get_ad_api_version(bing_response_t response, char* buffer);
  * @return The Bing Ad page number, or -1 if an error occurred or
  * 	if the response is not an Ad type.
  */
-long long response_get_ad_page_number(bing_response_t response);
+long long bing_response_get_ad_page_number(bing_response_t response);
 
 /**
  * @brief Get the responses from a Bing Bundle response.
  *
- * The @c response_get_bundle_responses() function allows developers to
+ * The @c bing_response_get_bundle_responses() function allows developers to
  * get the bundled Bing responses.
  *
  * @param response The Bing response to get the responses of.
@@ -918,12 +918,12 @@ long long response_get_ad_page_number(bing_response_t response);
  * @return The Bing response "responses" count, or -1 if an error
  * 	occurred or if the response is not a Bundle type.
  */
-int response_get_bundle_responses(bing_response_t response, bing_response_t* responses);
+int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses);
 
 /**
  * @brief Get the title for an Bing Phonebook response.
  *
- * The @c response_get_phonebook_title() function allows developers to
+ * The @c bing_response_get_phonebook_title() function allows developers to
  * get the title of a Bing Phonebook response.
  *
  * @param response The Bing response to get the title from.
@@ -932,12 +932,12 @@ int response_get_bundle_responses(bing_response_t response, bing_response_t* res
  * @return The size of the Bing Phonebook title in bytes, or -1 if an error
  * 	occurred or if the response is not an Phonebook type.
  */
-int response_get_phonebook_title(bing_response_t response, char* buffer);
+int bing_response_get_phonebook_title(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the URL to the local search repository for an Bing Phonebook response.
  *
- * The @c response_get_phonebook_local_serp_url() function allows developers to
+ * The @c bing_response_get_phonebook_local_serp_url() function allows developers to
  * get the URL to the local search repository of a Bing Phonebook response.
  *
  * @param response The Bing response to get the URL from.
@@ -946,7 +946,7 @@ int response_get_phonebook_title(bing_response_t response, char* buffer);
  * @return The size of the Bing Phonebook URL in bytes, or -1 if an error
  * 	occurred or if the response is not an Phonebook type.
  */
-int response_get_phonebook_local_serp_url(bing_response_t response, char* buffer);
+int bing_response_get_phonebook_local_serp_url(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the related searches for an Bing News response.
@@ -960,14 +960,14 @@ int response_get_phonebook_local_serp_url(bing_response_t response, char* buffer
  * @return The Bing response "related searches" count, or -1 if an error
  * 	occurred or if the response is not a News type.
  */
-int response_get_news_related_searches(bing_response_t response, bing_related_search_t searches);
+int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches);
 
 //Custom functions
 
 /**
  * @brief Check if the Bing response filed type is supported.
  *
- * The @c response_custom_is_field_supported() functions allows developers to determine
+ * The @c bing_response_custom_is_field_supported() functions allows developers to determine
  * if a field is supported.
  *
  * @param response The Bing response to to check for a field.
@@ -977,12 +977,12 @@ int response_get_news_related_searches(bing_response_t response, bing_related_se
  * 	within the specified Bing response, otherwise zero on error, NULL to,
  * 	or NULL field string.
  */
-int response_custom_is_field_supported(bing_response_t response, const char* field);
+int bing_response_custom_is_field_supported(bing_response_t response, const char* field);
 
 /**
  * @brief Get a custom value from a Bing response.
  *
- * The @c response_custom_get_*() functions allows developers to retrieve
+ * The @c bing_response_custom_get_*() functions allows developers to retrieve
  * values from a Bing response. All values are self contained and will be
  * copied to the value parameter. These functions work on all response
  * types but allow for retrieval of custom result values.
@@ -1004,16 +1004,16 @@ int response_custom_is_field_supported(bing_response_t response, const char* fie
  * 	types, the length of the data in bytes is returned.
  */
 
-int response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value);
-int response_custom_get_string(bing_response_t response, const char* field, char* value);
-int response_custom_get_double(bing_response_t response, const char* field, double* value);
-int response_custom_get_boolean(bing_response_t response, const char* field, int* value);
-int response_custom_get_array(bing_response_t response, const char* field, void* value);
+int bing_response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value);
+int bing_response_custom_get_string(bing_response_t response, const char* field, char* value);
+int bing_response_custom_get_double(bing_response_t response, const char* field, double* value);
+int bing_response_custom_get_boolean(bing_response_t response, const char* field, int* value);
+int bing_response_custom_get_array(bing_response_t response, const char* field, void* value);
 
 /**
  * @brief Set a custom value for a Bing response.
  *
- * The @c response_custom_set_*() functions allows developers to set
+ * The @c bing_response_custom_set_*() functions allows developers to set
  * values to a custom Bing response. If the result is not the custom type
  * then the function will fail. All values are self contained and will be
  * copied from the value parameter.
@@ -1043,16 +1043,16 @@ int response_custom_get_array(bing_response_t response, const char* field, void*
  * 	otherwise zero on error.
  */
 
-int response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value);
-int response_custom_set_string(bing_response_t response, const char* field, const char* value);
-int response_custom_set_double(bing_response_t response, const char* field, double* value);
-int response_custom_set_boolean(bing_response_t response, const char* field, int* value);
-int response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size);
+int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value);
+int bing_response_custom_set_string(bing_response_t response, const char* field, const char* value);
+int bing_response_custom_set_double(bing_response_t response, const char* field, double* value);
+int bing_response_custom_set_boolean(bing_response_t response, const char* field, int* value);
+int bing_response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size);
 
 /**
  * @brief Allocate memory that will be freed when responses are freed.
  *
- * The @c response_custom_allocation() function allows developers to
+ * The @c bing_response_custom_allocation() function allows developers to
  * allocate any amount of memory between 1 byte and 10 KiB. This
  * memory will be freed when free_response is called for the same
  * response.
@@ -1072,12 +1072,12 @@ int response_custom_set_array(bing_response_t response, const char* field, const
  * @return A pointer of the allocated memory will be returned, or
  * 	NULL if allocation failed or the size was above the allowed limit.
  */
-void* response_custom_allocation(bing_response_t response, size_t size);
+void* bing_response_custom_allocation(bing_response_t response, size_t size);
 
 /**
  * @brief Register a new response creator.
  *
- * The @c result_register_result_creator() function allows developers to
+ * The @c bing_result_register_result_creator() function allows developers to
  * register a set of callbacks and a name for a, as of now, unsupported
  * Bing response within this library.
  *
@@ -1112,12 +1112,12 @@ void* response_custom_allocation(bing_response_t response, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func);
+int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func);
 
 /**
  * @brief Unregister a response creator.
  *
- * The @c response_unregister_response_creator() function allows developers to
+ * The @c bing_response_unregister_response_creator() function allows developers to
  * unregister a set of response creator callbacks.
  *
  * @param name The name associated with the response. This is the same
@@ -1126,7 +1126,7 @@ int response_register_response_creator(const char* name, response_creation_func 
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int response_unregister_response_creator(const char* name);
+int bing_response_unregister_response_creator(const char* name);
 
 /*
  * Result functions
@@ -1211,19 +1211,19 @@ enum BING_RESULT_FIELD
 /**
  * @brief Get the Bing result source type.
  *
- * The @c result_get_source_type() functions allows developers to retrieve the
+ * The @c bing_result_get_source_type() functions allows developers to retrieve the
  * source type of Bing result that is passed in.
  *
  * @param result The Bing result to get the source type of.
  *
  * @return The Bing result source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-enum BING_SOURCE_TYPE result_get_source_type(bing_result_t result);
+enum BING_SOURCE_TYPE bing_result_get_source_type(bing_result_t result);
 
 /**
  * @brief Check if the Bing result type is supported.
  *
- * The @c result_is_field_supported() functions allows developers to determine
+ * The @c bing_result_is_field_supported() functions allows developers to determine
  * if a field is supported.
  *
  * @param result The Bing result to check for a field.
@@ -1232,12 +1232,12 @@ enum BING_SOURCE_TYPE result_get_source_type(bing_result_t result);
  * @return A boolean value which is non-zero if the field is supported
  * 	within the specified Bing result, otherwise zero on error or NULL result.
  */
-int result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD field);
+int bing_result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD field);
 
 /**
  * @brief Get a value from a Bing result.
  *
- * The @c result_get_*() functions allows developers to retrieve values from
+ * The @c bing_result_get_*() functions allows developers to retrieve values from
  * a Bing result. All values are self contained and will be copied to
  * the value parameter.
  *
@@ -1258,18 +1258,18 @@ int result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD field
  * 	types, the length of the data in bytes is returned.
  */
 
-int result_get_64bit_int(bing_result_t result, enum BING_RESULT_FIELD field, long long* value);
-int result_get_string(bing_result_t result, enum BING_RESULT_FIELD field, char* value);
-int result_get_double(bing_result_t result, enum BING_RESULT_FIELD field, double* value);
-int result_get_boolean(bing_result_t result, enum BING_RESULT_FIELD field, int* value);
-int result_get_array(bing_result_t result, enum BING_RESULT_FIELD field, void* value);
+int bing_result_get_64bit_int(bing_result_t result, enum BING_RESULT_FIELD field, long long* value);
+int bing_result_get_string(bing_result_t result, enum BING_RESULT_FIELD field, char* value);
+int bing_result_get_double(bing_result_t result, enum BING_RESULT_FIELD field, double* value);
+int bing_result_get_boolean(bing_result_t result, enum BING_RESULT_FIELD field, int* value);
+int bing_result_get_array(bing_result_t result, enum BING_RESULT_FIELD field, void* value);
 
 //Custom operations
 
 /**
  * @brief Check if the Bing to type is supported.
  *
- * The @c result_custom_is_field_supported() functions allows developers to determine
+ * The @c bing_result_custom_is_field_supported() functions allows developers to determine
  * if a field is supported.
  *
  * @param result The Bing result to check for a field.
@@ -1279,12 +1279,12 @@ int result_get_array(bing_result_t result, enum BING_RESULT_FIELD field, void* v
  * 	within the specified Bing result, otherwise zero on error, NULL to,
  * 	or NULL field string.
  */
-int result_custom_is_field_supported(bing_result_t result, const char* field);
+int bing_result_custom_is_field_supported(bing_result_t result, const char* field);
 
 /**
  * @brief Get a custom value from a Bing result.
  *
- * The @c result_custom_get_*() functions allows developers to retrieve
+ * The @c bing_result_custom_get_*() functions allows developers to retrieve
  * values from a Bing result. All values are self contained and will be
  * copied to the value parameter. These are the same functions as
  * result_get_* but with the actual field name passed. These functions
@@ -1308,16 +1308,16 @@ int result_custom_is_field_supported(bing_result_t result, const char* field);
  * 	types, the length of the data in bytes is returned.
  */
 
-int result_custom_get_64bit_int(bing_result_t result, const char* field, long long* value);
-int result_custom_get_string(bing_result_t result, const char* field, char* value);
-int result_custom_get_double(bing_result_t result, const char* field, double* value);
-int result_custom_get_boolean(bing_result_t result, const char* field, int* value);
-int result_custom_get_array(bing_result_t result, const char* field, void* value);
+int bing_result_custom_get_64bit_int(bing_result_t result, const char* field, long long* value);
+int bing_result_custom_get_string(bing_result_t result, const char* field, char* value);
+int bing_result_custom_get_double(bing_result_t result, const char* field, double* value);
+int bing_result_custom_get_boolean(bing_result_t result, const char* field, int* value);
+int bing_result_custom_get_array(bing_result_t result, const char* field, void* value);
 
 /**
  * @brief Set a custom value for a Bing result.
  *
- * The @c result_custom_set_*() functions allows developers to set
+ * The @c bing_result_custom_set_*() functions allows developers to set
  * values to a custom Bing result. If the result is not the custom type
  * then the function will fail. All values are self contained and will be
  * copied from the value parameter.
@@ -1347,17 +1347,17 @@ int result_custom_get_array(bing_result_t result, const char* field, void* value
  * 	otherwise zero on error.
  */
 
-int result_custom_set_64bit_int(bing_result_t result, const char* field, long long* value);
-int result_custom_set_string(bing_result_t result, const char* field, const char* value);
-int result_custom_set_double(bing_result_t result, const char* field, double* value);
-int result_custom_set_boolean(bing_result_t result, const char* field, int* value);
-int result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
+int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, long long* value);
+int bing_result_custom_set_string(bing_result_t result, const char* field, const char* value);
+int bing_result_custom_set_double(bing_result_t result, const char* field, double* value);
+int bing_result_custom_set_boolean(bing_result_t result, const char* field, int* value);
+int bing_result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
 
 /**
  * @brief Allocate memory that will be freed when the parent response
  * is freed.
  *
- * The @c result_custom_allocation() function allows developers to
+ * The @c bing_result_custom_allocation() function allows developers to
  * allocate any amount of memory between 1 byte and 5 KiB. This
  * memory will be freed when free_response is called for the
  * parent response that the result came from.
@@ -1377,12 +1377,12 @@ int result_custom_set_array(bing_result_t result, const char* field, const void*
  * @return A pointer of the allocated memory will be returned, or
  * 	NULL if allocation failed or the size was above the allowed limit.
  */
-void* result_custom_allocation(bing_result_t result, size_t size);
+void* bing_result_custom_allocation(bing_result_t result, size_t size);
 
 /**
  * @brief Register a new result creator.
  *
- * The @c result_register_result_creator() function allows developers to
+ * The @c bing_result_register_result_creator() function allows developers to
  * register a set of callbacks and a name for a, as of now, unsupported
  * Bing result.
  *
@@ -1425,12 +1425,12 @@ void* result_custom_allocation(bing_result_t result, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func);
+int bing_result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func);
 
 /**
  * @brief Unregister a result creator.
  *
- * The @c result_unregister_result_creator() function allows developers to
+ * The @c bing_result_unregister_result_creator() function allows developers to
  * unregister a set of result creator callbacks.
  *
  * @param name The name associated with the result. This is the same
@@ -1439,7 +1439,7 @@ int result_register_result_creator(const char* name, int array, int common, resu
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int result_unregister_result_creator(const char* name);
+int bing_result_unregister_result_creator(const char* name);
 
 __END_DECLS
 

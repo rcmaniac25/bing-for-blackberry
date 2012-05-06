@@ -155,7 +155,7 @@ BOOL checkForError(bing_parser* parser)
 		cleanStacks(parser);
 
 		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
-		free_response(parser->current);
+		bing_response_free(parser->current);
 
 		//Finally, free any strings
 		bing_mem_free((void*)parser->query);
@@ -380,17 +380,17 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 								//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
 
 								data = bing_mem_malloc(sizeof(long long));
-								result_get_64bit_int(result, BING_RESULT_FIELD_CODE, (long long*)data);
+								bing_result_get_64bit_int(result, BING_RESULT_FIELD_CODE, (long long*)data);
 								BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
 								bing_mem_free(data);
 
-								data = bing_mem_malloc(result_get_string(result, BING_RESULT_FIELD_MESSAGE, NULL));
-								result_get_string(result, BING_RESULT_FIELD_MESSAGE, data);
+								data = bing_mem_malloc(bing_result_get_string(result, BING_RESULT_FIELD_MESSAGE, NULL));
+								bing_result_get_string(result, BING_RESULT_FIELD_MESSAGE, data);
 								BING_MSG_PRINTOUT("Error Message = %s\n", data);
 								bing_mem_free(data);
 
-								data = bing_mem_malloc(result_get_string(result, BING_RESULT_FIELD_PARAMETER, NULL));
-								result_get_string(result, BING_RESULT_FIELD_PARAMETER, data);
+								data = bing_mem_malloc(bing_result_get_string(result, BING_RESULT_FIELD_PARAMETER, NULL));
+								bing_result_get_string(result, BING_RESULT_FIELD_PARAMETER, data);
 								BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
 								bing_mem_free(data);
 							}
@@ -537,7 +537,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 										else
 										{
 											//Darn it, that failed
-											free_response(parser->current);
+											bing_response_free(parser->current);
 											parser->parseError = PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL; //See parser error below for info why this is an actual error
 										}
 									}
@@ -554,7 +554,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 								if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
 								{
 									//This wasn't a bundled response, just free it (otherwise it will never get freed)
-									free_response(parser->current);
+									bing_response_free(parser->current);
 								}
 								parser->parseError = PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL; //See parser error below for info why this is an actual error
 							}
@@ -1046,7 +1046,7 @@ void* async_search(void* ctx)
 void event_done(bps_event_t *event)
 {
 	bps_event_payload_t* payload = bps_event_get_payload(event);
-	free_response((bing_response_t)payload->data1);
+	bing_response_free((bing_response_t)payload->data1);
 }
 
 void event_invocation(bing_response_t response, void* user_data)
@@ -1070,7 +1070,7 @@ void event_invocation(bing_response_t response, void* user_data)
 			}
 
 			//Since response will never be pushed, free it
-			free_response(response);
+			bing_response_free(response);
 		}
 	}
 }

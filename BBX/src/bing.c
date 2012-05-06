@@ -245,7 +245,7 @@ void bing_free(unsigned int bingID)
 			//Free the responses themselves
 			while(bingI->responseCount > 0)
 			{
-				free_response((bing_response_t)bingI->responses[bingI->responseCount - 1]);
+				bing_response_free((bing_response_t)bingI->responses[bingI->responseCount - 1]);
 			}
 			bing_mem_free(bingI->responses);
 
