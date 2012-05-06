@@ -19,6 +19,33 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
+enum PARSER_ERROR
+{
+	PE_NO_ERROR,
+
+	//Error callbacks
+	PE_ERROR_CALLBACK,
+	PE_SERROR_CALLBACK,
+
+	//addResultToStack
+	PE_ADD_RESULT_STACK_STRDUB_FAIL,
+	PE_ADD_RESULT_STACK_NAME_PSTACK_NOALLOC,
+	PE_ADD_RESULT_STACK_RESULT_PSTACK_NOALLOC,
+
+	//startElementNs
+	PE_START_ELE_QUERY_HASHTABLE_CREATE_FAIL,
+	PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL,
+	PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL,
+	PE_START_ELE_RESPONSE_CREATE_FAIL,
+	PE_START_ELE_NO_QNAME,
+
+	//endElementNs
+	PE_END_ELE_NO_QNAME,
+
+	//getxmldata
+	PE_GETXMLDATA_CTX_CREATE_FAIL
+};
+
 typedef struct PARSER_STACK_S
 {
 	void* value;
@@ -47,7 +74,7 @@ typedef struct BING_PARSER_S
 	receive_bing_response_func responseFunc;
 	void* userData;
 	int bpsChannel;
-	BOOL parseError;
+	enum PARSER_ERROR parseError;
 #if defined(BING_DEBUG)
 	BOOL errorRet;
 #endif
@@ -57,13 +84,13 @@ typedef struct BING_PARSER_S
 void errorCallback(void *ctx, const char *msg, ...)
 {
 	bing_parser* parser = (bing_parser*)ctx;
-	parser->parseError = TRUE; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
+	parser->parseError = PE_ERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
 void serrorCallback(void* userData, xmlErrorPtr error)
 {
 	bing_parser* parser = (bing_parser*)userData;
-	parser->parseError = TRUE; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
+	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
 //*sigh* C doesn't have an equivalent function of endWith unless it's a character.
@@ -120,7 +147,7 @@ void cleanStacks(bing_parser* parser)
 
 BOOL checkForError(bing_parser* parser)
 {
-	if(parser->parseError)
+	if(parser->parseError != PE_NO_ERROR)
 	{
 		//Error, cleanup everything
 
@@ -212,7 +239,7 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 			if(!pt->value)
 			{
 				//Darn, so close again
-				parser->parseError = TRUE;
+				parser->parseError = PE_ADD_RESULT_STACK_STRDUB_FAIL;
 
 				response_remove_result(parser->current, result, internal, TRUE);
 			}
@@ -220,7 +247,7 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 		else
 		{
 			//That's not good (darn, so close. We where able to allocate the first stack but not the second)
-			parser->parseError = TRUE;
+			parser->parseError = PE_ADD_RESULT_STACK_NAME_PSTACK_NOALLOC;
 
 			response_remove_result(parser->current, result, internal, TRUE);
 		}
@@ -228,7 +255,7 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 	else
 	{
 		//That's not good
-		parser->parseError = TRUE;
+		parser->parseError = PE_ADD_RESULT_STACK_RESULT_PSTACK_NOALLOC;
 
 		response_remove_result(parser->current, result, internal, TRUE);
 	}
@@ -332,7 +359,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 					else
 					{
 						//If the table is NULL then we have an issue as we need that table for query
-						parser->parseError = TRUE;
+						parser->parseError = PE_START_ELE_QUERY_HASHTABLE_CREATE_FAIL;
 					}
 
 					hashtable_free(table);
@@ -511,7 +538,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 										{
 											//Darn it, that failed
 											free_response(parser->current);
-											parser->parseError = TRUE; //See parser error below for info why this is an actual error
+											parser->parseError = PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL; //See parser error below for info why this is an actual error
 										}
 									}
 								}
@@ -529,7 +556,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 									//This wasn't a bundled response, just free it (otherwise it will never get freed)
 									free_response(parser->current);
 								}
-								parser->parseError = TRUE; //See parser error below for info why this is an actual error
+								parser->parseError = PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL; //See parser error below for info why this is an actual error
 							}
 
 							hashtable_free(table);
@@ -537,7 +564,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 						else
 						{
 							//Unlike "results" where missing one is unfortunate, the "response" type helps maintain the tree hierarchy and skipping one would mess up everything (possibly)
-							parser->parseError = TRUE;
+							parser->parseError = PE_START_ELE_RESPONSE_CREATE_FAIL;
 						}
 					}
 				}
@@ -548,7 +575,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 		else
 		{
 			//No qualified name, error
-			parser->parseError = TRUE;
+			parser->parseError = PE_START_ELE_NO_QNAME;
 		}
 	}
 }
@@ -632,7 +659,7 @@ void endElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 		else
 		{
 			//No qualified name, error
-			parser->parseError = TRUE;
+			parser->parseError = PE_END_ELE_NO_QNAME;
 		}
 	}
 }
@@ -695,8 +722,19 @@ void search_cleanup(bing_parser* parser)
 	xmlParserCtxtPtr ctx;
 	if(parser)
 	{
+#if defined(BING_DEBUG)
+		lastErrorCode = (int)parser->parseError; //For devs
+		if(parser->parseError != PE_NO_ERROR)
+		{
+			BING_MSG_PRINTOUT("Parser error: %d\n", (int)parser->parseError);
+		}
+#endif
+
 		ctx = parser->ctx;
-		ctx->userData = NULL;
+		if(ctx)
+		{
+			ctx->userData = NULL;
+		}
 
 		//Shutdown cURL
 		curl_easy_cleanup(parser->curl);
@@ -719,7 +757,10 @@ void search_cleanup(bing_parser* parser)
 		bing_free(parser);
 
 		//Free the document
-		xmlFreeDoc(ctx->myDoc);
+		if(ctx)
+		{
+			xmlFreeDoc(ctx->myDoc);
+		}
 
 		//Free the actual context
 		xmlFreeParserCtxt(ctx);
@@ -750,7 +791,7 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	if(parser->ctx)
 	{
 		//Only write data if no error has occurred
-		if(!parser->parseError)
+		if(parser->parseError == PE_NO_ERROR)
 		{
 			xmlParseChunk(parser->ctx, ptr, atcsize, FALSE);
 		}
@@ -759,11 +800,16 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	{
 		//Create parser
 		parser->ctx = xmlCreatePushParserCtxt((xmlSAXHandlerPtr)&parserHandler, parser, ptr, atcsize, NULL);
-		parser->parseError = !parser->ctx; //If an error occurs, it will ignore writing any data
+		parser->parseError = PE_NO_ERROR;
+		if(!parser->ctx)
+		{
+			//If an error occurs, it will ignore writing any data
+			parser->parseError = PE_GETXMLDATA_CTX_CREATE_FAIL;
+		}
 	}
 
 	//If an error occurred, we want to let cURL know there was an error
-	if(parser->parseError)
+	if(parser->parseError != PE_NO_ERROR)
 	{
 		atcsize = 0;
 	}
@@ -1108,3 +1154,10 @@ int search_event_async(unsigned int bingID, const char* query, const bing_reques
 {
 	return search_async_in(bingID, query, request, NULL, TRUE, event_invocation);
 }
+
+#if defined(BING_DEBUG)
+int get_last_error_code()
+{
+	return lastErrorCode;
+}
+#endif

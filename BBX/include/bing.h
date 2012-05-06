@@ -270,6 +270,28 @@ int set_error_return(unsigned int bing, int error);
  */
 int get_error_return(unsigned int bing);
 
+/**
+ * @brief A non-threadsafe way to find the last error that occurred, if one happened at all.
+ *
+ * Possible error values
+ * 00. No error
+ * 01. Default error callback (LibXML2)
+ * 02. Default structured error callback (LibXML2)
+ * 03. Name duplication failed (internal structure for parsing response requires duplicating the Bing result's name)
+ * 04. Stack allocation failed (internal structure for parsing response requires creating a stack. This failed for the Bing result name)
+ * 05. Stack allocation failed (internal structure for parsing response requires creating a stack. This failed for the Bing result itself)
+ * 06. Could not create the internal table to store query information (start of element)
+ * 07. Could not create a response for a bundle (start of element)
+ * 08. Could not run creation callback for a newly created response (start of element)
+ * 09. Could not create a response (start of element)
+ * 10. Could not create a qualified name (start of element)
+ * 11. Could not create a qualified name (end of element)
+ * 12. Could not create a LibXML2 context (read network data)
+ *
+ * @return A integer defining the last error code to have occurred after a search.
+ */
+int get_last_error_code();
+
 #endif
 
 /**

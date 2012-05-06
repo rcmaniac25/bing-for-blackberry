@@ -216,6 +216,9 @@ typedef struct list_s
 
 static bing_system bingSystem;
 static volatile unsigned int searchCount;
+#if defined(BING_DEBUG)
+static int lastErrorCode = 0;
+#endif
 
 /*
  * Functions
