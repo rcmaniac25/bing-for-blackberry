@@ -226,7 +226,7 @@ void response_ad_additional_data(bing_response_t response, data_dictionary_t dic
 typedef struct BING_RESPONSE_CREATOR_SEARCH_S
 {
 	bing_response_creator creator;
-	enum SOURCE_TYPE type;
+	enum BING_SOURCE_TYPE type;
 	int tableCount;
 	struct BING_RESPONSE_CREATOR_SEARCH_S* next;
 } bing_response_creator_search;
@@ -261,9 +261,9 @@ void bing_event_get_response(bps_event_t* event, bing_response_t* response)
 	}
 }
 
-enum SOURCE_TYPE response_get_source_type(bing_response_t response)
+enum BING_SOURCE_TYPE response_get_source_type(bing_response_t response)
 {
-	enum SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
+	enum BING_SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
 	bing_response* res;
 	if(response)
 	{
@@ -693,7 +693,7 @@ BOOL response_remove_from_bundle(bing_response* response, bing_response* respons
 	return ret;
 }
 
-BOOL response_create(enum SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
+BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_response* res;
@@ -914,7 +914,7 @@ BOOL response_swap_response(bing_response* response, bing_response* responsePare
 	return ret;
 }
 
-int response_get_string(bing_response_t response, char* buffer, const char* field, enum SOURCE_TYPE type)
+int response_get_string(bing_response_t response, char* buffer, const char* field, enum BING_SOURCE_TYPE type)
 {
 	int ret = -1;
 	bing_response* res;
@@ -934,7 +934,7 @@ int response_get_ad_api_version(bing_response_t response, char* buffer)
 	return response_get_string(response, buffer, RESPONSE_AD_API_VERSION, BING_SOURCETYPE_AD);
 }
 
-long long response_get_int64(bing_response_t response, const char* field, enum SOURCE_TYPE type)
+long long response_get_int64(bing_response_t response, const char* field, enum BING_SOURCE_TYPE type)
 {
 	long long ret = -1;
 	bing_response* res;

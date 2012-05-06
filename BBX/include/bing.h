@@ -67,7 +67,7 @@ typedef struct _bing_search_tag
 	const char* value;
 } bing_search_tag_s, *bing_search_tag_t;
 
-enum SOURCE_TYPE
+enum BING_SOURCE_TYPE
 {
 	BING_SOURCETYPE_UNKNOWN,
 
@@ -439,103 +439,107 @@ int set_bing_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(
  * Request functions
  */
 
-enum REQUEST_FIELD
+enum BING_REQUEST_FIELD
 {
 	//All values are strings unless otherwise noted.
 
-	REQUEST_FIELD_UNKNOWN,
+	BING_REQUEST_FIELD_UNKNOWN,
 
-	REQUEST_FIELD_VERSION,
-	REQUEST_FIELD_MARKET,
-	REQUEST_FIELD_ADULT,
-	REQUEST_FIELD_OPTIONS,
+	BING_REQUEST_FIELD_VERSION,
+	BING_REQUEST_FIELD_MARKET,
+	BING_REQUEST_FIELD_ADULT,
+	BING_REQUEST_FIELD_OPTIONS,
 	//double
-	REQUEST_FIELD_LATITUDE,
+	BING_REQUEST_FIELD_LATITUDE,
 	//double
-	REQUEST_FIELD_LONGITUDE,
-	REQUEST_FIELD_LANGUAGE,
+	BING_REQUEST_FIELD_LONGITUDE,
+	BING_REQUEST_FIELD_LANGUAGE,
 	//double
-	REQUEST_FIELD_RADIUS,
+	BING_REQUEST_FIELD_RADIUS,
 	//64bit integer
-	REQUEST_FIELD_PAGE_NUMBER,
+	BING_REQUEST_FIELD_PAGE_NUMBER,
 	//64bit integer
-	REQUEST_FIELD_AD_UNIT_ID,
+	BING_REQUEST_FIELD_AD_UNIT_ID,
 	//64bit integer
-	REQUEST_FIELD_PROPERTY_ID,
+	BING_REQUEST_FIELD_PROPERTY_ID,
 	//64bit integer
-	REQUEST_FIELD_CHANNEL_ID,
+	BING_REQUEST_FIELD_CHANNEL_ID,
 	//64bit integer
-	REQUEST_FIELD_MAINLINE_AD_COUNT,
+	BING_REQUEST_FIELD_MAINLINE_AD_COUNT,
 	//64bit integer
-	REQUEST_FIELD_SIDEBAR_AD_COUNT,
+	BING_REQUEST_FIELD_SIDEBAR_AD_COUNT,
 	//64bit integer
-	REQUEST_FIELD_COUNT,
+	BING_REQUEST_FIELD_COUNT,
 	//64bit integer
-	REQUEST_FIELD_OFFSET,
-	REQUEST_FIELD_FILTERS,
-	REQUEST_FIELD_MOBILE_WEB_OPTIONS,
-	REQUEST_FIELD_CATEGORY,
-	REQUEST_FIELD_LOCATION_OVERRIDE,
-	REQUEST_FIELD_SORT_BY,
-	REQUEST_FIELD_FILE_TYPE,
-	REQUEST_FIELD_LOC_ID,
-	REQUEST_FIELD_SOURCE_LANGUAGE,
-	REQUEST_FIELD_TARGET_LANGUAGE,
-	REQUEST_FIELD_WEB_OPTIONS
+	BING_REQUEST_FIELD_OFFSET,
+	BING_REQUEST_FIELD_FILTERS,
+	BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS,
+	BING_REQUEST_FIELD_CATEGORY,
+	BING_REQUEST_FIELD_LOCATION_OVERRIDE,
+	BING_REQUEST_FIELD_SORT_BY,
+	BING_REQUEST_FIELD_FILE_TYPE,
+	BING_REQUEST_FIELD_LOC_ID,
+	BING_REQUEST_FIELD_SOURCE_LANGUAGE,
+	BING_REQUEST_FIELD_TARGET_LANGUAGE,
+	BING_REQUEST_FIELD_WEB_OPTIONS
 };
 
 //Helper functions to make the end result better, from http://stackoverflow.com/questions/195975/how-to-make-a-char-string-from-a-c-macros-value
+#if defined(__STRING)
+#define VALUE_NAME(name) __STRING(name)
+#else
 #define STR_VALUE(arg) #arg
 #define VALUE_NAME(name) STR_VALUE(name)
+#endif
 
-#define DEFAULT_SEARCH_MARKET "en-US"
-#define DEFAULT_API_VERSION VALUE_NAME(BING_VERSION)
+#define BING_DEFAULT_SEARCH_MARKET "en-US"
+#define BING_DEFAULT_API_VERSION VALUE_NAME(BING_VERSION)
 
-#define OPTION_SEPERATOR "+"
+#define BING_OPTION_SEPERATOR "+"
 
-//Used for the REQUEST_FIELD_ADULT field
-#define ADULT_OPTIONS_OFF "Off"
-#define ADULT_OPTIONS_MODERATE "Moderate"
-#define ADULT_OPTIONS_STRICT "Strict"
+//Used for the BING_REQUEST_FIELD_ADULT field
+#define BING_ADULT_OPTIONS_OFF "Off"
+#define BING_ADULT_OPTIONS_MODERATE "Moderate"
+#define BING_ADULT_OPTIONS_STRICT "Strict"
 
-//Used for the REQUEST_FIELD_OPTIONS field (separated with SEARCH_OPTIONS_SEPERATOR)
-#define SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
-#define SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION "DisableLocationDetection"
-#define SEARCH_OPTIONS_ENABLE_HIGHLIGHTING "EnableHighlighting"
+//Used for the BING_REQUEST_FIELD_OPTIONS field (separated with BING_SEARCH_OPTIONS_SEPERATOR)
+#define BING_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define BING_SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION "DisableLocationDetection"
+#define BING_SEARCH_OPTIONS_ENABLE_HIGHLIGHTING "EnableHighlighting"
 
-//Used for the REQUEST_FIELD_MOBILE_WEB_OPTIONS field (separated with MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
-#define MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
-#define MOBILE_WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
-#define MOBILE_WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
+//Used for the BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS field (separated with BING_MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
+#define BING_MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define BING_MOBILE_WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
+#define BING_MOBILE_WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
 
-//Used for the REQUEST_FIELD_SORT_BY field when used on a news source type
-#define NEWS_SORT_OPTIONS_DATE "Date"
-#define NEWS_SORT_OPTIONS_RELEVANCE "Relevance"
+//Used for the BING_REQUEST_FIELD_SORT_BY field when used on a news source type
+#define BING_NEWS_SORT_OPTIONS_DATE "Date"
+#define BING_NEWS_SORT_OPTIONS_RELEVANCE "Relevance"
 
-//Used for the REQUEST_FIELD_SORT_BY field when used on a phonebook source type
-#define PHONEBOOK_SORT_OPTION_DEFAULT "Default"
-#define PHONEBOOK_SORT_OPTION_DISTANCE "Distance"
-#define PHONEBOOK_SORT_OPTION_RELEVANCE "Relevance"
+//Used for the BING_REQUEST_FIELD_SORT_BY field when used on a phonebook source type
+#define BING_PHONEBOOK_SORT_OPTION_DEFAULT "Default"
+#define BING_PHONEBOOK_SORT_OPTION_DISTANCE "Distance"
+#define BING_PHONEBOOK_SORT_OPTION_RELEVANCE "Relevance"
 
-//Used for the REQUEST_FIELD_SORT_BY field when used on a video source type
-#define VIDEO_SORT_OPTION_DATE "Date"
-#define VIDEO_SORT_OPTION_RELEVANCE "Relevance"
+//Used for the BING_REQUEST_FIELD_SORT_BY field when used on a video source type
+#define BING_VIDEO_SORT_OPTION_DATE "Date"
+#define BING_VIDEO_SORT_OPTION_RELEVANCE "Relevance"
 
-//Used for the REQUEST_FIELD_FILTERS field (separated with VIDEO_FILTERS_SEPERATOR). You cannot include more than one value for duration in the same request.
-#define VIDEO_FILTERS_SEPERATOR OPTION_SEPERATOR
-#define VIDEO_FILTERS_DURATION_SHORT "Duration:Short"
-#define VIDEO_FILTERS_DURATION_MEDIUM "Duration:Medium"
-#define VIDEO_FILTERS_DURATION_LONG "Duration:Long"
-#define VIDEO_FILTERS_ASPECT_STANDARD "Aspect:Standard"
-#define VIDEO_FILTERS_ASPECT_WIDESCREEN "Aspect:Widescreen"
-#define VIDEO_FILTERS_RESOLUTION_LOW "Resolution:Low"
-#define VIDEO_FILTERS_RESOLUTION_MEDIUM "Resolution:Medium"
-#define VIDEO_FILTERS_RESOLUTION_HIGH "Resolution:High"
+//Used for the BING_REQUEST_FIELD_FILTERS field (separated with BING_VIDEO_FILTERS_SEPERATOR). You cannot include more than one value for duration in the same request.
+#define BING_VIDEO_FILTERS_SEPERATOR OPTION_SEPERATOR
+#define BING_VIDEO_FILTERS_DURATION_SHORT "Duration:Short"
+#define BING_VIDEO_FILTERS_DURATION_MEDIUM "Duration:Medium"
+#define BING_VIDEO_FILTERS_DURATION_LONG "Duration:Long"
+#define BING_VIDEO_FILTERS_ASPECT_STANDARD "Aspect:Standard"
+#define BING_VIDEO_FILTERS_ASPECT_WIDESCREEN "Aspect:Widescreen"
+#define BING_VIDEO_FILTERS_RESOLUTION_LOW "Resolution:Low"
+#define BING_VIDEO_FILTERS_RESOLUTION_MEDIUM "Resolution:Medium"
+#define BING_VIDEO_FILTERS_RESOLUTION_HIGH "Resolution:High"
 
-//Used for the REQUEST_FIELD_WEB_OPTIONS field (separated with MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
-#define WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
-#define WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
-#define WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
+//Used for the BING_REQUEST_FIELD_WEB_OPTIONS field (separated with BING_MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
+#define BING_WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define BING_WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
+#define BING_WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
 
 //Standard functions
 
@@ -549,7 +553,7 @@ enum REQUEST_FIELD
  *
  * @return The Bing request source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-enum SOURCE_TYPE request_get_source_type(bing_request_t request);
+enum BING_SOURCE_TYPE request_get_source_type(bing_request_t request);
 
 /**
  * @brief Create a standard Bing request.
@@ -566,7 +570,7 @@ enum SOURCE_TYPE request_get_source_type(bing_request_t request);
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error, invalid source types, or NULL request pointer.
  */
-int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request);
+int request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request);
 
 /**
  * @brief Check if the Bing request type is supported.
@@ -580,7 +584,7 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
  * @return A boolean value which is non-zero if the field is supported
  * 	within the specified Bing request, otherwise zero on error or NULL request.
  */
-int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field);
+int request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field);
 
 /**
  * @brief Get a value from a Bing request.
@@ -605,9 +609,9 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
  * 	type then the result is -1.
  */
 
-int request_get_64bit_int(bing_request_t request, enum REQUEST_FIELD field, long long* value);
-int request_get_string(bing_request_t request, enum REQUEST_FIELD field, char* value);
-int request_get_double(bing_request_t request, enum REQUEST_FIELD field, double* value);
+int request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value);
+int request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value);
+int request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value);
 
 /**
  * @brief Add a request to a bundle request.
@@ -769,7 +773,7 @@ int request_create_custom_request(const char* source_type, bing_request_t* reque
  *
  * @return The Bing response source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-enum SOURCE_TYPE response_get_source_type(bing_response_t response);
+enum BING_SOURCE_TYPE response_get_source_type(bing_response_t response);
 
 /**
  * @brief Get the estimated total number of results for a Bing response.
@@ -1128,78 +1132,78 @@ int response_unregister_response_creator(const char* name);
  * Result functions
  */
 
-enum RESULT_FIELD
+enum BING_RESULT_FIELD
 {
 	//All values are strings unless otherwise noted.
 
-	RESULT_FIELD_UNKNOWN,
+	BING_RESULT_FIELD_UNKNOWN,
 
 	//64bit integer
-	RESULT_FIELD_RANK,
-	RESULT_FIELD_POSITION,
-	RESULT_FIELD_TITLE,
-	RESULT_FIELD_DESCRIPTION,
-	RESULT_FIELD_DISPLAY_URL,
-	RESULT_FIELD_ADLINK_URL,
+	BING_RESULT_FIELD_RANK,
+	BING_RESULT_FIELD_POSITION,
+	BING_RESULT_FIELD_TITLE,
+	BING_RESULT_FIELD_DESCRIPTION,
+	BING_RESULT_FIELD_DISPLAY_URL,
+	BING_RESULT_FIELD_ADLINK_URL,
 	//64bit integer
-	RESULT_FIELD_CODE,
-	RESULT_FIELD_MESSAGE,
-	RESULT_FIELD_HELP_URL,
-	RESULT_FIELD_PARAMETER,
-	RESULT_FIELD_SOURCE_TYPE,
+	BING_RESULT_FIELD_CODE,
+	BING_RESULT_FIELD_MESSAGE,
+	BING_RESULT_FIELD_HELP_URL,
+	BING_RESULT_FIELD_PARAMETER,
+	BING_RESULT_FIELD_SOURCE_TYPE,
 	//64bit integer
-	RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,
-	RESULT_FIELD_VALUE,
+	BING_RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,
+	BING_RESULT_FIELD_VALUE,
 	//64bit integer
-	RESULT_FIELD_HEIGHT,
+	BING_RESULT_FIELD_HEIGHT,
 	//64bit integer
-	RESULT_FIELD_WIDTH,
+	BING_RESULT_FIELD_WIDTH,
 	//64bit integer
-	RESULT_FIELD_FILE_SIZE,
-	RESULT_FIELD_MEDIA_URL,
-	RESULT_FIELD_URL,
-	RESULT_FIELD_CONTENT_TYPE,
+	BING_RESULT_FIELD_FILE_SIZE,
+	BING_RESULT_FIELD_MEDIA_URL,
+	BING_RESULT_FIELD_URL,
+	BING_RESULT_FIELD_CONTENT_TYPE,
 	//bing_thumbnail_t
-	RESULT_FIELD_THUMBNAIL,
-	RESULT_FIELD_ATTRIBUTION,
-	RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA,
-	RESULT_FIELD_DATE_TIME,
+	BING_RESULT_FIELD_THUMBNAIL,
+	BING_RESULT_FIELD_ATTRIBUTION,
+	BING_RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA,
+	BING_RESULT_FIELD_DATE_TIME,
 	//boolean
-	RESULT_FIELD_BREAKING_NEWS,
-	RESULT_FIELD_DATE,
-	RESULT_FIELD_SNIPPET,
-	RESULT_FIELD_SOURCE,
+	BING_RESULT_FIELD_BREAKING_NEWS,
+	BING_RESULT_FIELD_DATE,
+	BING_RESULT_FIELD_SNIPPET,
+	BING_RESULT_FIELD_SOURCE,
 	//bing_news_collection_s
-	RESULT_FIELD_NEWSCOLLECTION,
+	BING_RESULT_FIELD_NEWSCOLLECTION,
 	//double
-	RESULT_FIELD_LATITUDE,
+	BING_RESULT_FIELD_LATITUDE,
 	//double
-	RESULT_FIELD_LONGITUDE,
+	BING_RESULT_FIELD_LONGITUDE,
 	//double
-	RESULT_FIELD_USER_RATING,
+	BING_RESULT_FIELD_USER_RATING,
 	//64bit integer
-	RESULT_FIELD_REVIEW_COUNT,
-	RESULT_FIELD_BUSINESS_URL,
-	RESULT_FIELD_CITY,
-	RESULT_FIELD_COUNTRY_OR_REGION,
-	RESULT_FIELD_PHONE_NUMBER,
-	RESULT_FIELD_POSTAL_CODE,
-	RESULT_FIELD_STATE_OR_PROVINCE,
-	RESULT_FIELD_UNIQUE_ID,
-	RESULT_FIELD_BUSINESS,
-	RESULT_FIELD_ADDRESS,
-	RESULT_FIELD_TRANSLATED_TERM,
-	RESULT_FIELD_SOURCE_TITLE,
-	RESULT_FIELD_RUN_TIME,
-	RESULT_FIELD_PLAY_URL,
-	RESULT_FIELD_CLICK_THROUGH_PAGE_URL,
+	BING_RESULT_FIELD_REVIEW_COUNT,
+	BING_RESULT_FIELD_BUSINESS_URL,
+	BING_RESULT_FIELD_CITY,
+	BING_RESULT_FIELD_COUNTRY_OR_REGION,
+	BING_RESULT_FIELD_PHONE_NUMBER,
+	BING_RESULT_FIELD_POSTAL_CODE,
+	BING_RESULT_FIELD_STATE_OR_PROVINCE,
+	BING_RESULT_FIELD_UNIQUE_ID,
+	BING_RESULT_FIELD_BUSINESS,
+	BING_RESULT_FIELD_ADDRESS,
+	BING_RESULT_FIELD_TRANSLATED_TERM,
+	BING_RESULT_FIELD_SOURCE_TITLE,
+	BING_RESULT_FIELD_RUN_TIME,
+	BING_RESULT_FIELD_PLAY_URL,
+	BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL,
 	//bing_thumbnail_t
-	RESULT_FIELD_STATIC_THUMBNAIL,
-	RESULT_FIELD_CACHE_URL,
+	BING_RESULT_FIELD_STATIC_THUMBNAIL,
+	BING_RESULT_FIELD_CACHE_URL,
 	//bing_deep_link_s
-	RESULT_FIELD_DEEP_LINKS,
+	BING_RESULT_FIELD_DEEP_LINKS,
 	//bing_search_tag_s
-	RESULT_FIELD_SEARCH_TAGS
+	BING_RESULT_FIELD_SEARCH_TAGS
 };
 
 //Standard operations
@@ -1214,7 +1218,7 @@ enum RESULT_FIELD
  *
  * @return The Bing result source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-enum SOURCE_TYPE result_get_source_type(bing_result_t result);
+enum BING_SOURCE_TYPE result_get_source_type(bing_result_t result);
 
 /**
  * @brief Check if the Bing result type is supported.
@@ -1228,7 +1232,7 @@ enum SOURCE_TYPE result_get_source_type(bing_result_t result);
  * @return A boolean value which is non-zero if the field is supported
  * 	within the specified Bing result, otherwise zero on error or NULL result.
  */
-int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field);
+int result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD field);
 
 /**
  * @brief Get a value from a Bing result.
@@ -1254,11 +1258,11 @@ int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field);
  * 	types, the length of the data in bytes is returned.
  */
 
-int result_get_64bit_int(bing_result_t result, enum RESULT_FIELD field, long long* value);
-int result_get_string(bing_result_t result, enum RESULT_FIELD field, char* value);
-int result_get_double(bing_result_t result, enum RESULT_FIELD field, double* value);
-int result_get_boolean(bing_result_t result, enum RESULT_FIELD field, int* value);
-int result_get_array(bing_result_t result, enum RESULT_FIELD field, void* value);
+int result_get_64bit_int(bing_result_t result, enum BING_RESULT_FIELD field, long long* value);
+int result_get_string(bing_result_t result, enum BING_RESULT_FIELD field, char* value);
+int result_get_double(bing_result_t result, enum BING_RESULT_FIELD field, double* value);
+int result_get_boolean(bing_result_t result, enum BING_RESULT_FIELD field, int* value);
+int result_get_array(bing_result_t result, enum BING_RESULT_FIELD field, void* value);
 
 //Custom operations
 

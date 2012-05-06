@@ -46,49 +46,49 @@
 static bing_field_search request_fields[] =
 {
 		//Universal
-		{{REQUEST_FIELD_VERSION,			FIELD_TYPE_STRING,	REQ_VERSION,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[1]},
-		{{REQUEST_FIELD_MARKET,				FIELD_TYPE_STRING,	REQ_MARKET,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[2]},
-		{{REQUEST_FIELD_ADULT,				FIELD_TYPE_STRING,	REQ_ADULT,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[3]},
-		{{REQUEST_FIELD_OPTIONS,			FIELD_TYPE_STRING,	REQ_OPTIONS,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[4]},
-		{{REQUEST_FIELD_LATITUDE,			FIELD_TYPE_DOUBLE,	REQ_LATITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[5]},
-		{{REQUEST_FIELD_LONGITUDE,			FIELD_TYPE_DOUBLE,	REQ_LONGITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[6]},
-		{{REQUEST_FIELD_LANGUAGE,			FIELD_TYPE_STRING,	REQ_LANGUAGE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[7]},
-		{{REQUEST_FIELD_RADIUS,				FIELD_TYPE_DOUBLE,	REQ_RADIUS,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[8]},
+		{{BING_REQUEST_FIELD_VERSION,				FIELD_TYPE_STRING,	REQ_VERSION,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[1]},
+		{{BING_REQUEST_FIELD_MARKET,				FIELD_TYPE_STRING,	REQ_MARKET,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[2]},
+		{{BING_REQUEST_FIELD_ADULT,					FIELD_TYPE_STRING,	REQ_ADULT,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[3]},
+		{{BING_REQUEST_FIELD_OPTIONS,				FIELD_TYPE_STRING,	REQ_OPTIONS,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[4]},
+		{{BING_REQUEST_FIELD_LATITUDE,				FIELD_TYPE_DOUBLE,	REQ_LATITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[5]},
+		{{BING_REQUEST_FIELD_LONGITUDE,				FIELD_TYPE_DOUBLE,	REQ_LONGITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[6]},
+		{{BING_REQUEST_FIELD_LANGUAGE,				FIELD_TYPE_STRING,	REQ_LANGUAGE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[7]},
+		{{BING_REQUEST_FIELD_RADIUS,				FIELD_TYPE_DOUBLE,	REQ_RADIUS,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[8]},
 
 		//Ad
-		{{REQUEST_FIELD_PAGE_NUMBER,		FIELD_TYPE_LONG,	REQ_AD_PAGENUMBER,	1,	{BING_SOURCETYPE_AD}},								&request_fields[9]},
-		{{REQUEST_FIELD_AD_UNIT_ID,			FIELD_TYPE_LONG,	REQ_AD_ADUNITID,	1,	{BING_SOURCETYPE_AD}},								&request_fields[10]},
-		{{REQUEST_FIELD_PROPERTY_ID,		FIELD_TYPE_LONG,	REQ_AD_PROPID,		1,	{BING_SOURCETYPE_AD}},								&request_fields[11]},
-		{{REQUEST_FIELD_CHANNEL_ID,			FIELD_TYPE_LONG,	REQ_AD_CHANID,		1,	{BING_SOURCETYPE_AD}},								&request_fields[12]},
-		{{REQUEST_FIELD_MAINLINE_AD_COUNT,	FIELD_TYPE_LONG,	REQ_AD_MLCOUNT,		1,	{BING_SOURCETYPE_AD}},								&request_fields[13]},
-		{{REQUEST_FIELD_SIDEBAR_AD_COUNT,	FIELD_TYPE_LONG,	REQ_AD_SBCOUNT,		1,	{BING_SOURCETYPE_AD}},								&request_fields[14]},
+		{{BING_REQUEST_FIELD_PAGE_NUMBER,			FIELD_TYPE_LONG,	REQ_AD_PAGENUMBER,	1,	{BING_SOURCETYPE_AD}},								&request_fields[9]},
+		{{BING_REQUEST_FIELD_AD_UNIT_ID,			FIELD_TYPE_LONG,	REQ_AD_ADUNITID,	1,	{BING_SOURCETYPE_AD}},								&request_fields[10]},
+		{{BING_REQUEST_FIELD_PROPERTY_ID,			FIELD_TYPE_LONG,	REQ_AD_PROPID,		1,	{BING_SOURCETYPE_AD}},								&request_fields[11]},
+		{{BING_REQUEST_FIELD_CHANNEL_ID,			FIELD_TYPE_LONG,	REQ_AD_CHANID,		1,	{BING_SOURCETYPE_AD}},								&request_fields[12]},
+		{{BING_REQUEST_FIELD_MAINLINE_AD_COUNT,		FIELD_TYPE_LONG,	REQ_AD_MLCOUNT,		1,	{BING_SOURCETYPE_AD}},								&request_fields[13]},
+		{{BING_REQUEST_FIELD_SIDEBAR_AD_COUNT,		FIELD_TYPE_LONG,	REQ_AD_SBCOUNT,		1,	{BING_SOURCETYPE_AD}},								&request_fields[14]},
 
 		//MobileWeb
-		{{REQUEST_FIELD_MOBILE_WEB_OPTIONS,	FIELD_TYPE_STRING,	REQ_MW_OPTIONS,		1,	{BING_SOURCETYPE_MOBILE_WEB}},						&request_fields[15]},
+		{{BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS,	FIELD_TYPE_STRING,	REQ_MW_OPTIONS,		1,	{BING_SOURCETYPE_MOBILE_WEB}},						&request_fields[15]},
 
 		//News
-		{{REQUEST_FIELD_CATEGORY,			FIELD_TYPE_STRING,	REQ_NEWS_CAT,		1,	{BING_SOURCETYPE_NEWS}},							&request_fields[16]},
-		{{REQUEST_FIELD_LOCATION_OVERRIDE,	FIELD_TYPE_STRING,	REQ_NEWS_LOCOVER,	1,	{BING_SOURCETYPE_NEWS}},							&request_fields[17]},
+		{{BING_REQUEST_FIELD_CATEGORY,				FIELD_TYPE_STRING,	REQ_NEWS_CAT,		1,	{BING_SOURCETYPE_NEWS}},							&request_fields[16]},
+		{{BING_REQUEST_FIELD_LOCATION_OVERRIDE,		FIELD_TYPE_STRING,	REQ_NEWS_LOCOVER,	1,	{BING_SOURCETYPE_NEWS}},							&request_fields[17]},
 
 		//Phonebook
-		{{REQUEST_FIELD_LOC_ID,				FIELD_TYPE_STRING,	REQ_PHONE_LOCID,	1,	{BING_SOURCETYPE_PHONEBOOK}},						&request_fields[18]},
+		{{BING_REQUEST_FIELD_LOC_ID,				FIELD_TYPE_STRING,	REQ_PHONE_LOCID,	1,	{BING_SOURCETYPE_PHONEBOOK}},						&request_fields[18]},
 
 		//Translation
-		{{REQUEST_FIELD_SOURCE_LANGUAGE,	FIELD_TYPE_STRING,	REQ_TRANS_SOURCE,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[19]},
-		{{REQUEST_FIELD_TARGET_LANGUAGE,	FIELD_TYPE_STRING,	REQ_TRANS_TARGET,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[20]},
+		{{BING_REQUEST_FIELD_SOURCE_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_SOURCE,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[19]},
+		{{BING_REQUEST_FIELD_TARGET_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_TARGET,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[20]},
 
 		//Web
-		{{REQUEST_FIELD_WEB_OPTIONS,		FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[21]},
+		{{BING_REQUEST_FIELD_WEB_OPTIONS,			FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[21]},
 
 		//Multi (less obvious breaks in original source type)
-		{{REQUEST_FIELD_COUNT,				FIELD_TYPE_LONG,	REQ_MULTI_COUNT,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
-				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},								&request_fields[22]},
-		{{REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_MULTI_OFFSET,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
-				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},								&request_fields[23]},
-		{{REQUEST_FIELD_FILTERS,			FIELD_TYPE_STRING,	REQ_MULTI_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[24]},
-		{{REQUEST_FIELD_SORT_BY,			FIELD_TYPE_STRING,	REQ_MULTI_SORTBY,	3,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
-				BING_SOURCETYPE_VIDEO}},																									&request_fields[25]},
-		{{REQUEST_FIELD_FILE_TYPE,			FIELD_TYPE_STRING,	REQ_MULTI_FILETYPE,	2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
+		{{BING_REQUEST_FIELD_COUNT,					FIELD_TYPE_LONG,	REQ_MULTI_COUNT,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
+				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},										&request_fields[22]},
+		{{BING_REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_MULTI_OFFSET,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
+				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},										&request_fields[23]},
+		{{BING_REQUEST_FIELD_FILTERS,				FIELD_TYPE_STRING,	REQ_MULTI_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[24]},
+		{{BING_REQUEST_FIELD_SORT_BY,				FIELD_TYPE_STRING,	REQ_MULTI_SORTBY,	3,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
+				BING_SOURCETYPE_VIDEO}},																											&request_fields[25]},
+		{{BING_REQUEST_FIELD_FILE_TYPE,				FIELD_TYPE_STRING,	REQ_MULTI_FILETYPE,	2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
 };
 
 #define DEFAULT_ELEMENT_COUNT 8
@@ -97,7 +97,7 @@ static bing_field_search request_fields[] =
 
 typedef struct request_source_type_s
 {
-	enum SOURCE_TYPE type;
+	enum BING_SOURCE_TYPE type;
 	const char* source_type;
 	int maxElements;
 	request_get_options_func getOptions;
@@ -420,9 +420,9 @@ static request_source_type request_source_types[] =
 		{BING_SOURCETYPE_WEB,				"web",				DEFAULT_ELEMENT_COUNT + 4,	request_web_get_options,	NULL}
 };
 
-enum SOURCE_TYPE request_get_source_type(bing_request_t request)
+enum BING_SOURCE_TYPE request_get_source_type(bing_request_t request)
 {
-	enum SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
+	enum BING_SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
 	bing_request* req;
 	request_source_type* type;
 	if(request)
@@ -512,8 +512,8 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 			if(req->data)
 			{
 				//Add default values
-				hashtable_put_item(req->data, REQ_VERSION, DEFAULT_API_VERSION, strlen(DEFAULT_API_VERSION) + 1);
-				hashtable_put_item(req->data, REQ_MARKET, DEFAULT_SEARCH_MARKET, strlen(DEFAULT_SEARCH_MARKET) + 1);
+				hashtable_put_item(req->data, REQ_VERSION, BING_DEFAULT_API_VERSION, strlen(BING_DEFAULT_API_VERSION) + 1);
+				hashtable_put_item(req->data, REQ_MARKET, BING_DEFAULT_SEARCH_MARKET, strlen(BING_DEFAULT_SEARCH_MARKET) + 1);
 
 				//Save request
 				request[0] = req;
@@ -528,7 +528,7 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 	return ret;
 }
 
-int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request)
+int request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request)
 {
 	BOOL ret = FALSE;
 	int tableSize;
@@ -565,7 +565,7 @@ int request_create_request(enum SOURCE_TYPE source_type, bing_request_t* request
 	return ret;
 }
 
-int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
+int request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field)
 {
 	BOOL ret = FALSE;
 	bing_request* req;
@@ -582,7 +582,7 @@ int request_is_field_supported(bing_request_t request, enum REQUEST_FIELD field)
 	return ret;
 }
 
-int request_get_data(bing_request_t request, enum REQUEST_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
+int request_get_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
 {
 	BOOL ret = FALSE;
 	const char* key;
@@ -597,7 +597,7 @@ int request_get_data(bing_request_t request, enum REQUEST_FIELD field, enum FIEL
 	return ret;
 }
 
-int request_get_str_data(bing_request_t request, enum REQUEST_FIELD field, enum FIELD_TYPE type, char* value)
+int request_get_str_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum FIELD_TYPE type, char* value)
 {
 	int ret = -1;
 	const char* key;
@@ -612,17 +612,17 @@ int request_get_str_data(bing_request_t request, enum REQUEST_FIELD field, enum 
 	return ret;
 }
 
-int request_get_64bit_int(bing_request_t request, enum REQUEST_FIELD field, long long* value)
+int request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value)
 {
 	return request_get_data(request, field, FIELD_TYPE_LONG, value, sizeof(long long));
 }
 
-int request_get_string(bing_request_t request, enum REQUEST_FIELD field, char* value)
+int request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value)
 {
 	return request_get_str_data(request, field, FIELD_TYPE_STRING, value);
 }
 
-int request_get_double(bing_request_t request, enum REQUEST_FIELD field, double* value)
+int request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value)
 {
 	return request_get_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
 }

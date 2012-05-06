@@ -380,17 +380,17 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 								//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
 
 								data = bing_malloc(sizeof(long long));
-								result_get_64bit_int(result, RESULT_FIELD_CODE, (long long*)data);
+								result_get_64bit_int(result, BING_RESULT_FIELD_CODE, (long long*)data);
 								BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
 								bing_free(data);
 
-								data = bing_malloc(result_get_string(result, RESULT_FIELD_MESSAGE, NULL));
-								result_get_string(result, RESULT_FIELD_MESSAGE, data);
+								data = bing_malloc(result_get_string(result, BING_RESULT_FIELD_MESSAGE, NULL));
+								result_get_string(result, BING_RESULT_FIELD_MESSAGE, data);
 								BING_MSG_PRINTOUT("Error Message = %s\n", data);
 								bing_free(data);
 
-								data = bing_malloc(result_get_string(result, RESULT_FIELD_PARAMETER, NULL));
-								result_get_string(result, RESULT_FIELD_PARAMETER, data);
+								data = bing_malloc(result_get_string(result, BING_RESULT_FIELD_PARAMETER, NULL));
+								result_get_string(result, BING_RESULT_FIELD_PARAMETER, data);
 								BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
 								bing_free(data);
 							}

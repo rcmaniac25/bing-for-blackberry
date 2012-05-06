@@ -94,13 +94,13 @@ enum FIELD_TYPE
 
 typedef struct BING_FIELD_SUPPORT_S
 {
-	//This is the built in variable value (REQUEST_FIELD, RESULT_FIELD)
+	//This is the built in variable value (BING_REQUEST_FIELD, BING_RESULT_FIELD)
 	int variableValue;
 	enum FIELD_TYPE type;
 	const char* name;
 
 	int sourceTypeCount;
-	enum SOURCE_TYPE supportedTypes[15]; //BING_SOURCETYPE_COUNT
+	enum BING_SOURCE_TYPE supportedTypes[15]; //BING_SOURCETYPE_COUNT
 } bing_field_support;
 
 #define BING_FIELD_SUPPORT_ALL_FIELDS -2
@@ -126,7 +126,7 @@ typedef struct BING_REQUEST_S
 
 typedef struct BING_RESULT_S
 {
-	enum SOURCE_TYPE type;
+	enum BING_SOURCE_TYPE type;
 	BOOL array;
 
 	//These will never be NULL
@@ -138,7 +138,7 @@ typedef struct BING_RESULT_S
 
 typedef struct BING_RESPONSE_S
 {
-	enum SOURCE_TYPE type;
+	enum BING_SOURCE_TYPE type;
 	unsigned int bing;
 
 	//These will never be NULL
@@ -224,7 +224,7 @@ static int lastErrorCode = 0;
  * Functions
  */
 
-const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType);
+const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum BING_SOURCE_TYPE sourceType, BOOL checkType);
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize);
 
 //Dictionary functions

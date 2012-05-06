@@ -524,7 +524,7 @@ void result_common_search_tag_array_additional_result(const char* name, bing_res
 typedef struct BING_RESULT_CREATOR_SEARCH_S
 {
 	bing_result_creator creator;
-	enum SOURCE_TYPE type;
+	enum BING_SOURCE_TYPE type;
 	int tableCount;
 	struct BING_RESULT_CREATOR_SEARCH_S* next;
 } bing_result_creator_search;
@@ -563,89 +563,89 @@ static bing_result_creator_search result_def_creator[]=
 static bing_field_search result_fields[] =
 {
 		//Ad
-		{{RESULT_FIELD_RANK,							FIELD_TYPE_LONG,	RES_AD_RANK,					1,	{BING_SOURCETYPE_AD}},						&result_fields[1]},
-		{{RESULT_FIELD_POSITION,						FIELD_TYPE_STRING,	"Position",						1,	{BING_SOURCETYPE_AD}},						&result_fields[2]},
-		{{RESULT_FIELD_TITLE,							FIELD_TYPE_STRING,	RES_AD_TITLE,					9,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
+		{{BING_RESULT_FIELD_RANK,							FIELD_TYPE_LONG,	RES_AD_RANK,					1,	{BING_SOURCETYPE_AD}},						&result_fields[1]},
+		{{BING_RESULT_FIELD_POSITION,						FIELD_TYPE_STRING,	"Position",						1,	{BING_SOURCETYPE_AD}},						&result_fields[2]},
+		{{BING_RESULT_FIELD_TITLE,							FIELD_TYPE_STRING,	RES_AD_TITLE,					9,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
-				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																&result_fields[3]},
-		{{RESULT_FIELD_DESCRIPTION,						FIELD_TYPE_STRING,	"Description",					3,	{BING_SOURCETYPE_AD,
-				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_WEB}},																							&result_fields[4]},
-		{{RESULT_FIELD_DISPLAY_URL,						FIELD_TYPE_STRING,	"DisplayUrl",					5,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
-				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},																&result_fields[5]},
-		{{RESULT_FIELD_ADLINK_URL,						FIELD_TYPE_STRING,	"AdlinkURL",					1,	{BING_SOURCETYPE_AD}},						&result_fields[6]},
+				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																	&result_fields[3]},
+		{{BING_RESULT_FIELD_DESCRIPTION,					FIELD_TYPE_STRING,	"Description",					3,	{BING_SOURCETYPE_AD,
+				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_WEB}},																								&result_fields[4]},
+		{{BING_RESULT_FIELD_DISPLAY_URL,					FIELD_TYPE_STRING,	"DisplayUrl",					5,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
+				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},																	&result_fields[5]},
+		{{BING_RESULT_FIELD_ADLINK_URL,						FIELD_TYPE_STRING,	"AdlinkURL",					1,	{BING_SOURCETYPE_AD}},						&result_fields[6]},
 
 		//Error
-		{{RESULT_FIELD_CODE,							FIELD_TYPE_LONG,	RES_ERROR_CODE,					1,	{BING_RESULT_ERROR}},						&result_fields[7]},
-		{{RESULT_FIELD_MESSAGE,							FIELD_TYPE_STRING,	"Message",						1,	{BING_RESULT_ERROR}},						&result_fields[8]},
-		{{RESULT_FIELD_HELP_URL,						FIELD_TYPE_STRING,	"HelpUrl",						1,	{BING_RESULT_ERROR}},						&result_fields[9]},
-		{{RESULT_FIELD_PARAMETER,						FIELD_TYPE_STRING,	"Parameter",					1,	{BING_RESULT_ERROR}},						&result_fields[10]},
-		{{RESULT_FIELD_SOURCE_TYPE,						FIELD_TYPE_STRING,	"SourceType",					1,	{BING_RESULT_ERROR}},						&result_fields[11]},
-		{{RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,			FIELD_TYPE_LONG,	RES_ERROR_ERRORCODE,			1,	{BING_RESULT_ERROR}},						&result_fields[12]},
-		{{RESULT_FIELD_VALUE,							FIELD_TYPE_STRING,	RES_ERROR_VALUE,				2,	{BING_RESULT_ERROR, BING_SOURCETYPE_SPELL}},&result_fields[13]},
+		{{BING_RESULT_FIELD_CODE,							FIELD_TYPE_LONG,	RES_ERROR_CODE,					1,	{BING_RESULT_ERROR}},						&result_fields[7]},
+		{{BING_RESULT_FIELD_MESSAGE,						FIELD_TYPE_STRING,	"Message",						1,	{BING_RESULT_ERROR}},						&result_fields[8]},
+		{{BING_RESULT_FIELD_HELP_URL,						FIELD_TYPE_STRING,	"HelpUrl",						1,	{BING_RESULT_ERROR}},						&result_fields[9]},
+		{{BING_RESULT_FIELD_PARAMETER,						FIELD_TYPE_STRING,	"Parameter",					1,	{BING_RESULT_ERROR}},						&result_fields[10]},
+		{{BING_RESULT_FIELD_SOURCE_TYPE,					FIELD_TYPE_STRING,	"SourceType",					1,	{BING_RESULT_ERROR}},						&result_fields[11]},
+		{{BING_RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,			FIELD_TYPE_LONG,	RES_ERROR_ERRORCODE,			1,	{BING_RESULT_ERROR}},						&result_fields[12]},
+		{{BING_RESULT_FIELD_VALUE,							FIELD_TYPE_STRING,	RES_ERROR_VALUE,				2,	{BING_RESULT_ERROR, BING_SOURCETYPE_SPELL}},&result_fields[13]},
 
 		//Image
-		{{RESULT_FIELD_HEIGHT,							FIELD_TYPE_LONG,	RES_IMAGE_HEIGHT,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[14]},
-		{{RESULT_FIELD_WIDTH,							FIELD_TYPE_LONG,	RES_IMAGE_WIDTH,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[15]},
-		{{RESULT_FIELD_FILE_SIZE,						FIELD_TYPE_LONG,	RES_IMAGE_FILESIZE,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[16]},
-		{{RESULT_FIELD_MEDIA_URL,						FIELD_TYPE_STRING,	"MediaUrl",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[17]},
-		{{RESULT_FIELD_URL,								FIELD_TYPE_STRING,	RES_IMAGE_URL,					7,	{BING_SOURCETYPE_IMAGE,
+		{{BING_RESULT_FIELD_HEIGHT,							FIELD_TYPE_LONG,	RES_IMAGE_HEIGHT,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[14]},
+		{{BING_RESULT_FIELD_WIDTH,							FIELD_TYPE_LONG,	RES_IMAGE_WIDTH,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[15]},
+		{{BING_RESULT_FIELD_FILE_SIZE,						FIELD_TYPE_LONG,	RES_IMAGE_FILESIZE,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[16]},
+		{{BING_RESULT_FIELD_MEDIA_URL,						FIELD_TYPE_STRING,	"MediaUrl",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[17]},
+		{{BING_RESULT_FIELD_URL,							FIELD_TYPE_STRING,	RES_IMAGE_URL,					7,	{BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
-				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_WEB}},																						&result_fields[18]},
-		{{RESULT_FIELD_CONTENT_TYPE,					FIELD_TYPE_STRING,	RES_IMAGE_CONTENTTYPE,			2,	{BING_SOURCETYPE_IMAGE,
-				BING_SOURCETYPE_INSTANT_ANWSER}},																											&result_fields[19]},
-		{{RESULT_FIELD_THUMBNAIL,						FIELD_TYPE_ARRAY,	RES_IMAGE_THUMBNAIL,			1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[20]},
+				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_WEB}},																							&result_fields[18]},
+		{{BING_RESULT_FIELD_CONTENT_TYPE,					FIELD_TYPE_STRING,	RES_IMAGE_CONTENTTYPE,			2,	{BING_SOURCETYPE_IMAGE,
+				BING_SOURCETYPE_INSTANT_ANWSER}},																												&result_fields[19]},
+		{{BING_RESULT_FIELD_THUMBNAIL,						FIELD_TYPE_ARRAY,	RES_IMAGE_THUMBNAIL,			1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[20]},
 
 		//InstantAnswer
-		{{RESULT_FIELD_ATTRIBUTION,						FIELD_TYPE_STRING,	"Attribution",					1,	{BING_SOURCETYPE_INSTANT_ANWSER}},			&result_fields[21]},
-		{{RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA,	FIELD_TYPE_STRING,	"InstantAnswerSpecificData",	1,	{BING_SOURCETYPE_INSTANT_ANWSER}},			&result_fields[22]},
+		{{BING_RESULT_FIELD_ATTRIBUTION,					FIELD_TYPE_STRING,	"Attribution",					1,	{BING_SOURCETYPE_INSTANT_ANWSER}},			&result_fields[21]},
+		{{BING_RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA,	FIELD_TYPE_STRING,	"InstantAnswerSpecificData",	1,	{BING_SOURCETYPE_INSTANT_ANWSER}},			&result_fields[22]},
 
 		//MobileWeb
-		{{RESULT_FIELD_DATE_TIME,						FIELD_TYPE_STRING,	"DateTime",						2,	{BING_SOURCETYPE_MOBILE_WEB,
-				BING_SOURCETYPE_WEB}},																														&result_fields[23]},
+		{{BING_RESULT_FIELD_DATE_TIME,						FIELD_TYPE_STRING,	"DateTime",						2,	{BING_SOURCETYPE_MOBILE_WEB,
+				BING_SOURCETYPE_WEB}},																															&result_fields[23]},
 
 		//News
-		{{RESULT_FIELD_BREAKING_NEWS,					FIELD_TYPE_BOOLEAN,	RES_NEWS_BREAKINGNEWS,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[24]},
-		{{RESULT_FIELD_DATE,							FIELD_TYPE_STRING,	"Date",							1,	{BING_SOURCETYPE_NEWS}},					&result_fields[25]},
-		{{RESULT_FIELD_SNIPPET,							FIELD_TYPE_STRING,	"Snippet",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[26]},
-		{{RESULT_FIELD_SOURCE,							FIELD_TYPE_STRING,	"Source",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[27]},
-		{{RESULT_FIELD_NEWSCOLLECTION,					FIELD_TYPE_ARRAY,	RES_NEWS_COLLECTION,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[28]},
+		{{BING_RESULT_FIELD_BREAKING_NEWS,					FIELD_TYPE_BOOLEAN,	RES_NEWS_BREAKINGNEWS,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[24]},
+		{{BING_RESULT_FIELD_DATE,							FIELD_TYPE_STRING,	"Date",							1,	{BING_SOURCETYPE_NEWS}},					&result_fields[25]},
+		{{BING_RESULT_FIELD_SNIPPET,						FIELD_TYPE_STRING,	"Snippet",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[26]},
+		{{BING_RESULT_FIELD_SOURCE,							FIELD_TYPE_STRING,	"Source",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[27]},
+		{{BING_RESULT_FIELD_NEWSCOLLECTION,					FIELD_TYPE_ARRAY,	RES_NEWS_COLLECTION,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[28]},
 
 		//PhoneBook
-		{{RESULT_FIELD_LATITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LAT,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[29]},
-		{{RESULT_FIELD_LONGITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LONG,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[30]},
-		{{RESULT_FIELD_USER_RATING,						FIELD_TYPE_DOUBLE,	RES_PHONE_RATING,				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[31]},
-		{{RESULT_FIELD_REVIEW_COUNT,					FIELD_TYPE_LONG,	RES_PHONE_REVW_COUNT,			1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[32]},
-		{{RESULT_FIELD_BUSINESS_URL,					FIELD_TYPE_STRING,	"BusinessUrl",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[33]},
-		{{RESULT_FIELD_CITY,							FIELD_TYPE_STRING,	"City",							1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[34]},
-		{{RESULT_FIELD_COUNTRY_OR_REGION,				FIELD_TYPE_STRING,	"CountryOrRegion",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[35]},
-		{{RESULT_FIELD_PHONE_NUMBER,					FIELD_TYPE_STRING,	"PhoneNumber",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[36]},
-		{{RESULT_FIELD_POSTAL_CODE,						FIELD_TYPE_STRING,	"PostalCode",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[37]},
-		{{RESULT_FIELD_STATE_OR_PROVINCE,				FIELD_TYPE_STRING,	"StateOrProvince",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[38]},
-		{{RESULT_FIELD_UNIQUE_ID,						FIELD_TYPE_STRING,	"UniqueId",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[39]},
-		{{RESULT_FIELD_BUSINESS,						FIELD_TYPE_STRING,	"Business",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[40]},
-		{{RESULT_FIELD_ADDRESS,							FIELD_TYPE_STRING,	"Address",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[41]},
+		{{BING_RESULT_FIELD_LATITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LAT,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[29]},
+		{{BING_RESULT_FIELD_LONGITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LONG,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[30]},
+		{{BING_RESULT_FIELD_USER_RATING,					FIELD_TYPE_DOUBLE,	RES_PHONE_RATING,				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[31]},
+		{{BING_RESULT_FIELD_REVIEW_COUNT,					FIELD_TYPE_LONG,	RES_PHONE_REVW_COUNT,			1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[32]},
+		{{BING_RESULT_FIELD_BUSINESS_URL,					FIELD_TYPE_STRING,	"BusinessUrl",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[33]},
+		{{BING_RESULT_FIELD_CITY,							FIELD_TYPE_STRING,	"City",							1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[34]},
+		{{BING_RESULT_FIELD_COUNTRY_OR_REGION,				FIELD_TYPE_STRING,	"CountryOrRegion",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[35]},
+		{{BING_RESULT_FIELD_PHONE_NUMBER,					FIELD_TYPE_STRING,	"PhoneNumber",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[36]},
+		{{BING_RESULT_FIELD_POSTAL_CODE,					FIELD_TYPE_STRING,	"PostalCode",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[37]},
+		{{BING_RESULT_FIELD_STATE_OR_PROVINCE,				FIELD_TYPE_STRING,	"StateOrProvince",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[38]},
+		{{BING_RESULT_FIELD_UNIQUE_ID,						FIELD_TYPE_STRING,	"UniqueId",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[39]},
+		{{BING_RESULT_FIELD_BUSINESS,						FIELD_TYPE_STRING,	"Business",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[40]},
+		{{BING_RESULT_FIELD_ADDRESS,						FIELD_TYPE_STRING,	"Address",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[41]},
 
 		//Translation
-		{{RESULT_FIELD_TRANSLATED_TERM,					FIELD_TYPE_STRING,	"TranslatedTerm",				1,	{BING_SOURCETYPE_TRANSLATION}},				&result_fields[42]},
+		{{BING_RESULT_FIELD_TRANSLATED_TERM,				FIELD_TYPE_STRING,	"TranslatedTerm",				1,	{BING_SOURCETYPE_TRANSLATION}},				&result_fields[42]},
 
 		//Video
-		{{RESULT_FIELD_SOURCE_TITLE,					FIELD_TYPE_STRING,	"SourceTitle",					1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[43]},
-		{{RESULT_FIELD_RUN_TIME,						FIELD_TYPE_STRING,	"RunTime",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[44]},
-		{{RESULT_FIELD_PLAY_URL,						FIELD_TYPE_STRING,	"PlayUrl",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[45]},
-		{{RESULT_FIELD_CLICK_THROUGH_PAGE_URL,			FIELD_TYPE_STRING,	"ClickThroughPageUrl",			1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[46]},
-		{{RESULT_FIELD_STATIC_THUMBNAIL,				FIELD_TYPE_ARRAY,	RES_VIDEO_STATICTHUMBNAIL,		1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[47]},
+		{{BING_RESULT_FIELD_SOURCE_TITLE,					FIELD_TYPE_STRING,	"SourceTitle",					1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[43]},
+		{{BING_RESULT_FIELD_RUN_TIME,						FIELD_TYPE_STRING,	"RunTime",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[44]},
+		{{BING_RESULT_FIELD_PLAY_URL,						FIELD_TYPE_STRING,	"PlayUrl",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[45]},
+		{{BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL,			FIELD_TYPE_STRING,	"ClickThroughPageUrl",			1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[46]},
+		{{BING_RESULT_FIELD_STATIC_THUMBNAIL,				FIELD_TYPE_ARRAY,	RES_VIDEO_STATICTHUMBNAIL,		1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[47]},
 
 		//Web
-		{{RESULT_FIELD_CACHE_URL,						FIELD_TYPE_STRING,	"CacheUrl",						1,	{BING_SOURCETYPE_WEB}},						&result_fields[48]},
-		{{RESULT_FIELD_DEEP_LINKS,						FIELD_TYPE_ARRAY,	RES_WEB_DEEPLINKS,				1,	{BING_SOURCETYPE_WEB}},						&result_fields[49]},
-		{{RESULT_FIELD_SEARCH_TAGS,						FIELD_TYPE_ARRAY,	RES_WEB_SEARCHTAGS,				1,	{BING_SOURCETYPE_WEB}},						NULL}
+		{{BING_RESULT_FIELD_CACHE_URL,						FIELD_TYPE_STRING,	"CacheUrl",						1,	{BING_SOURCETYPE_WEB}},						&result_fields[48]},
+		{{BING_RESULT_FIELD_DEEP_LINKS,						FIELD_TYPE_ARRAY,	RES_WEB_DEEPLINKS,				1,	{BING_SOURCETYPE_WEB}},						&result_fields[49]},
+		{{BING_RESULT_FIELD_SEARCH_TAGS,					FIELD_TYPE_ARRAY,	RES_WEB_SEARCHTAGS,				1,	{BING_SOURCETYPE_WEB}},						NULL}
 };
 
 //Functions
 
-enum SOURCE_TYPE result_get_source_type(bing_result_t result)
+enum BING_SOURCE_TYPE result_get_source_type(bing_result_t result)
 {
-	enum SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
+	enum BING_SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
 	bing_result* res;
 	if(result)
 	{
@@ -655,7 +655,7 @@ enum SOURCE_TYPE result_get_source_type(bing_result_t result)
 	return t;
 }
 
-int result_is_field_supported(bing_result_t result, enum RESULT_FIELD field)
+int result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD field)
 {
 	BOOL ret = FALSE;
 	bing_result* res;
@@ -682,7 +682,7 @@ void free_result(bing_result* result)
 	}
 }
 
-BOOL result_create(enum SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, BOOL array, result_creation_func creation, result_additional_result_func additionalResult, int tableSize)
+BOOL result_create(enum BING_SOURCE_TYPE type, bing_result_t* result, bing_response* responseParent, BOOL array, result_creation_func creation, result_additional_result_func additionalResult, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_result* res;
@@ -815,7 +815,7 @@ BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* r
 	return ret;
 }
 
-int result_get_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
+int result_get_data(bing_result_t result, enum BING_RESULT_FIELD field, enum FIELD_TYPE type, void* value, size_t size)
 {
 	BOOL ret = FALSE;
 	const char* key;
@@ -830,7 +830,7 @@ int result_get_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TY
 	return ret;
 }
 
-int result_get_str_data(bing_result_t result, enum RESULT_FIELD field, enum FIELD_TYPE type, char* value)
+int result_get_str_data(bing_result_t result, enum BING_RESULT_FIELD field, enum FIELD_TYPE type, char* value)
 {
 	int ret = -1;
 	const char* key;
@@ -845,27 +845,27 @@ int result_get_str_data(bing_result_t result, enum RESULT_FIELD field, enum FIEL
 	return ret;
 }
 
-int result_get_64bit_int(bing_result_t result, enum RESULT_FIELD field, long long* value)
+int result_get_64bit_int(bing_result_t result, enum BING_RESULT_FIELD field, long long* value)
 {
 	return result_get_data(result, field, FIELD_TYPE_LONG, value, sizeof(long long));
 }
 
-int result_get_string(bing_result_t result, enum RESULT_FIELD field, char* value)
+int result_get_string(bing_result_t result, enum BING_RESULT_FIELD field, char* value)
 {
 	return result_get_str_data(result, field, FIELD_TYPE_STRING, value);
 }
 
-int result_get_double(bing_result_t result, enum RESULT_FIELD field, double* value)
+int result_get_double(bing_result_t result, enum BING_RESULT_FIELD field, double* value)
 {
 	return result_get_data(result, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
 }
 
-int result_get_boolean(bing_result_t result, enum RESULT_FIELD field, int* value)
+int result_get_boolean(bing_result_t result, enum BING_RESULT_FIELD field, int* value)
 {
 	return result_get_data(result, field, FIELD_TYPE_BOOLEAN, value, sizeof(int));
 }
 
-int result_get_array(bing_result_t result, enum RESULT_FIELD field, void* value)
+int result_get_array(bing_result_t result, enum BING_RESULT_FIELD field, void* value)
 {
 	return result_get_str_data(result, field, FIELD_TYPE_ARRAY, value);
 }

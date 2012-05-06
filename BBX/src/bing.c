@@ -506,7 +506,7 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 	return ret;
 }
 
-const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum SOURCE_TYPE sourceType, BOOL checkType)
+const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum BING_SOURCE_TYPE sourceType, BOOL checkType)
 {
 	int i;
 	//If the field actually has a value then we check it, otherwise skip it. We also don't want to do anything with custom types (since it will fail anyway)
