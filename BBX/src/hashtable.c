@@ -29,14 +29,14 @@ hashtable_t* hashtable_create(int size)
 
 	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
 
-	hash = (ht*)bing_malloc(sizeof(ht));
+	hash = (ht*)bing_mem_malloc(sizeof(ht));
 	if(hash)
 	{
 		hash->alloc = size < MIN_ALLOC ? MIN_ALLOC : size;
 		hash->table = xmlHashCreate(hash->alloc);
 		if(!hash->table)
 		{
-			bing_free(hash);
+			bing_mem_free(hash);
 			hash = NULL;
 		}
 	}
@@ -45,7 +45,7 @@ hashtable_t* hashtable_create(int size)
 
 void ht_data_deallocator(void* payload, xmlChar* name)
 {
-	bing_free(payload);
+	bing_mem_free(payload);
 }
 
 void hashtable_free(hashtable_t* table)
@@ -57,7 +57,7 @@ void hashtable_free(hashtable_t* table)
 		xmlHashFree(hash->table, ht_data_deallocator);
 		hash->table = NULL;
 		hash->alloc = 0;
-		bing_free(hash);
+		bing_mem_free(hash);
 	}
 }
 
@@ -79,7 +79,7 @@ void* ht_copy(void* payload, xmlChar* name)
 	{
 		//Duplicate the data
 		size_t size = *((size_t*)payload) + sizeof(size_t); //We want the size of the data then we want to add the size of a "size_t".
-		nd = bing_malloc(size);
+		nd = bing_mem_malloc(size);
 		memcpy(nd, payload, size);
 	}
 
@@ -190,7 +190,7 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 	ht* hash;
 	if(table && key && data && data_size > 0)
 	{
-		ud = bing_malloc(data_size + sizeof(size_t));
+		ud = bing_mem_malloc(data_size + sizeof(size_t));
 		if(ud)
 		{
 			*((size_t*)ud) = data_size;
@@ -202,7 +202,7 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 				//We need to resize the table
 				if(!resizeHashTable(hash))
 				{
-					bing_free(ud);
+					bing_mem_free(ud);
 					return ret;
 				}
 			}
@@ -210,7 +210,7 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 			ret = xmlHashUpdateEntry(hash->table, (xmlChar*)key, ud, ht_data_deallocator);
 			if(ret == -1)
 			{
-				bing_free(ud);
+				bing_mem_free(ud);
 			}
 		}
 	}
@@ -252,7 +252,7 @@ void ht_get_name(void* payload, void* data, xmlChar* name)
 	char** keys = *((char***)(data + sizeof(int)));
 	int size = strlen((char*)name);
 
-	keys[index] = (char*)bing_calloc(size, sizeof(char));
+	keys[index] = (char*)bing_mem_calloc(size, sizeof(char));
 	if(keys[index])
 	{
 		strlcpy(keys[index], (char*)name, size);
@@ -274,7 +274,7 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 		ret = xmlHashSize(hash->table);
 		if(keys && ret > 0)
 		{
-			dat = bing_malloc(sizeof(char**) + sizeof(int));
+			dat = bing_mem_malloc(sizeof(char**) + sizeof(int));
 			if(dat)
 			{
 				//Make a simple structure for data
@@ -284,7 +284,7 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 				//Get the names
 				xmlHashScan(hash->table, ht_get_name, dat);
 
-				bing_free(dat);
+				bing_mem_free(dat);
 			}
 			else
 			{
@@ -347,13 +347,13 @@ BOOL hashtable_set_data(hashtable_t* table, const char* field, const void* value
 }
 
 //Public functions
-int dictionary_get_data(data_dictionary_t dict, const char* name, void* data)
+int bing_dictionary_get_data(data_dictionary_t dict, const char* name, void* data)
 {
 	size_t ret = hashtable_get_item((hashtable_t*)dict, name, data);
 	return ret > 0 ? (int)ret : -1;
 }
 
-int dictionary_get_element_names(data_dictionary_t dict, char** names)
+int bing_dictionary_get_element_names(data_dictionary_t dict, char** names)
 {
 	return hashtable_get_keys((hashtable_t*)dict, names);
 }

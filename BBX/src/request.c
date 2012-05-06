@@ -108,7 +108,7 @@ typedef struct request_source_type_s
 const char* request_def_get_options(bing_request_t request)
 {
 	bing_request* req;
-	char* ret = bing_calloc(1, sizeof(char));
+	char* ret = bing_mem_calloc(1, sizeof(char));
 	void* data = NULL;
 	size_t cursize = 0;
 	size_t retSize = 1;
@@ -125,7 +125,7 @@ const char* request_def_get_options(bing_request_t request)
 		APPEND("&UILanguage=%s",	REQ_LANGUAGE)
 		APPEND("&Radius=%f",		REQ_RADIUS)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -169,7 +169,7 @@ const char* request_bundle_get_options(bing_request_t request)
 					len += strlen(options);
 
 					//Resize the return data and append the results
-					rett = (char*)bing_realloc(ret, len);
+					rett = (char*)bing_mem_realloc(ret, len);
 					if(rett)
 					{
 						strlcat(rett, options, len);
@@ -177,14 +177,14 @@ const char* request_bundle_get_options(bing_request_t request)
 					}
 
 					//Free the options
-					bing_free((void*)options);
+					bing_mem_free((void*)options);
 				}
 			}
 		}
 	}
 	if(!ret)
 	{
-		ret = bing_calloc(1, sizeof(char));
+		ret = bing_mem_calloc(1, sizeof(char));
 	}
 	return ret;
 }
@@ -207,7 +207,7 @@ const char* request_ad_get_options(bing_request_t request)
 		APPEND("&Ad.MlAdcount=%llu",	REQ_AD_MLCOUNT)
 		APPEND("&Ad.SbAdCount=%llu",	REQ_AD_SBCOUNT)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -227,7 +227,7 @@ const char* request_image_get_options(bing_request_t request)
 		APPEND("&Image.Offset=%llu",	REQ_MULTI_OFFSET)
 		APPEND("&Image.Filters=%s",		REQ_MULTI_FILTERS)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -247,7 +247,7 @@ const char* request_mw_get_options(bing_request_t request)
 		APPEND("&MobileWeb.Offset=%llu",	REQ_MULTI_OFFSET)
 		APPEND("&MobileWeb.Options=%s",		REQ_MW_OPTIONS)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -269,7 +269,7 @@ const char* request_news_get_options(bing_request_t request)
 		APPEND("&News.LocationOverride=%s",	REQ_NEWS_LOCOVER)
 		APPEND("&News.SortBy=%s",			REQ_MULTI_SORTBY)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -291,7 +291,7 @@ const char* request_phone_get_options(bing_request_t request)
 		APPEND("&Phonebook.LocId=%s",		REQ_PHONE_LOCID)
 		APPEND("&Phonebook.SortBy=%s",		REQ_MULTI_SORTBY)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -310,7 +310,7 @@ const char* request_transl_get_options(bing_request_t request)
 		APPEND("&Translation.SourceLanguage=%s",	REQ_TRANS_SOURCE)
 		APPEND("&Translation.TargetLanguage=%s",	REQ_TRANS_TARGET)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -331,7 +331,7 @@ const char* request_video_get_options(bing_request_t request)
 		APPEND("&Video.Filters=%s",		REQ_MULTI_FILTERS)
 		APPEND("&Video.FileType=%s",	REQ_MULTI_SORTBY)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -352,7 +352,7 @@ const char* request_web_get_options(bing_request_t request)
 		APPEND("&Web.FileType=%s",	REQ_MULTI_FILETYPE)
 		APPEND("&Web.Options=%s",	REQ_WEB_OPTIONS)
 
-		bing_free(data);
+		bing_mem_free(data);
 	}
 	return ret;
 }
@@ -372,14 +372,14 @@ const char* request_custom_get_options(bing_request_t request)
 		ret = request_def_get_options(request);
 		custOptions = req->uGetOptions(request);
 
-		resultOptions = bing_calloc(size = strlen(ret) + strlen(custOptions) + 2, sizeof(char));
+		resultOptions = bing_mem_calloc(size = strlen(ret) + strlen(custOptions) + 2, sizeof(char));
 		if(resultOptions)
 		{
 			//First copy in the default options
 			memcpy(resultOptions, ret, strlen(ret));
 
 			//Free the return string
-			bing_free((void*)ret);
+			bing_mem_free((void*)ret);
 
 			//Conc. the user options
 			strlcat(resultOptions, custOptions, size);
@@ -389,7 +389,7 @@ const char* request_custom_get_options(bing_request_t request)
 		}
 		else
 		{
-			bing_free((void*)ret);
+			bing_mem_free((void*)ret);
 			ret = NULL;
 		}
 		if(req->uFinishGetOptions)
@@ -400,7 +400,7 @@ const char* request_custom_get_options(bing_request_t request)
 	//No return exists, create a empty string (that won't be invalid on "custom finish")
 	if(ret == NULL)
 	{
-		ret = bing_calloc(1, sizeof(char));
+		ret = bing_mem_calloc(1, sizeof(char));
 	}
 	return ret;
 }
@@ -420,7 +420,7 @@ static request_source_type request_source_types[] =
 		{BING_SOURCETYPE_WEB,				"web",				DEFAULT_ELEMENT_COUNT + 4,	request_web_get_options,	NULL}
 };
 
-enum BING_SOURCE_TYPE request_get_source_type(bing_request_t request)
+enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 {
 	enum BING_SOURCE_TYPE t = BING_SOURCETYPE_UNKNOWN;
 	bing_request* req;
@@ -450,7 +450,7 @@ enum BING_SOURCE_TYPE request_get_source_type(bing_request_t request)
 const char* request_get_bundle_sourcetype(bing_request* bundle)
 {
 	char buffer[256];
-	char* result = bing_calloc(1, sizeof(char));
+	char* result = bing_mem_calloc(1, sizeof(char));
 	size_t len = 1;
 	list* list = NULL;
 	unsigned int i;
@@ -482,7 +482,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 				}
 				//Get the length and resize the string
 				len += strlen(buffer);
-				src = (char*)bing_realloc(result, len);
+				src = (char*)bing_mem_realloc(result, len);
 				if(src)
 				{
 					//Append the source type
@@ -501,7 +501,7 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 	bing_request* req;
 	if(request)
 	{
-		req = (bing_request*)bing_malloc(sizeof(bing_request));
+		req = (bing_request*)bing_mem_malloc(sizeof(bing_request));
 		if(req)
 		{
 			req->sourceType = source_type;
@@ -521,14 +521,14 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 			}
 			else
 			{
-				bing_free(req);
+				bing_mem_free(req);
 			}
 		}
 	}
 	return ret;
 }
 
-int request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request)
+int bing_request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request)
 {
 	BOOL ret = FALSE;
 	int tableSize;
@@ -565,7 +565,7 @@ int request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* re
 	return ret;
 }
 
-int request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field)
+int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field)
 {
 	BOOL ret = FALSE;
 	bing_request* req;
@@ -574,7 +574,7 @@ int request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD f
 	{
 		//Get the key
 		req = (bing_request*)request;
-		key = find_field(request_fields, field, FIELD_TYPE_UNKNOWN, request_get_source_type(request), FALSE);
+		key = find_field(request_fields, field, FIELD_TYPE_UNKNOWN, bing_request_get_source_type(request), FALSE);
 
 		//Determine if the key is within the result
 		ret = hashtable_key_exists(req->data, key) != -1;
@@ -589,7 +589,7 @@ int request_get_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum
 	if(request && value)
 	{
 		//Get the key
-		key = find_field(request_fields, field, type, request_get_source_type(request), TRUE);
+		key = find_field(request_fields, field, type, bing_request_get_source_type(request), TRUE);
 
 		//Now get the data
 		ret = hashtable_get_data_key(((bing_request*)request)->data, key, value, size);
@@ -604,25 +604,25 @@ int request_get_str_data(bing_request_t request, enum BING_REQUEST_FIELD field, 
 	if(request)
 	{
 		//Get the key
-		key = find_field(request_fields, field, type, request_get_source_type(request), TRUE);
+		key = find_field(request_fields, field, type, bing_request_get_source_type(request), TRUE);
 
 		//Now get the data
-		ret = request_custom_get_string(request, key, value);
+		ret = bing_request_custom_get_string(request, key, value);
 	}
 	return ret;
 }
 
-int request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value)
+int bing_request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value)
 {
 	return request_get_data(request, field, FIELD_TYPE_LONG, value, sizeof(long long));
 }
 
-int request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value)
+int bing_request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value)
 {
 	return request_get_str_data(request, field, FIELD_TYPE_STRING, value);
 }
 
-int request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value)
+int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value)
 {
 	return request_get_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
 }
@@ -639,7 +639,7 @@ void request_remove_parent_options(bing_request* request)
 	hashtable_remove_item(request->data, REQ_RADIUS);
 }
 
-int request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
+int bing_request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
 {
 	BOOL ret = FALSE;
 	bing_request* req;
@@ -661,11 +661,11 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 			else
 			{
 				//Create the list
-				list_v = (list*)bing_malloc(sizeof(list));
+				list_v = (list*)bing_mem_malloc(sizeof(list));
 				if(list_v)
 				{
 					list_v->count = 0;
-					requestList = list_v->listElements = (bing_request_t*)bing_calloc(11, sizeof(bing_request_t));
+					requestList = list_v->listElements = (bing_request_t*)bing_mem_calloc(11, sizeof(bing_request_t));
 					if(list_v->listElements)
 					{
 						//Save the list
@@ -673,14 +673,14 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 						if(hashtable_put_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
 						{
 							//List creation failed, cleanup
-							bing_free(list_v);
+							bing_mem_free(list_v);
 							list_v = NULL;
 						}
 					}
 					else
 					{
 						//List creation failed, cleanup
-						bing_free(list_v);
+						bing_mem_free(list_v);
 						list_v = NULL;
 					}
 				}
@@ -690,7 +690,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 				if(list_v->count >= list_v->cap)
 				{
 					//Resize list
-					requestList = (bing_request_t*)bing_realloc(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
+					requestList = (bing_request_t*)bing_mem_realloc(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
 					if(requestList)
 					{
 						list_v->cap *= 2;
@@ -725,7 +725,7 @@ int request_bundle_add_request(bing_request_t request, bing_request_t request_to
 	return ret;
 }
 
-void free_request(bing_request_t request)
+void bing_request_free(bing_request_t request)
 {
 	bing_request* req;
 	list* list;
@@ -741,20 +741,20 @@ void free_request(bing_request_t request)
 			{
 				for(i = 0; i < list->count; i++)
 				{
-					free_request(LIST_ELEMENT(list, i, bing_request_t));
+					bing_request_free(LIST_ELEMENT(list, i, bing_request_t));
 				}
-				bing_free((void*)list->listElements);
-				bing_free((void*)list);
+				bing_mem_free((void*)list->listElements);
+				bing_mem_free((void*)list);
 			}
 			hashtable_free(req->data);
 		}
 		req->data = NULL;
 
-		bing_free(req);
+		bing_mem_free(req);
 	}
 }
 
-int request_custom_is_field_supported(bing_request_t request, const char* field)
+int bing_request_custom_is_field_supported(bing_request_t request, const char* field)
 {
 	BOOL ret = FALSE;
 	if(request && field)
@@ -764,37 +764,37 @@ int request_custom_is_field_supported(bing_request_t request, const char* field)
 	return ret;
 }
 
-int request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value)
+int bing_request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value)
 {
 	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
 }
 
-int request_custom_get_string(bing_request_t request, const char* field, char* value)
+int bing_request_custom_get_string(bing_request_t request, const char* field, char* value)
 {
 	return hashtable_get_string(request ? ((bing_request*)request)->data : NULL, field, value);
 }
 
-int request_custom_get_double(bing_request_t request, const char* field, double* value)
+int bing_request_custom_get_double(bing_request_t request, const char* field, double* value)
 {
 	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(double));
 }
 
-int request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value)
+int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value)
 {
 	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
 }
 
-int request_custom_set_string(bing_request_t request, const char* field, const char* value)
+int bing_request_custom_set_string(bing_request_t request, const char* field, const char* value)
 {
 	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
 }
 
-int request_custom_set_double(bing_request_t request, const char* field, double* value)
+int bing_request_custom_set_double(bing_request_t request, const char* field, double* value)
 {
-	return request_custom_set_64bit_int(request, field, (long long*)value);
+	return bing_request_custom_set_64bit_int(request, field, (long long*)value);
 }
 
-int request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func)
+int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func)
 {
 	bing_request* req;
 	BOOL ret = FALSE;

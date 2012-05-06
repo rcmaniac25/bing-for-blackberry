@@ -72,11 +72,11 @@ typedef void (*bing_free_handler)(void*);
 typedef char* (*bing_strdup_handler)(const char*);
 
 //Memory handlers
-static bing_malloc_handler bing_malloc = (bing_malloc_handler)malloc;
-static bing_calloc_handler bing_calloc = (bing_calloc_handler)calloc;
-static bing_realloc_handler bing_realloc = (bing_realloc_handler)realloc;
-static bing_free_handler bing_free = (bing_free_handler)free;
-static bing_strdup_handler bing_strdup = (bing_strdup_handler)strdup;
+static bing_malloc_handler bing_mem_malloc = (bing_malloc_handler)malloc;
+static bing_calloc_handler bing_mem_calloc = (bing_calloc_handler)calloc;
+static bing_realloc_handler bing_mem_realloc = (bing_realloc_handler)realloc;
+static bing_free_handler bing_mem_free = (bing_free_handler)free;
+static bing_strdup_handler bing_mem_strdup = (bing_strdup_handler)strdup;
 
 /*
  * Structures

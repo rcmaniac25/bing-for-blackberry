@@ -120,7 +120,7 @@ typedef void (*result_additional_result_func)(const char* name, bing_result_t re
 /**
  * @brief Get data from a dictionary.
  *
- * The @c dictionary_get_data() function allows developers to retrieve data from a
+ * The @c bing_dictionary_get_data() function allows developers to retrieve data from a
  * dictionary.
  *
  * @param dict The dictionary to retrieve data from.
@@ -130,12 +130,12 @@ typedef void (*result_additional_result_func)(const char* name, bing_result_t re
  * @return The size of the data in bytes, or -1 if an error has occurred, dict is NULL,
  * 	or the name doesn't exist.
  */
-int dictionary_get_data(data_dictionary_t dict, const char* name, void* data);
+int bing_dictionary_get_data(data_dictionary_t dict, const char* name, void* data);
 
 /**
  * @brief Get all the names within a dictionary.
  *
- * The @c dictionary_get_element_names() function allows developers to retrieve
+ * The @c bing_dictionary_get_element_names() function allows developers to retrieve
  * an array of all names within a dictionary.
  *
  * @param dict The dictionary to retrieve the names from.
@@ -146,7 +146,7 @@ int dictionary_get_data(data_dictionary_t dict, const char* name, void* data);
  * @return The number of names within the dictionary, or -1 if an error occurred
  * or dict was NULL.
  */
-int dictionary_get_element_names(data_dictionary_t dict, char** names);
+int bing_dictionary_get_element_names(data_dictionary_t dict, char** names);
 
 /*
  * Event handling functions
@@ -188,7 +188,7 @@ void bing_event_get_response(bps_event_t* event, bing_response_t* response);
  *
  * @return Nothing is returned.
  */
-void initialize_bing();
+void bing_initialize();
 
 /**
  * @brief Shutdown the Bing subsystem.
@@ -202,12 +202,12 @@ void initialize_bing();
  * 	include the subsystem was not initialized in the first place and the
  * 	that searches are still occurring when this is called.
  */
-int shutdown_bing();
+int bing_shutdown();
 
 /**
  * @brief Create a new Bing service.
  *
- * The @c create_bing() function allows developers to allocate a Bing service object to
+ * The @c bing_create() function allows developers to allocate a Bing service object to
  * perform search operations using Microsoft's Bing services.
  *
  * @param application_ID The application ID which allows a developer to access
@@ -217,26 +217,26 @@ int shutdown_bing();
  * @return A unique Bing service ID that is used to perform searches. If this value is
  * 	zero then an error has occurred and no service has been allocated.
  */
-unsigned int create_bing(const char* application_ID);
+unsigned int bing_create(const char* application_ID);
 
 /**
  * @brief Free a Bing service.
  *
- * The @c free_bing() function allows developers to free allocated memory used
+ * The @c bing_free() function allows developers to free allocated memory used
  * 	for a Bing service.
  *
  * @param bing The unique Bing ID for each application ID.
  *
  * @return Nothing is returned.
  */
-void free_bing(unsigned int bing);
+void bing_free(unsigned int bing);
 
 #if defined(BING_DEBUG)
 
 /**
  * @brief Set if the internal parser should return search errors.
  *
- * The @c set_error_return() function allows a developer to explicitly handle errors
+ * The @c bing_set_error_return() function allows a developer to explicitly handle errors
  * that might show up from the service. Examples of such are bad Application IDs,
  * unsupported search requests, etc.
  *
@@ -254,7 +254,7 @@ void free_bing(unsigned int bing);
  * @return A boolean integer indicating if the value was set or not. Zero is false,
  * 	non-zero is true.
  */
-int set_error_return(unsigned int bing, int error);
+int bing_set_error_return(unsigned int bing, int error);
 
 /**
  * @brief Get if the internal parser should return search errors.
@@ -268,7 +268,7 @@ int set_error_return(unsigned int bing, int error);
  * @return A boolean integer indicating if error cases should be returned. Zero is false,
  * non-zero is true.
  */
-int get_error_return(unsigned int bing);
+int bing_get_error_return(unsigned int bing);
 
 /**
  * @brief A non-threadsafe way to find the last error that occurred, if one happened at all.
@@ -290,14 +290,14 @@ int get_error_return(unsigned int bing);
  *
  * @return A integer defining the last error code to have occurred after a search.
  */
-int get_last_error_code();
+int bing_get_last_error_code();
 
 #endif
 
 /**
  * @brief Get a Bing service's application ID.
  *
- * The @c get_app_ID() function allows developers to get the service's current
+ * The @c bing_get_app_ID() function allows developers to get the service's current
  * application ID.
  *
  * @param bing The unique Bing ID for each application ID.
@@ -306,12 +306,12 @@ int get_last_error_code();
  *
  * @return The length of the application ID, or -1 if an error occurred.
  */
-int get_app_ID(unsigned int bing, char* buffer);
+int bing_get_app_ID(unsigned int bing, char* buffer);
 
 /**
  * @brief Set a Bing service's application ID.
  *
- * The @c set_app_ID() function allows developers to set the service's
+ * The @c bing_set_app_ID() function allows developers to set the service's
  * application ID. Allowing for different IDs to be used for different
  * searches.
  *
@@ -326,12 +326,12 @@ int get_app_ID(unsigned int bing, char* buffer);
  * 	If this is a non-zero value then the operation completed. Otherwise it
  * 	failed.
  */
-int set_app_ID(unsigned int bing, const char* appId);
+int bing_set_app_ID(unsigned int bing, const char* appId);
 
 /**
  * @brief Perform a synchronous search.
  *
- * The @c search_sync() function allows developers to perform a blocking
+ * The @c bing_search_sync() function allows developers to perform a blocking
  * search operation that will return when the search is complete.
  *
  * @param bing The unique Bing ID to perform a search with.
@@ -345,12 +345,12 @@ int set_app_ID(unsigned int bing, const char* appId);
  * 	NULL for errors, is allocated and should be freed using the free_response
  * 	function to prevent memory leaks.
  */
-bing_response_t search_sync(unsigned int bing, const char* query, const bing_request_t request);
+bing_response_t bing_search_sync(unsigned int bing, const char* query, const bing_request_t request);
 
 /**
  * @brief Perform a asynchronous search.
  *
- * The @c search_async() function allows developers to perform a non-blocking
+ * The @c bing_search_async() function allows developers to perform a non-blocking
  * search operation that will return immediately and call the specified callback
  * function with the response. Remember, the callback will be called by a
  * different thread other than the one calling this function. So plan synchronization
@@ -369,12 +369,12 @@ bing_response_t search_sync(unsigned int bing, const char* query, const bing_req
  * @return A boolean result which is non-zero for a successful query, otherwise
  * 	zero on error or bad query.
  */
-int search_async(unsigned int bing, const char* query, const bing_request_t request, void* user_data, receive_bing_response_func response_func);
+int bing_search_async(unsigned int bing, const char* query, const bing_request_t request, void* user_data, receive_bing_response_func response_func);
 
 /**
  * @brief Perform a asynchronous search but returns with an event.
  *
- * The @c search_event_async() function allows developers to perform a non-blocking
+ * The @c bing_search_event_async() function allows developers to perform a non-blocking
  * search operation that will return immediately and delegate an event with
  * the response. The response should NOT be freed by any receiving functions.
  *
@@ -390,12 +390,12 @@ int search_async(unsigned int bing, const char* query, const bing_request_t requ
  * @return A boolean result which is non-zero for a successful query, otherwise
  * 	zero on error or bad query.
  */
-int search_event_async(unsigned int bing, const char* query, const bing_request_t request);
+int bing_search_event_async(unsigned int bing, const char* query, const bing_request_t request);
 
 /**
  * @brief Get a URL that can invoke a Bing search request.
  *
- * The @c request_url() function allows developers to create a URL for performing
+ * The @c bing_request_url() function allows developers to create a URL for performing
  * a custom search query. This is not the same as a custom request, but can allow
  * a developer to custom tailor the search URL and handle the result in whatever
  * manner they deem necessary.
@@ -411,12 +411,12 @@ int search_event_async(unsigned int bing, const char* query, const bing_request_
  * 	function allocates memory with malloc and it is up to the developer to
  * 	free it to avoid memory leaks.
  */
-const char* request_url(unsigned int bing, const char* query, const bing_request_t request);
+const char* bing_request_url(unsigned int bing, const char* query, const bing_request_t request);
 
 /**
  * @brief Set memory handlers to be used by Bing.
  *
- * The @c set_bing_memory_handlers function allows developers to set the memory
+ * The @c bing_set_memory_handlers function allows developers to set the memory
  * handler functions to use in place of normal malloc/free/etc. handlers. All
  * handlers must be set for them to be used.
  *
@@ -433,7 +433,7 @@ const char* request_url(unsigned int bing, const char* query, const bing_request
  * @return A boolean result which is non-zero for a successful set, otherwise
  * 	zero if not every field is set.
  */
-int set_bing_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(size_t,size_t), void* (*bing_realloc)(void*,size_t), void (*bing_free)(void*), char* (*bing_strdup)(const char*));
+int bing_set_memory_handlers(void* (*bing_malloc)(size_t), void* (*bing_calloc)(size_t,size_t), void* (*bing_realloc)(void*,size_t), void (*bing_free)(void*), char* (*bing_strdup)(const char*));
 
 /*
  * Request functions
@@ -546,19 +546,19 @@ enum BING_REQUEST_FIELD
 /**
  * @brief Get the Bing request source type.
  *
- * The @c request_get_source_type() functions allows developers to retrieve the
+ * The @c bing_request_get_source_type() functions allows developers to retrieve the
  * source type of Bing request that is passed in.
  *
  * @param request The Bing request to get the source type of.
  *
  * @return The Bing request source type, or BING_SOURCETYPE_UNKNOWN if NULL is passed in.
  */
-enum BING_SOURCE_TYPE request_get_source_type(bing_request_t request);
+enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request);
 
 /**
  * @brief Create a standard Bing request.
  *
- * The @c request_create_request() functions allows developers to create a new
+ * The @c bing_request_create_request() functions allows developers to create a new
  * Bing request that can be used to search. It is up to the dev to free this
  * request using free_request() to prevent a memory leak.
  *
@@ -570,12 +570,12 @@ enum BING_SOURCE_TYPE request_get_source_type(bing_request_t request);
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error, invalid source types, or NULL request pointer.
  */
-int request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request);
+int bing_request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request);
 
 /**
  * @brief Check if the Bing request type is supported.
  *
- * The @c request_is_field_supported() functions allows developers to determine
+ * The @c bing_request_is_field_supported() functions allows developers to determine
  * if a field is supported.
  *
  * @param request The Bing request to check for a field.
@@ -584,12 +584,12 @@ int request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* re
  * @return A boolean value which is non-zero if the field is supported
  * 	within the specified Bing request, otherwise zero on error or NULL request.
  */
-int request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field);
+int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field);
 
 /**
  * @brief Get a value from a Bing request.
  *
- * The @c request_get_*() functions allows developers to retrieve values from
+ * The @c bing_request_get_*() functions allows developers to retrieve values from
  * a Bing request. All values are self contained and will be copied to
  * the value parameter.
  *
@@ -609,14 +609,14 @@ int request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD f
  * 	type then the result is -1.
  */
 
-int request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value);
-int request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value);
-int request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value);
+int bing_request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value);
+int bing_request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value);
+int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value);
 
 /**
  * @brief Add a request to a bundle request.
  *
- * The @c request_bundle_add_request() functions allows developers to add a different
+ * The @c bing_request_bundle_add_request() functions allows developers to add a different
  * Bing request to add to a bundle request.
  *
  * Added requests don't have to be freed as they will be freed when the parent request
@@ -629,26 +629,26 @@ int request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, do
  * 	successfully, otherwise zero on error, NULL request, NULL additional
  * 	request, or if the request and request_to_add is the same.
  */
-int request_bundle_add_request(bing_request_t request, bing_request_t request_to_add);
+int bing_request_bundle_add_request(bing_request_t request, bing_request_t request_to_add);
 
 /**
  * @brief Free a Bing request from memory.
  *
- * The @c free_request() function allows developers to free
+ * The @c bing_request_free() function allows developers to free
  * entire Bing request.
  *
  * @param request The Bing request to free.
  *
  * @return Nothing is returned.
  */
-void free_request(bing_request_t request);
+void bing_request_free(bing_request_t request);
 
 //Custom functions
 
 /**
  * @brief Check if the Bing request type is supported.
  *
- * The @c request_is_field_supported() functions allows developers to determine
+ * The @c bing_request_is_field_supported() functions allows developers to determine
  * if a field is supported.
  *
  * @param request The Bing request to check for a field.
@@ -658,12 +658,12 @@ void free_request(bing_request_t request);
  * 	within the specified Bing request, otherwise zero on error, NULL request,
  * 	or NULL field string.
  */
-int request_custom_is_field_supported(bing_request_t request, const char* field);
+int bing_request_custom_is_field_supported(bing_request_t request, const char* field);
 
 /**
  * @brief Get a custom value from a Bing request.
  *
- * The @c request_custom_get_*() functions allows developers to retrieve
+ * The @c bing_request_custom_get_*() functions allows developers to retrieve
  * values from a Bing request. All values are self contained and will be
  * copied to the value parameter. These are the same functions as
  * request_get_* but with the actual field name passed. These functions
@@ -686,14 +686,14 @@ int request_custom_is_field_supported(bing_request_t request, const char* field)
  * 	type then the result is -1.
  */
 
-int request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value);
-int request_custom_get_string(bing_request_t request, const char* field, char* value);
-int request_custom_get_double(bing_request_t request, const char* field, double* value);
+int bing_request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value);
+int bing_request_custom_get_string(bing_request_t request, const char* field, char* value);
+int bing_request_custom_get_double(bing_request_t request, const char* field, double* value);
 
 /**
  * @brief Set a custom value for a Bing request.
  *
- * The @c request_custom_set_*() functions allows developers to set
+ * The @c bing_request_custom_set_*() functions allows developers to set
  * values to a custom Bing request. If the result is not the custom type
  * then the function will fail. All values are self contained and will be
  * copied from the value parameter.
@@ -719,14 +719,14 @@ int request_custom_get_double(bing_request_t request, const char* field, double*
  * 	otherwise zero on error.
  */
 
-int request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value);
-int request_custom_set_string(bing_request_t request, const char* field, const char* value);
-int request_custom_set_double(bing_request_t request, const char* field, double* value);
+int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value);
+int bing_request_custom_set_string(bing_request_t request, const char* field, const char* value);
+int bing_request_custom_set_double(bing_request_t request, const char* field, double* value);
 
 /**
  * @brief Create a custom request.
  *
- * The @c request_create_custom_request() function allows developers to
+ * The @c bing_request_create_custom_request() function allows developers to
  * create a custom Bing request. It is up to the dev to free this request
  * using free_request() to prevent a memory leak.
  *
@@ -755,7 +755,7 @@ int request_custom_set_double(bing_request_t request, const char* field, double*
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error.
  */
-int request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func);
+int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func);
 
 /*
  * Response functions

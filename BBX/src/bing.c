@@ -11,7 +11,7 @@
 
 static volatile BOOL bing_initialized = FALSE;
 
-void initialize_bing()
+void bing_initialize()
 {
 	if(atomic_set_value((unsigned int*)&bing_initialized, TRUE) == FALSE) //Set this first so if another thread tries to initialize it, it doesn't work
 	{
@@ -31,17 +31,17 @@ void initialize_bing()
 		bingSystem.bingResultCreators = NULL;
 
 		//Set these as a precaution
-		bing_malloc = (bing_malloc_handler)malloc;
-		bing_calloc = (bing_calloc_handler)calloc;
-		bing_realloc = (bing_realloc_handler)realloc;
-		bing_free = (bing_free_handler)free;
-		bing_strdup = (bing_strdup_handler)strdup;
+		bing_mem_malloc = (bing_malloc_handler)malloc;
+		bing_mem_calloc = (bing_calloc_handler)calloc;
+		bing_mem_realloc = (bing_realloc_handler)realloc;
+		bing_mem_free = (bing_free_handler)free;
+		bing_mem_strdup = (bing_strdup_handler)strdup;
 
 		pthread_mutex_unlock(&bingSystem.mutex);
 	}
 }
 
-int shutdown_bing()
+int bing_shutdown()
 {
 	BOOL ret = FALSE;
 
@@ -55,14 +55,14 @@ int shutdown_bing()
 			//Free all the creator strings, then the creators themselves
 			while(bingSystem.bingResponseCreatorCount > 0)
 			{
-				bing_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
+				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
 			}
 			while(bingSystem.bingResultCreatorCount > 0)
 			{
-				bing_free((void*)bingSystem.bingResultCreators[--bingSystem.bingResultCreatorCount].name);
+				bing_mem_free((void*)bingSystem.bingResultCreators[--bingSystem.bingResultCreatorCount].name);
 			}
-			bing_free(bingSystem.bingResponseCreators);
-			bing_free(bingSystem.bingResultCreators);
+			bing_mem_free(bingSystem.bingResponseCreators);
+			bing_mem_free(bingSystem.bingResultCreators);
 			bingSystem.bingResponseCreators = NULL;
 			bingSystem.bingResultCreators = NULL;
 
@@ -72,13 +72,13 @@ int shutdown_bing()
 			{
 				if(bingSystem.bingInstances[i])
 				{
-					free_bing(++i);
+					bing_free(++i);
 				}
 			}
 
 			//Reset the instance system
 			bingSystem.bingInstancesCount = 0;
-			bing_free(bingSystem.bingInstances);
+			bing_mem_free(bingSystem.bingInstances);
 			bingSystem.bingInstances = NULL;
 
 			pthread_mutex_destroy(&bingSystem.mutex);
@@ -100,7 +100,7 @@ int shutdown_bing()
 
 int bing_get_domain()
 {
-	initialize_bing();
+	bing_initialize();
 
 	return bingSystem.domainID;
 }
@@ -124,14 +124,14 @@ int findFreeIndex()
 	return -1;
 }
 
-unsigned int create_bing(const char* application_ID)
+unsigned int bing_create(const char* application_ID)
 {
 	int ret = 0; //Zero is reserved for bad
 	int loc;
 	bing* bingI;
 	bing** in;
 
-	initialize_bing();
+	bing_initialize();
 
 	if(bingSystem.domainID != -1)
 	{
@@ -140,11 +140,11 @@ unsigned int create_bing(const char* application_ID)
 		//Reallocate the instance length
 		if(bingSystem.bingInstances)
 		{
-			in = bing_realloc(bingSystem.bingInstances, (bingSystem.bingInstancesCount + 1) * sizeof(bing*));
+			in = bing_mem_realloc(bingSystem.bingInstances, (bingSystem.bingInstancesCount + 1) * sizeof(bing*));
 		}
 		else
 		{
-			in = bing_malloc(sizeof(bing*));
+			in = bing_mem_malloc(sizeof(bing*));
 		}
 		if(in)
 		{
@@ -156,7 +156,7 @@ unsigned int create_bing(const char* application_ID)
 			loc = findFreeIndex();
 
 			//Create Bing instance
-			in[loc] = bingI = (bing*)bing_malloc(sizeof(bing));
+			in[loc] = bingI = (bing*)bing_mem_malloc(sizeof(bing));
 
 			if(bingI)
 			{
@@ -167,9 +167,9 @@ unsigned int create_bing(const char* application_ID)
 				{
 					if(bingI->appId)
 					{
-						bing_free(bingI->appId);
+						bing_mem_free(bingI->appId);
 					}
-					bingI->appId = bing_strdup(application_ID);
+					bingI->appId = bing_mem_strdup(application_ID);
 					//If an error occurs, it's up to the developer to make sure that the app ID was copied
 				}
 #if defined(BING_DEBUG)
@@ -188,7 +188,7 @@ unsigned int create_bing(const char* application_ID)
 					bingSystem.bingInstancesCount--;
 					if(loc == bingSystem.bingInstancesCount) //At end of instances, free up some space
 					{
-						in = bing_realloc(bingSystem.bingInstances, bingSystem.bingInstancesCount * sizeof(bing*));
+						in = bing_mem_realloc(bingSystem.bingInstances, bingSystem.bingInstancesCount * sizeof(bing*));
 
 						if(in)
 						{
@@ -199,7 +199,7 @@ unsigned int create_bing(const char* application_ID)
 				}
 				else
 				{
-					bing_free(bingSystem.bingInstances);
+					bing_mem_free(bingSystem.bingInstances);
 
 					bingSystem.bingInstances = NULL;
 					bingSystem.bingInstancesCount = 0;
@@ -212,11 +212,11 @@ unsigned int create_bing(const char* application_ID)
 	return ret;
 }
 
-void free_bing(unsigned int bingID)
+void bing_free(unsigned int bingID)
 {
 	bing* bingI;
 
-	initialize_bing(); //This shouldn't be here but put it here for safety
+	bing_initialize(); //This shouldn't be here but put it here for safety
 
 	if(bingSystem.domainID != -1 && bingID > 0)
 	{
@@ -229,7 +229,7 @@ void free_bing(unsigned int bingID)
 			//Free the system
 			if(bingSystem.bingInstancesCount == 1)
 			{
-				bing_free(bingSystem.bingInstances);
+				bing_mem_free(bingSystem.bingInstances);
 
 				bingSystem.bingInstances = NULL;
 				bingSystem.bingInstancesCount = 0;
@@ -247,13 +247,13 @@ void free_bing(unsigned int bingID)
 			{
 				free_response((bing_response_t)bingI->responses[bingI->responseCount - 1]);
 			}
-			bing_free(bingI->responses);
+			bing_mem_free(bingI->responses);
 
-			bing_free(bingI->appId);
+			bing_mem_free(bingI->appId);
 
 			pthread_mutex_destroy(&bingI->mutex);
 
-			bing_free(bingI);
+			bing_mem_free(bingI);
 		}
 
 		pthread_mutex_unlock(&bingSystem.mutex);
@@ -264,7 +264,7 @@ bing* retrieveBing(unsigned int bingID)
 {
 	bing* bingI = NULL;
 
-	initialize_bing(); //This shouldn't be here but put it here for safety
+	bing_initialize(); //This shouldn't be here but put it here for safety
 
 	if(bingSystem.domainID != -1 && bingID > 0)
 	{
@@ -283,7 +283,7 @@ bing* retrieveBing(unsigned int bingID)
 
 #if defined(BING_DEBUG)
 
-int set_error_return(unsigned int bingID, int error)
+int bing_set_error_return(unsigned int bingID, int error)
 {
 	bing* bingI = retrieveBing(bingID);
 
@@ -300,7 +300,7 @@ int set_error_return(unsigned int bingID, int error)
 	return FALSE;
 }
 
-int get_error_return(unsigned int bingID)
+int bing_get_error_return(unsigned int bingID)
 {
 	int res = FALSE;
 	bing* bingI = retrieveBing(bingID);
@@ -319,7 +319,7 @@ int get_error_return(unsigned int bingID)
 
 #endif
 
-int get_app_ID(unsigned int bingID, char* buffer)
+int bing_get_app_ID(unsigned int bingID, char* buffer)
 {
 	bing* bingI = retrieveBing(bingID);
 	int ret = -1;
@@ -341,7 +341,7 @@ int get_app_ID(unsigned int bingID, char* buffer)
 	return ret;
 }
 
-int set_app_ID(unsigned int bingID, const char* appId)
+int bing_set_app_ID(unsigned int bingID, const char* appId)
 {
 	bing* bingI;
 	int size;
@@ -358,12 +358,12 @@ int set_app_ID(unsigned int bingID, const char* appId)
 
 			preApp = bingI->appId;
 
-			bingI->appId = (char*)bing_malloc(size);
+			bingI->appId = (char*)bing_mem_malloc(size);
 			if(bingI->appId)
 			{
 				strlcpy(bingI->appId, appId, size);
 
-				bing_free(preApp);
+				bing_mem_free(preApp);
 
 				res = TRUE;
 			}
@@ -397,7 +397,7 @@ const char* encodeUrl(const char* url)
 	if(bytes != NULL)
 	{
 		size = strlen(url) + 1;
-		ret = (char*)bing_malloc(size * 3); //We don't know how many of these bytes we will need, better to be safe then sorry
+		ret = (char*)bing_mem_malloc(size * 3); //We don't know how many of these bytes we will need, better to be safe then sorry
 		if(ret != NULL)
 		{
 			memset(ret, 0, size * 3);
@@ -432,7 +432,7 @@ const char* encodeUrl(const char* url)
 	return ret;
 }
 
-const char* request_url(unsigned int bingID, const char* query, const bing_request_t request)
+const char* bing_request_url(unsigned int bingID, const char* query, const bing_request_t request)
 {
 	bing* bingI = retrieveBing(bingID);
 	char* ret = NULL;
@@ -479,14 +479,14 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		urlSize += strlen(appIdStr);
 
 		//Allocate the url data
-		ret = (char*)bing_calloc(urlSize + 6, sizeof(char)); //The 6 is just for null chars as a precaution.
+		ret = (char*)bing_mem_calloc(urlSize + 6, sizeof(char)); //The 6 is just for null chars as a precaution.
 		if(ret)
 		{
 			//Now actually create the URL
 			if(snprintf(ret, urlSize + 6, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, requestOptions) < 0)
 			{
 				//Error
-				bing_free(ret);
+				bing_mem_free(ret);
 				ret = NULL;
 			}
 		}
@@ -498,10 +498,10 @@ const char* request_url(unsigned int bingID, const char* query, const bing_reque
 		if(!req->sourceType)
 		{
 			//Need to free source type for bundle
-			bing_free((void*)sourceType);
+			bing_mem_free((void*)sourceType);
 		}
-		bing_free((void*)requestOptions);
-		bing_free((void*)queryStr);
+		bing_mem_free((void*)requestOptions);
+		bing_mem_free((void*)queryStr);
 	}
 	return ret;
 }
@@ -551,7 +551,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 		size += 1;
 		if(size > curDataSize[0])
 		{
-			data[0] = bing_realloc(data[0], size);
+			data[0] = bing_mem_realloc(data[0], size);
 			curDataSize[0] = size;
 		}
 
@@ -564,7 +564,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 			buffer[255] = '\0';
 
 			returnDataSize[0] += strlen(buffer);
-			rett = bing_realloc(returnData[0], returnDataSize[0]);
+			rett = bing_mem_realloc(returnData[0], returnDataSize[0]);
 			if(rett)
 			{
 				strlcat(rett, buffer, returnDataSize[0]);
@@ -582,13 +582,13 @@ BOOL replace_string_with_longlong(hashtable_t* table, const char* field)
 	int strLen = hashtable_get_string(table, field, NULL);
 	if(strLen > 0)
 	{
-		str = bing_malloc(strLen);
+		str = bing_mem_malloc(strLen);
 		if(str)
 		{
 			hashtable_get_string(table, field, str);
 			ll = atoll(str);
 			ret = hashtable_set_data(table, field, &ll, sizeof(long long));
-			bing_free(str);
+			bing_mem_free(str);
 		}
 		else
 		{
@@ -606,13 +606,13 @@ BOOL replace_string_with_double(hashtable_t* table, const char* field)
 	int strLen = hashtable_get_string(table, field, NULL);
 	if(strLen > 0)
 	{
-		str = bing_malloc(strLen);
+		str = bing_mem_malloc(strLen);
 		if(str)
 		{
 			hashtable_get_string(table, field, str);
 			d = atof(str);
 			ret = hashtable_set_data(table, field, &d, sizeof(double));
-			bing_free(str);
+			bing_mem_free(str);
 		}
 		else
 		{
@@ -622,20 +622,20 @@ BOOL replace_string_with_double(hashtable_t* table, const char* field)
 	return ret;
 }
 
-BOOL set_bing_memory_handlers(bing_malloc_handler bm, bing_calloc_handler bc, bing_realloc_handler br, bing_free_handler bf, bing_strdup_handler bs)
+BOOL bing_set_memory_handlers(bing_malloc_handler bm, bing_calloc_handler bc, bing_realloc_handler br, bing_free_handler bf, bing_strdup_handler bs)
 {
-	initialize_bing();
+	bing_initialize();
 
 	//We want everything to be set to prevent issues
 	if(bm && bc && br && bf && bs)
 	{
 		pthread_mutex_lock(&bingSystem.mutex);
 
-		bing_malloc = bm;
-		bing_calloc = bc;
-		bing_realloc = br;
-		bing_free = bf;
-		bing_strdup = bs;
+		bing_mem_malloc = bm;
+		bing_mem_calloc = bc;
+		bing_mem_realloc = br;
+		bing_mem_free = bf;
+		bing_mem_strdup = bs;
 
 		pthread_mutex_unlock(&bingSystem.mutex);
 

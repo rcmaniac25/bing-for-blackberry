@@ -35,7 +35,7 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 		size = hashtable_get_string((hashtable_t*)dictionary, "Total", NULL);
 		if(size > 0)
 		{
-			data = bing_malloc(size);
+			data = bing_mem_malloc(size);
 			if(data)
 			{
 				hashtable_get_string((hashtable_t*)dictionary, "Total", (char*)data);
@@ -44,14 +44,14 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 
 				hashtable_set_data(res->data, RESPONSE_TOTAL_STR, &ll, sizeof(long long));
 
-				bing_free(data);
+				bing_mem_free(data);
 			}
 		}
 
 		size = hashtable_get_string((hashtable_t*)dictionary, "Offset", NULL);
 		if(size > 0)
 		{
-			data = bing_malloc(size);
+			data = bing_mem_malloc(size);
 			if(data)
 			{
 				hashtable_get_string((hashtable_t*)dictionary, "Offset", (char*)data);
@@ -60,7 +60,7 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 
 				hashtable_set_data(res->data, RESPONSE_OFFSET_STR, &ll, sizeof(long long));
 
-				bing_free(data);
+				bing_mem_free(data);
 			}
 		}
 	}
@@ -90,28 +90,28 @@ void response_phonebook_additional_data(bing_response_t response, data_dictionar
 		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_TITLE, NULL);
 		if(size > 0)
 		{
-			data = bing_malloc(size);
+			data = bing_mem_malloc(size);
 			if(data)
 			{
 				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_TITLE, (char*)data);
 
 				hashtable_set_data(res->data, RESPONSE_PHONEBOOK_TITLE, data, strlen((char*)data) + 1);
 
-				bing_free(data);
+				bing_mem_free(data);
 			}
 		}
 
 		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, NULL);
 		if(size > 0)
 		{
-			data = bing_malloc(size);
+			data = bing_mem_malloc(size);
 			if(data)
 			{
 				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, (char*)data);
 
 				hashtable_set_data(res->data, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, data, strlen((char*)data) + 1);
 
-				bing_free(data);
+				bing_mem_free(data);
 			}
 		}
 	}
@@ -128,14 +128,14 @@ void response_news_additional_data(bing_response_t response, data_dictionary_t d
 		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_NEWS_RELATEDSEARCHES, NULL);
 		if(size > 0)
 		{
-			str = bing_malloc(size);
+			str = bing_mem_malloc(size);
 			if(str)
 			{
 				//We need to get the result
 				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_NEWS_RELATEDSEARCHES, str);
 				result = (bing_result*)str;
 
-				bing_free(str);
+				bing_mem_free(str);
 
 				//Make sure this is a valid result
 				if(result->type == BING_RESULT_COMMON)
@@ -143,19 +143,19 @@ void response_news_additional_data(bing_response_t response, data_dictionary_t d
 					size = hashtable_get_string(result->data, BING_RESULT_COMMON_TYPE, NULL);
 					if(size > 0) //Does it contain a common type?
 					{
-						str = bing_malloc(size);
+						str = bing_mem_malloc(size);
 						if(str)
 						{
 							hashtable_get_string(result->data, BING_RESULT_COMMON_TYPE, str);
 							if(strcmp(str, RES_COM_RELSEARCH_ARRAY_NAME) == 0) //Is it the correct common type?
 							{
-								bing_free(str);
+								bing_mem_free(str);
 
 								//It's a valid result, time to get the array
 								size = hashtable_get_string(result->data, RES_COM_WEB_RELATEDSEARCH, NULL);
 								if(size > 0)
 								{
-									str = bing_malloc(size);
+									str = bing_mem_malloc(size);
 									if(str)
 									{
 										hashtable_get_string(result->data, RES_COM_WEB_RELATEDSEARCH, str);
@@ -163,13 +163,13 @@ void response_news_additional_data(bing_response_t response, data_dictionary_t d
 										//Save the array
 										hashtable_set_data(res->data, RESPONSE_NEWS_RELATEDSEARCHES, str, size);
 
-										bing_free(str);
+										bing_mem_free(str);
 									}
 								}
 							}
 							else
 							{
-								bing_free(str);
+								bing_mem_free(str);
 							}
 						}
 					}
@@ -192,21 +192,21 @@ void response_ad_additional_data(bing_response_t response, data_dictionary_t dic
 		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_API_VERSION, NULL);
 		if(size > 0)
 		{
-			data = bing_malloc(size);
+			data = bing_mem_malloc(size);
 			if(data)
 			{
 				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_API_VERSION, (char*)data);
 
 				hashtable_set_data(res->data, RESPONSE_AD_API_VERSION, data, strlen((char*)data) + 1);
 
-				bing_free(data);
+				bing_mem_free(data);
 			}
 		}
 
 		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_PAGE_NUMBER, NULL);
 		if(size > 0)
 		{
-			data = bing_malloc(size);
+			data = bing_mem_malloc(size);
 			if(data)
 			{
 				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_PAGE_NUMBER, (char*)data);
@@ -215,7 +215,7 @@ void response_ad_additional_data(bing_response_t response, data_dictionary_t dic
 
 				hashtable_set_data(res->data, RESPONSE_AD_PAGE_NUMBER, &ll, sizeof(long long));
 
-				bing_free(data);
+				bing_mem_free(data);
 			}
 		}
 	}
@@ -368,7 +368,7 @@ BOOL response_add_result(bing_response* response, bing_result* result, BOOL inte
 
 		if(i == (*c)) //Result not found, add it
 		{
-			resultList = (bing_result_t*)bing_realloc(resultList, ((*c) + 1) * sizeof(bing_result_t));
+			resultList = (bing_result_t*)bing_mem_realloc(resultList, ((*c) + 1) * sizeof(bing_result_t));
 			if(resultList)
 			{
 				*resultListSrc = resultList;
@@ -417,14 +417,14 @@ BOOL response_remove_result(bing_response* response, bing_result* result, BOOL i
 			{
 				if((*c) == 1) //If there is only one item, simply free the array
 				{
-					bing_free(resultList);
+					bing_mem_free(resultList);
 					*resultListSrc = NULL;
 					(*c) = 0;
 					ret = TRUE;
 				}
 				else
 				{
-					resultList = (bing_result_t*)bing_realloc(resultList, ((*c) - 1) * sizeof(bing_result_t));
+					resultList = (bing_result_t*)bing_mem_realloc(resultList, ((*c) - 1) * sizeof(bing_result_t));
 					if(resultList)
 					{
 						*resultListSrc = resultList;
@@ -435,12 +435,12 @@ BOOL response_remove_result(bing_response* response, bing_result* result, BOOL i
 			}
 			else
 			{
-				resultList = (bing_result_t*)bing_calloc(((*c) - 1), sizeof(bing_result_t));
+				resultList = (bing_result_t*)bing_mem_calloc(((*c) - 1), sizeof(bing_result_t));
 				if(resultList) //Need to recreate array in order to resize it
 				{
 					memcpy(resultList, *resultListSrc, i * sizeof(bing_result_t));
 					memcpy(resultList + i, (*resultListSrc) + i + 1, ((*c) - i - 1) * sizeof(bing_result_t));
-					bing_free(*resultListSrc);
+					bing_mem_free(*resultListSrc);
 					*resultListSrc = resultList;
 					(*c)--;
 					ret = TRUE;
@@ -495,7 +495,7 @@ int response_add_to_bing(bing_response* res, unsigned int bingID)
 		}
 		if(i == bing->responseCount) //Response not found, add it
 		{
-			t = bing_realloc(bing->responses, (bing->responseCount + 1) * sizeof(bing_response*));
+			t = bing_mem_realloc(bing->responses, (bing->responseCount + 1) * sizeof(bing_response*));
 			if(t)
 			{
 				bing->responses = t;
@@ -537,7 +537,7 @@ BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
 						if(bing->responseCount == 1)
 						{
 							//Only response in the list
-							bing_free(bing->responses);
+							bing_mem_free(bing->responses);
 							bing->responses = NULL;
 							bing->responseCount = 0;
 							ret = TRUE;
@@ -545,7 +545,7 @@ BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
 						else
 						{
 							//Simply remove the last item
-							t = bing_realloc(bing->responses, (bing->responseCount - 1) * sizeof(bing_response*));
+							t = bing_mem_realloc(bing->responses, (bing->responseCount - 1) * sizeof(bing_response*));
 							if(t)
 							{
 								bing->responses = t;
@@ -557,13 +557,13 @@ BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
 					else
 					{
 						//Create a new array and copy responses into it
-						t = bing_malloc((bing->responseCount - 1) * sizeof(bing_response*));
+						t = bing_mem_malloc((bing->responseCount - 1) * sizeof(bing_response*));
 						if(t)
 						{
 							memcpy(t, bing->responses, pos * sizeof(bing_response*));
 							memcpy(t + pos, bing->responses + pos + 1, (bing->responseCount - pos - 1) * sizeof(bing_response*));
 
-							bing_free(bing->responses);
+							bing_mem_free(bing->responses);
 							bing->responses = t;
 
 							bing->responseCount--;
@@ -603,11 +603,11 @@ BOOL response_add_to_bundle(bing_response* response, bing_response* responsePare
 	else
 	{
 		//Create the list
-		list_v = (list*)bing_malloc(sizeof(list));
+		list_v = (list*)bing_mem_malloc(sizeof(list));
 		if(list_v)
 		{
 			list_v->count = 0;
-			responseList = list_v->listElements = (bing_response_t*)bing_calloc(11, sizeof(bing_response_t));
+			responseList = list_v->listElements = (bing_response_t*)bing_mem_calloc(11, sizeof(bing_response_t));
 			if(list_v->listElements)
 			{
 				//Save the list
@@ -615,14 +615,14 @@ BOOL response_add_to_bundle(bing_response* response, bing_response* responsePare
 				if(hashtable_put_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
 				{
 					//List creation failed, cleanup
-					bing_free(list_v);
+					bing_mem_free(list_v);
 					list_v = NULL;
 				}
 			}
 			else
 			{
 				//List creation failed, cleanup
-				bing_free(list_v);
+				bing_mem_free(list_v);
 				list_v = NULL;
 			}
 		}
@@ -632,7 +632,7 @@ BOOL response_add_to_bundle(bing_response* response, bing_response* responsePare
 		if(list_v->count >= list_v->cap)
 		{
 			//Resize list
-			responseList = (bing_response_t*)bing_realloc(responseList, sizeof(bing_response_t) * (list_v->cap * 2));
+			responseList = (bing_response_t*)bing_mem_realloc(responseList, sizeof(bing_response_t) * (list_v->cap * 2));
 			if(responseList)
 			{
 				list_v->cap *= 2;
@@ -681,8 +681,8 @@ BOOL response_remove_from_bundle(bing_response* response, bing_response* respons
 				else
 				{
 					//There are no more elements, we can remove the list
-					bing_free(list_v->listElements);
-					bing_free(list_v);
+					bing_mem_free(list_v->listElements);
+					bing_mem_free(list_v);
 					hashtable_remove_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR);
 				}
 				ret = TRUE;
@@ -702,7 +702,7 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 	if(response &&
 			(!(responseParent && responseParent->bing == 0) || bing > 0)) //We only want a response to be created if it is destined to be a either a parent or child response, not a child of a child response.
 	{
-		res = (bing_response*)bing_malloc(sizeof(bing_response));
+		res = (bing_response*)bing_mem_malloc(sizeof(bing_response));
 		if(res)
 		{
 			//Set variables
@@ -744,13 +744,13 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 				else
 				{
 					hashtable_free(res->data);
-					bing_free(res);
+					bing_mem_free(res);
 				}
 			}
 			else
 			{
 				//Hashtable couldn't be created
-				bing_free(res);
+				bing_mem_free(res);
 			}
 		}
 	}
@@ -836,9 +836,9 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		//Free allocated memory (allocated by response and result)
 		for(i = 0; i < res->allocatedMemoryCount; i++)
 		{
-			bing_free(res->allocatedMemory[i]);
+			bing_mem_free(res->allocatedMemory[i]);
 		}
-		bing_free(res->allocatedMemory);
+		bing_mem_free(res->allocatedMemory);
 		res->allocatedMemory = NULL;
 		res->allocatedMemoryCount = 0;
 
@@ -851,8 +851,8 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 				{
 					free_response_in(LIST_ELEMENT(list, i, bing_response_t), TRUE);
 				}
-				bing_free((void*)list->listElements);
-				bing_free((void*)list);
+				bing_mem_free((void*)list->listElements);
+				bing_mem_free((void*)list);
 			}
 
 			hashtable_free(res->data);
@@ -864,7 +864,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		{
 			free_result((bing_result*)res->results[--res->resultCount]);
 		}
-		bing_free(res->results);
+		bing_mem_free(res->results);
 		res->results = NULL;
 
 		//Free internal results
@@ -872,10 +872,10 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		{
 			free_result((bing_result*)res->internalResults[--res->internalResultCount]);
 		}
-		bing_free(res->internalResults);
+		bing_mem_free(res->internalResults);
 		res->internalResults = NULL;
 
-		bing_free(res);
+		bing_mem_free(res);
 	}
 }
 
@@ -1071,16 +1071,16 @@ int response_custom_set_array(bing_response_t response, const char* field, const
 void* allocateMemory(size_t size, bing_response* response)
 {
 	void* ret = NULL;
-	void** mem = bing_malloc((response->allocatedMemoryCount + 1) * sizeof(void*));
+	void** mem = bing_mem_malloc((response->allocatedMemoryCount + 1) * sizeof(void*));
 	if(mem)
 	{
-		ret = bing_malloc(size);
+		ret = bing_mem_malloc(size);
 		if(ret)
 		{
 			//Copy the memory
 			memcpy(mem, response->allocatedMemory, response->allocatedMemoryCount * sizeof(void*));
 
-			bing_free(response->allocatedMemory);
+			bing_mem_free(response->allocatedMemory);
 			response->allocatedMemory = mem;
 
 			//Set the new memory allocation
@@ -1088,7 +1088,7 @@ void* allocateMemory(size_t size, bing_response* response)
 		}
 		else
 		{
-			bing_free(mem);
+			bing_mem_free(mem);
 		}
 	}
 	return ret;
@@ -1104,7 +1104,7 @@ void* rallocateMemory(void* ptr, size_t size, bing_response* response)
 		if(response->allocatedMemory[i] == ptr)
 		{
 			//Reallocate the memory
-			nptr = bing_realloc(ptr, size);
+			nptr = bing_mem_realloc(ptr, size);
 			if(nptr)
 			{
 				response->allocatedMemory[i] = nptr;
@@ -1132,7 +1132,7 @@ void freeMemory(void* ptr, bing_response* response)
 		//New allocation
 		if(response->allocatedMemoryCount > 1)
 		{
-			mem = bing_malloc((response->allocatedMemoryCount - 1) * sizeof(void*));
+			mem = bing_mem_malloc((response->allocatedMemoryCount - 1) * sizeof(void*));
 			if(mem)
 			{
 				//Copy over pointers
@@ -1140,8 +1140,8 @@ void freeMemory(void* ptr, bing_response* response)
 				memcpy(mem + i, response->allocatedMemory + (i + 1), (response->allocatedMemoryCount - i - 1) * sizeof(void*));
 
 				//Free old allocated memory pointer and ptr
-				bing_free(response->allocatedMemory);
-				bing_free(ptr);
+				bing_mem_free(response->allocatedMemory);
+				bing_mem_free(ptr);
 
 				//Set the memory
 				response->allocatedMemoryCount--;
@@ -1151,8 +1151,8 @@ void freeMemory(void* ptr, bing_response* response)
 		else
 		{
 			//Free all memory
-			bing_free(response->allocatedMemory);
-			bing_free(ptr);
+			bing_mem_free(response->allocatedMemory);
+			bing_mem_free(ptr);
 
 			//Reset allocated memory
 			response->allocatedMemoryCount = 0;
@@ -1216,14 +1216,14 @@ int response_register_response_creator(const char* name, response_creation_func 
 			{
 				//Reproduce the name
 				size = strlen(name) + 1;
-				nName = bing_malloc(size);
+				nName = bing_mem_malloc(size);
 
 				if(nName)
 				{
 					strlcpy(nName, name, size);
 
 					//Create the new version of the name
-					c = (bing_response_creator*)bing_realloc(bingSystem.bingResponseCreators, sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount + 1));
+					c = (bing_response_creator*)bing_mem_realloc(bingSystem.bingResponseCreators, sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount + 1));
 
 					if(c)
 					{
@@ -1237,7 +1237,7 @@ int response_register_response_creator(const char* name, response_creation_func 
 					}
 					else
 					{
-						bing_free(nName);
+						bing_mem_free(nName);
 					}
 				}
 			}
@@ -1271,7 +1271,7 @@ int response_unregister_response_creator(const char* name)
 		if(i < bingSystem.bingResponseCreatorCount)
 		{
 			//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
-			c = (bing_response_creator*)bing_malloc(sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount - 1));
+			c = (bing_response_creator*)bing_mem_malloc(sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount - 1));
 
 			if(c)
 			{
@@ -1281,7 +1281,7 @@ int response_unregister_response_creator(const char* name)
 					memmove(bingSystem.bingResponseCreators + i, bingSystem.bingResponseCreators + (i + 1), (bingSystem.bingResponseCreatorCount - i - 1) * sizeof(bing_response_creator));
 				}
 				memcpy(c, bingSystem.bingResponseCreators, (--bingSystem.bingResponseCreatorCount) * sizeof(bing_response_creator));
-				bing_free(bingSystem.bingResponseCreators);
+				bing_mem_free(bingSystem.bingResponseCreators);
 				bingSystem.bingResponseCreators = c;
 
 				ret = TRUE;

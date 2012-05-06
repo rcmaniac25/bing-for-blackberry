@@ -17,12 +17,12 @@ using namespace bing_cpp;
 
 bing_service::bing_service(const char* application_ID)
 {
-	ID = create_bing(application_ID);
+	ID = bing_create(application_ID);
 }
 
 bing_service::~bing_service()
 {
-	free_bing(ID);
+	bing_free(ID);
 	ID = 0;
 }
 
@@ -30,24 +30,24 @@ bing_service::~bing_service()
 
 bool bing_service::error_return(bool error)
 {
-	return BOOL_TO_CPP_BOOL(set_error_return(ID, CPP_BOOL_TO_BOOL(error)));
+	return BOOL_TO_CPP_BOOL(bing_set_error_return(ID, CPP_BOOL_TO_BOOL(error)));
 }
 
 bool bing_service::error_return()
 {
-	return BOOL_TO_CPP_BOOL(get_error_return(ID));
+	return BOOL_TO_CPP_BOOL(bing_get_error_return(ID));
 }
 
 #endif
 
 int bing_service::app_ID(char* buffer)
 {
-	return get_app_ID(ID, buffer);
+	return bing_get_app_ID(ID, buffer);
 }
 
 bool bing_service::app_ID(const char* appId)
 {
-	return BOOL_TO_CPP_BOOL(set_app_ID(ID, appId));
+	return BOOL_TO_CPP_BOOL(bing_set_app_ID(ID, appId));
 }
 
 unsigned int bing_service::unique_bing_id()
