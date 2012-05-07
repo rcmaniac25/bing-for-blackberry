@@ -267,11 +267,11 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 	char* qualifiedName;
 	if(prefix)
 	{
-		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 2);
+		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 1);
 		if(qualifiedName)
 		{
 			snprintf(qualifiedName, size, "%s:%s", prefix, localname);
-			qualifiedName[size] = '\0';
+			qualifiedName[size - 1] = '\0';
 		}
 	}
 	else
