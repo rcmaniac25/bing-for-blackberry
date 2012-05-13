@@ -17,7 +17,6 @@
 #include <libxml/xmlmemory.h>
 
 #include <curl/curl.h>
-#include <curl/easy.h>
 
 enum PARSER_ERROR
 {
@@ -267,7 +266,7 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 	char* qualifiedName;
 	if(prefix)
 	{
-		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 1);
+		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 2);
 		if(qualifiedName)
 		{
 			snprintf(qualifiedName, size, "%s:%s", prefix, localname);
@@ -985,8 +984,8 @@ void* async_search(void* ctx)
 	int curlCode;
 #endif
 	receive_bing_response_func responseFunc = NULL;
-	bing_response* response;
-	void* userData;
+	bing_response* response = NULL;
+	void* userData = NULL;
 	bing_parser* parser = (bing_parser*)ctx;
 
 	if(check_for_connection())
@@ -1030,14 +1029,15 @@ void* async_search(void* ctx)
 #endif
 	}
 
-	//Cleanup
-	search_cleanup(parser);
 
 	//Return response (NULL is fine for a response)
 	if(responseFunc)
 	{
 		responseFunc(response, userData);
 	}
+
+	//Cleanup
+	search_cleanup(parser);
 
 	return NULL;
 }
@@ -1047,6 +1047,7 @@ void event_done(bps_event_t *event)
 {
 	bps_event_payload_t* payload = bps_event_get_payload(event);
 	bing_response_free((bing_response_t)payload->data1);
+	payload->data1 = NULL;
 }
 
 void event_invocation(bing_response_t response, void* user_data)
@@ -1060,17 +1061,20 @@ void event_invocation(bing_response_t response, void* user_data)
 		payload.data1 = (uintptr_t)response;
 
 		//Create the event
-		if((bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) | //Create event
+		if((bps_event_create(&event, bing_get_domain(), 0, &payload, event_done) != BPS_SUCCESS | //Create event
 				(parser->bpsChannel >= 0 ? bps_channel_push_event(parser->bpsChannel, event) : bps_push_event(event))) != BPS_SUCCESS) //Push event (if we have a BPS channel, use it)
 		{
 			//Since the event will never be pushed, free it
 			if(event)
 			{
+				//If the event was created, the "event_done" function will free the event...
 				bps_event_destroy(event);
 			}
-
-			//Since response will never be pushed, free it
-			bing_response_free(response);
+			else
+			{
+				//otherwise we can simply free the response
+				bing_response_free(response);
+			}
 		}
 	}
 }
@@ -1104,7 +1108,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 
 					//Setup thread attributes
 					pthread_attr_init(&thread_atts);
-					pthread_attr_setdetachstate(&thread_atts, PTHREAD_CREATE_DETACHED); //XXX This is how we want the thread to act, but we should do some extra checks as it could go wrong if the calling application exits before the thread returns. But if we leave it as joinable, the only thing we know that will happen is the application will hang as pthread_join would have to be called in search_shutdown, which is running on the same thread.
+					pthread_attr_setdetachstate(&thread_atts, PTHREAD_CREATE_DETACHED);
 
 					//Create thread
 					ret = pthread_create(&parser->thread, &thread_atts, async_search, parser) == EOK;

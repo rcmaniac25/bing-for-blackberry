@@ -1221,6 +1221,7 @@ int bing_response_register_response_creator(const char* name, response_creation_
 				if(nName)
 				{
 					strlcpy(nName, name, size);
+					nName[size - 1] = '\0';
 
 					//Create the new version of the name
 					c = (bing_response_creator*)bing_mem_realloc(bingSystem.bingResponseCreators, sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount + 1));
@@ -1251,6 +1252,7 @@ int bing_response_register_response_creator(const char* name, response_creation_
 int bing_response_unregister_response_creator(const char* name)
 {
 	BOOL ret = FALSE;
+
 	unsigned int i;
 	bing_response_creator* c;
 	if(name && bingSystem.bingResponseCreatorCount > 0) //We don't want to run if there is nothing to run on
@@ -1270,21 +1272,33 @@ int bing_response_unregister_response_creator(const char* name)
 
 		if(i < bingSystem.bingResponseCreatorCount)
 		{
-			//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
-			c = (bing_response_creator*)bing_mem_malloc(sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount - 1));
-
-			if(c)
+			//If there is only one creator, simply free everything
+			if(bingSystem.bingResponseCreatorCount == 1)
 			{
-				//If this is the last response then it's easy, we just free the data
-				if(i != bingSystem.bingResponseCreatorCount - 1)
-				{
-					memmove(bingSystem.bingResponseCreators + i, bingSystem.bingResponseCreators + (i + 1), (bingSystem.bingResponseCreatorCount - i - 1) * sizeof(bing_response_creator));
-				}
-				memcpy(c, bingSystem.bingResponseCreators, (--bingSystem.bingResponseCreatorCount) * sizeof(bing_response_creator));
 				bing_mem_free(bingSystem.bingResponseCreators);
-				bingSystem.bingResponseCreators = c;
+				bingSystem.bingResponseCreators = NULL;
+				bingSystem.bingResponseCreatorCount = 0;
 
 				ret = TRUE;
+			}
+			else
+			{
+				//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
+				c = (bing_response_creator*)bing_mem_malloc(sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount - 1));
+
+				if(c)
+				{
+					//If this is the last response then it's easy, we just free the data. Otherwise we need to move it.
+					if(i != bingSystem.bingResponseCreatorCount - 1)
+					{
+						memmove(bingSystem.bingResponseCreators + i, bingSystem.bingResponseCreators + (i + 1), (bingSystem.bingResponseCreatorCount - i - 1) * sizeof(bing_response_creator));
+					}
+					memcpy(c, bingSystem.bingResponseCreators, (--bingSystem.bingResponseCreatorCount) * sizeof(bing_response_creator));
+					bing_mem_free(bingSystem.bingResponseCreators);
+					bingSystem.bingResponseCreators = c;
+
+					ret = TRUE;
+				}
 			}
 		}
 

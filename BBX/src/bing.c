@@ -334,7 +334,8 @@ int bing_get_app_ID(unsigned int bingID, char* buffer)
 
 		if(buffer)
 		{
-			strcpy(buffer, bingI->appId);
+			strlcpy(buffer, bingI->appId, ret);
+			buffer[ret - 1] = '\0';
 		}
 
 		pthread_mutex_unlock(&bingI->mutex);
@@ -364,6 +365,7 @@ int bing_set_app_ID(unsigned int bingID, const char* appId)
 			if(bingI->appId)
 			{
 				strlcpy(bingI->appId, appId, size);
+				bingI->appId[size - 1] = '\0';
 
 				bing_mem_free(preApp);
 
@@ -443,7 +445,7 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 	const char* requestOptions;
 	const char* sourceType;
 	bing_request* req = (bing_request*)request;
-	size_t urlSize = 46; //This is the length of the URL format
+	size_t urlSize = 46 + 1; //This is the length of the URL format and null char
 
 	if(bingI && request)
 	{
@@ -481,11 +483,11 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 		urlSize += strlen(appIdStr);
 
 		//Allocate the url data
-		ret = (char*)bing_mem_calloc(urlSize + 6, sizeof(char)); //The 6 is just for null chars as a precaution.
+		ret = (char*)bing_mem_calloc(urlSize, sizeof(char));
 		if(ret)
 		{
 			//Now actually create the URL
-			if(snprintf(ret, urlSize + 6, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, requestOptions) < 0)
+			if(snprintf(ret, urlSize, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, requestOptions) < 0)
 			{
 				//Error
 				bing_mem_free(ret);

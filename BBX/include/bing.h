@@ -21,7 +21,10 @@ __BEGIN_DECLS
 /*
  * The full Bing library.
  *
- * A note on arrays: The data itself will be copied, not just the pointer to the element.
+ * Notes:
+ * Text-All text is in UTF8 format.
+ *
+ * Arrays-The data itself will be copied, not just the pointer to the element.
  * But, if the element contains pointers, the pointers will be references. Internal
  * pointers are Response-dependent and will only effect usage of the response.
  */
@@ -139,9 +142,9 @@ int bing_dictionary_get_data(data_dictionary_t dict, const char* name, void* dat
  * an array of all names within a dictionary.
  *
  * @param dict The dictionary to retrieve the names from.
- * @param name The array to copy all the names into. malloc will be used
- * 	to allocate each individual string within the names array. It's up
- * 	to the developer to free each name string.
+ * @param name The array to copy all the names into. The memory handler set for use
+ * 	(default is malloc) will be used to allocate each individual string within the names
+ * 	array. It's up to the developer to free each name string.
  *
  * @return The number of names within the dictionary, or -1 if an error occurred
  * or dict was NULL.

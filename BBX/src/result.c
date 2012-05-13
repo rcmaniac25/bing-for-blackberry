@@ -993,6 +993,7 @@ int bing_result_register_result_creator(const char* name, int array, int common,
 				if(nName)
 				{
 					strlcpy(nName, name, size);
+					nName[size - 1] = '\0';
 
 					//Create the new version of the name
 					c = (bing_result_creator*)bing_mem_realloc(bingSystem.bingResultCreators, sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount + 1));
@@ -1044,21 +1045,33 @@ int bing_result_unregister_result_creator(const char* name)
 
 		if(i < bingSystem.bingResultCreatorCount)
 		{
-			//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
-			c = (bing_result_creator*)bing_mem_malloc(sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount - 1));
-
-			if(c)
+			//If there is only one creator, simply free everything
+			if(bingSystem.bingResultCreatorCount == 1)
 			{
-				//If this is the last result then it's easy, we just free the data
-				if(i != bingSystem.bingResultCreatorCount - 1)
-				{
-					memmove(bingSystem.bingResultCreators + i, bingSystem.bingResultCreators + (i + 1), (bingSystem.bingResultCreatorCount - i - 1) * sizeof(bing_result_creator));
-				}
-				memcpy(c, bingSystem.bingResultCreators, (--bingSystem.bingResultCreatorCount) * sizeof(bing_result_creator));
 				bing_mem_free(bingSystem.bingResultCreators);
-				bingSystem.bingResultCreators = c;
+				bingSystem.bingResultCreators = NULL;
+				bingSystem.bingResultCreatorCount = 0;
 
 				ret = TRUE;
+			}
+			else
+			{
+				//We don't want to reallocate because if we fail and the creator was not the last element, then we overwrote it
+				c = (bing_result_creator*)bing_mem_malloc(sizeof(bing_result_creator) * (bingSystem.bingResultCreatorCount - 1));
+
+				if(c)
+				{
+					//If this is the last result then it's easy, we just free the data
+					if(i != bingSystem.bingResultCreatorCount - 1)
+					{
+						memmove(bingSystem.bingResultCreators + i, bingSystem.bingResultCreators + (i + 1), (bingSystem.bingResultCreatorCount - i - 1) * sizeof(bing_result_creator));
+					}
+					memcpy(c, bingSystem.bingResultCreators, (--bingSystem.bingResultCreatorCount) * sizeof(bing_result_creator));
+					bing_mem_free(bingSystem.bingResultCreators);
+					bingSystem.bingResultCreators = c;
+
+					ret = TRUE;
+				}
 			}
 		}
 

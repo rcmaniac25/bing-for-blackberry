@@ -1,0 +1,11 @@
+TODO:
+-Do some more testing to determine why event system on PlayBook isn't working correctly
+-Document public function saftey info (thread safe, interrupt safe, etc.)
+-Produce C++ version of library
+--Make sure it has QString support
+-Figure out segfault when async functions are used (and memory analysis is on)
+-Start working on rewrite to Azure (when info is avaliable)
+
+Defines:
+BING_DEBUG - Some debug output, optional search error returns. If search error returns are enabled then if an error occurs it will return an object 
+	that has detailed error information.
