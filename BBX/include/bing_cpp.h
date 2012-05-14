@@ -10,6 +10,10 @@
 
 #include <bing.h>
 
+#if defined (BING_Qt)
+#include <QtCore/QString>
+#endif
+
 #if defined (__cplusplus) || defined(__CPLUSPLUS__)
 
 #if !defined(_CPP_LIB_DECL)
@@ -18,8 +22,26 @@
 
 _CPP_LIB_DECL
 
+/*
+ * Notes:
+ *
+ * All text is in UTF8 format.
+ *
+ * Default "new" and "delete" operators are used.
+ */
+
 namespace bing_cpp //Not really the greatest name, but getting errors compiling otherwise.
 {
+	//Class forwards
+	class bing_service_request;
+	class bing_service_response;
+
+	/*
+	 * Function delegates
+	 */
+
+	typedef void (*receive_bing_cpp_response_func) (bing_service_response response, void* user_data);
+
 	/**
 	 * A Bing service object that can be used to search using Microsoft's Bing services.
 	 */
@@ -34,11 +56,23 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 * The @cpp bing_service() constructor allows developers to allocate a Bing service object to
 		 * perform search operations using Microsoft's Bing services.
 		 *
+		 * @param bingService Another instance of a Bing service element in which to copy the App ID from.
+		 */
+		bing_service(const bing_service& bingService);
+
+		/**
+		 * @brief Create a new Bing service.
+		 *
+		 * The @cpp bing_service() constructor allows developers to allocate a Bing service object to
+		 * perform search operations using Microsoft's Bing services.
+		 *
 		 * @param application_ID The application ID which allows a developer to access
 		 * 	Microsoft Bing services. If this string is not NULL, it is copied for use by
 		 * 	the service. So the developer can free the memory when he is done.
 		 */
 		bing_service(const char* application_ID);
+
+		//TODO: QString constructor (don't forget reference constructor)
 
 		/**
 		 * @brief Destroy and free a Bing service.
@@ -75,7 +109,7 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 *
 		 * @return A boolean indicating if error cases should be returned.
 		 */
-		bool error_return();
+		bool error_return() const;
 
 #endif
 
@@ -90,7 +124,7 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 *
 		 * @return The length of the application ID, or -1 if an error occurred.
 		 */
-		int app_ID(char* buffer);
+		int get_app_ID(char* buffer) const;
 
 		/**
 		 * @brief Set a Bing service's application ID.
@@ -107,7 +141,9 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 *
 		 * @return A boolean value specifying if the function completed successfully.
 		 */
-		bool app_ID(const char* appId);
+		bool set_app_ID(const char* appId);
+
+		//TODO: QString get/set_app_ID (don't forget reference functions)
 
 		/**
 		 * @brief Get a Bing service's unique ID.
@@ -117,7 +153,99 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 *
 		 * @return The unique Bing service ID.
 		 */
-		unsigned int unique_bing_id();
+		unsigned int unique_bing_id() const;
+
+		/**
+		 * @brief Perform a synchronous search.
+		 *
+		 * The @c search_sync() function allows developers to perform a blocking
+		 * search operation that will return when the search is complete.
+		 *
+		 * @param query The search query to perform. If this is NULL, then the function
+		 * 	returns immediately with no response.
+		 * @param request The type of search to perform. This determines the response
+		 * 	that will be returned. If this is NULL, then the function returns
+		 * 	immediately with no response.
+		 *
+		 * @return A response to the search query and request. This object, when not
+		 * 	NULL for errors, is allocated and should be freed using the delete operator.
+		 */
+		bing_service_response* search_sync(const char* query, const bing_service_request* request);
+
+		/**
+		 * @brief Perform a synchronous search.
+		 *
+		 * The @c search_sync() function allows developers to perform a blocking
+		 * search operation that will return when the search is complete.
+		 *
+		 * @param query The search query to perform. If this is NULL, then the function
+		 * 	returns immediately with no response.
+		 * @param request The type of search to perform. This determines the response
+		 * 	that will be returned. If this is NULL, then the function returns
+		 * 	immediately with no response.
+		 *
+		 * @return A response to the search query and request. This object, when not
+		 * 	NULL for errors, is allocated and should be freed using the delete operator.
+		 */
+		const bing_service_response& search_sync(const char* query, const bing_service_request& request);
+
+		//TODO: Search functionality (async)
+	};
+
+	/**
+	 * Base class for all request objects.
+	 */
+	class bing_service_request
+	{
+	protected:
+		bing_request_t request;
+		bing_service_request();
+
+	public:
+		~bing_service_request();
+
+		/**
+		 * @brief Create a Bing service request from a C Bing request.
+		 *
+		 * The @cpp create_from_request function takes a C Bing request and makes
+		 * a Bing service request from it.
+		 *
+		 * @param request The C Bing request to wrap.
+		 *
+		 * @return The wrapped C Bing request.
+		 */
+		const bing_service_request* create_from_request(const bing_request_t request);
+
+		/**
+		 * @brief Get a Bing service request.
+		 *
+		 * The @cpp get_request() function allows developers to get the service request
+		 * current C request, this allows for a developer to use this request with the
+		 * C Bing functions.
+		 *
+		 * @return The Bing service request.
+		 */
+		bing_request_t get_request() const;
+
+		//TODO
+	};
+
+	/**
+	 * Base class for all Response objects.
+	 */
+	class bing_service_response
+	{
+		bing_response_t response;
+
+		//TODO
+	};
+
+	/**
+	 * Base class for all Result objects.
+	 */
+	class bing_service_result
+	{
+		bing_result_t result;
 
 		//TODO
 	};
