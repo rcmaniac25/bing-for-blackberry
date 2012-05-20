@@ -9,6 +9,8 @@
 
 #include "bing_internal.h"
 
+//TODO: This is going to need to be updated
+
 #define REQ_VERSION "version"
 #define REQ_MARKET "market"
 #define REQ_ADULT "adult"
@@ -464,7 +466,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 			//Go through elements and get data
 			for(i = 0; i < list->count; i++)
 			{
-				src = (char*)((bing_request*)LIST_ELEMENT(list, i, bing_request_t))->sourceType;
+				src = (char*)((bing_request*)LIST_ELEMENT(list, i, bing_request_t))->sourceType; //TODO: Replace values as the "valid values" are lower case and, such as the case with "spell", can be different then their dedicated value
 				if(!src)
 				{
 					//We don't want bundle types within bundle types
@@ -477,7 +479,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 				}
 				else
 				{
-					snprintf(buffer, 256, "+%s", src);
+					snprintf(buffer, 256, "%%2b%s", src);
 					buffer[255] = '\0';
 				}
 				//Get the length and resize the string

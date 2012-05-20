@@ -29,8 +29,8 @@ __BEGIN_DECLS
  * pointers are Response-dependent and will only effect usage of the response.
  */
 
-#define BING_VERSION 2.2
-#define BBING_VERSION 1.0
+#define BING_VERSION 2.2 //XXX This no longer is needed. As "Bing 2.0" has been replaced by the Azure version
+#define BBING_VERSION 2.0
 
 /*
  * Structures

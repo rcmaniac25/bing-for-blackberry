@@ -385,7 +385,7 @@ int bing_set_app_ID(unsigned int bingID, const char* appId)
 
 //Utility functions
 
-const char BING_URL[] = "http://api.bing.net/xml.aspx?";
+const char BING_URL[] = "https://api.datamarket.azure.com/Bing/Search/";
 const char URL_UNRESERVED[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
 const char HEX[] = "0123456789ABCDEF";
 
@@ -438,6 +438,8 @@ const char* encodeUrl(const char* url)
 
 const char* bing_request_url(unsigned int bingID, const char* query, const bing_request_t request)
 {
+	//TODO: Is bingID even needed now?
+
 	bing* bingI = retrieveBing(bingID);
 	char* ret = NULL;
 	const char* queryStr;
@@ -445,7 +447,7 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 	const char* requestOptions;
 	const char* sourceType;
 	bing_request* req = (bing_request*)request;
-	size_t urlSize = 46 + 1; //This is the length of the URL format and null char
+	size_t urlSize = 26 + 1; //This is the length of the URL format and null char. We don't include '?' because when the size of sourceType is taken, it will include that
 
 	if(bingI && request)
 	{
@@ -458,10 +460,14 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 
 		//Get the source type
 		sourceType = req->sourceType;
-		if(!sourceType)
+		if(sourceType)
+		{
+			//TODO: Generate string in format of "%s?"
+		}
+		else
 		{
 			//Get bundle source type
-			sourceType = request_get_bundle_sourcetype(req);
+			sourceType = request_get_bundle_sourcetype(req); //TODO: Generate string in format of "Composite?Sources=%%27%s%%27".
 		}
 
 		//Size of the request source type
@@ -487,7 +493,7 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 		if(ret)
 		{
 			//Now actually create the URL
-			if(snprintf(ret, urlSize, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, requestOptions) < 0)
+			if(snprintf(ret, urlSize, "%s%sQuery=%%27%s%%27&$format=ATOM%s", BING_URL, sourceType, queryStr, requestOptions) < 0) //TODO: Finish and figure out "app ID" (if even needed now)
 			{
 				//Error
 				bing_mem_free(ret);
@@ -499,11 +505,7 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 		pthread_mutex_unlock(&bingI->mutex);
 
 		//Free the strings
-		if(!req->sourceType)
-		{
-			//Need to free source type for bundle
-			bing_mem_free((void*)sourceType);
-		}
+		bing_mem_free((void*)sourceType);
 		bing_mem_free((void*)requestOptions);
 		bing_mem_free((void*)queryStr);
 	}

@@ -9,6 +9,8 @@
 
 #include "bing_internal.h"
 
+//TODO: This is going to need to be updated
+
 #define RESPONSE_AD_API_VERSION "AdAPIVersion"
 #define RESPONSE_AD_PAGE_NUMBER "PageNumber"
 

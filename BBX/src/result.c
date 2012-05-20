@@ -9,7 +9,9 @@
 
 #include "bing_internal.h"
 
-//Nmaes used in multiple functions
+//TODO: This is going to need to be updated
+
+//Names used in multiple functions
 #define RES_AD_RANK "Rank"
 #define RES_AD_TITLE "Title"
 
