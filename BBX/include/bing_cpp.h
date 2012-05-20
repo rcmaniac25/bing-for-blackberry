@@ -47,6 +47,7 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 	 */
 	class bing_service
 	{
+	private:
 		unsigned int ID;
 
 	public:
