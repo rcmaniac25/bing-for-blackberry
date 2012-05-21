@@ -438,18 +438,18 @@ const char* encodeUrl(const char* url)
 
 const char* bing_request_url(unsigned int bingID, const char* query, const bing_request_t request)
 {
-	//TODO: Is bingID even needed now?
+	//bingID is not needed anymore
 
-	bing* bingI = retrieveBing(bingID);
 	char* ret = NULL;
 	const char* queryStr;
 	const char* appIdStr;
 	const char* requestOptions;
 	const char* sourceType;
+	char* sourceTypeTmp;
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 26 + 1; //This is the length of the URL format and null char. We don't include '?' because when the size of sourceType is taken, it will include that
 
-	if(bingI && request)
+	if(request)
 	{
 		//Size of URL (it's constant but it could change so we don't want to hard code the size)
 		urlSize += sizeof(BING_URL);
@@ -462,51 +462,73 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 		sourceType = req->sourceType;
 		if(sourceType)
 		{
-			//TODO: Generate string in format of "%s?"
+			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 2); //Includes the ? and null char
+			if(sourceTypeTmp)
+			{
+				//We need to add ? so it is a valid URL
+				if(snprintf(sourceTypeTmp, strlen(sourceType) + 2, "%s?", sourceType) < 0)
+				{
+					free(sourceTypeTmp);
+					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
+				}
+				sourceType = sourceTypeTmp;
+			}
+			else
+			{
+				//Prevent from running if we can't make source type string
+				sourceType = NULL;
+			}
 		}
 		else
 		{
 			//Get bundle source type
-			sourceType = request_get_bundle_sourcetype(req); //TODO: Generate string in format of "Composite?Sources=%%27%s%%27".
-		}
+			sourceType = request_get_bundle_sourcetype(req);
 
-		//Size of the request source type
-		urlSize += strlen(sourceType);
-
-		//Get the request options and types and size
-		requestOptions = req->getOptions(request);
-		urlSize += strlen(requestOptions);
-
-		//We want to lock it now before we use the application ID (since it can be changed)
-		pthread_mutex_lock(&bingI->mutex);
-
-		//Application ID and size
-		appIdStr = bingI->appId;
-		if(!appIdStr)
-		{
-			appIdStr = "";
-		}
-		urlSize += strlen(appIdStr);
-
-		//Allocate the url data
-		ret = (char*)bing_mem_calloc(urlSize, sizeof(char));
-		if(ret)
-		{
-			//Now actually create the URL
-			if(snprintf(ret, urlSize, "%s%sQuery=%%27%s%%27&$format=ATOM%s", BING_URL, sourceType, queryStr, requestOptions) < 0) //TODO: Finish and figure out "app ID" (if even needed now)
+			//Format for the URL
+			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 26); //Includes format, ?, and null char
+			if(sourceTypeTmp)
 			{
-				//Error
-				bing_mem_free(ret);
-				ret = NULL;
+				//Format it so it is correct for a composite request
+				if(snprintf(sourceTypeTmp, strlen(sourceType) + 26, "Composite?Sources=%%27%s%%27", sourceType) < 0)
+				{
+					free(sourceTypeTmp);
+					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
+				}
+				sourceType = sourceTypeTmp;
+			}
+			else
+			{
+				//Prevent from running if we can't make source type string
+				sourceType = NULL;
 			}
 		}
 
-		//Let the Bing element go back to normal execution
-		pthread_mutex_unlock(&bingI->mutex);
+		if(sourceType)
+		{
+			//Size of the request source type
+			urlSize += strlen(sourceType);
 
-		//Free the strings
-		bing_mem_free((void*)sourceType);
-		bing_mem_free((void*)requestOptions);
+			//Get the request options and types and size
+			requestOptions = req->getOptions(request);
+			urlSize += strlen(requestOptions);
+
+			//Allocate the url data
+			ret = (char*)bing_mem_calloc(urlSize, sizeof(char));
+			if(ret)
+			{
+				//Now actually create the URL
+				if(snprintf(ret, urlSize, "%s%sQuery=%%27%s%%27&$format=ATOM%s", BING_URL, sourceType, queryStr, requestOptions) < 0)
+				{
+					//Error
+					bing_mem_free(ret);
+					ret = NULL;
+				}
+			}
+
+			//Free the strings
+			bing_mem_free((void*)requestOptions);
+			bing_mem_free((void*)sourceType);
+		}
 		bing_mem_free((void*)queryStr);
 	}
 	return ret;

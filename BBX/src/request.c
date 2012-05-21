@@ -72,25 +72,21 @@ static bing_field_search request_fields[] =
 		{{BING_REQUEST_FIELD_CATEGORY,				FIELD_TYPE_STRING,	REQ_NEWS_CAT,		1,	{BING_SOURCETYPE_NEWS}},							&request_fields[16]},
 		{{BING_REQUEST_FIELD_LOCATION_OVERRIDE,		FIELD_TYPE_STRING,	REQ_NEWS_LOCOVER,	1,	{BING_SOURCETYPE_NEWS}},							&request_fields[17]},
 
-		//Phonebook
-		{{BING_REQUEST_FIELD_LOC_ID,				FIELD_TYPE_STRING,	REQ_PHONE_LOCID,	1,	{BING_SOURCETYPE_PHONEBOOK}},						&request_fields[18]},
-
 		//Translation
-		{{BING_REQUEST_FIELD_SOURCE_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_SOURCE,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[19]},
-		{{BING_REQUEST_FIELD_TARGET_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_TARGET,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[20]},
+		{{BING_REQUEST_FIELD_SOURCE_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_SOURCE,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[18]},
+		{{BING_REQUEST_FIELD_TARGET_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_TARGET,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[19]},
 
 		//Web
-		{{BING_REQUEST_FIELD_WEB_OPTIONS,			FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[21]},
+		{{BING_REQUEST_FIELD_WEB_OPTIONS,			FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[20]},
 
 		//Multi (less obvious breaks in original source type)
-		{{BING_REQUEST_FIELD_COUNT,					FIELD_TYPE_LONG,	REQ_MULTI_COUNT,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
-				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},										&request_fields[22]},
-		{{BING_REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_MULTI_OFFSET,	6,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
-				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},										&request_fields[23]},
-		{{BING_REQUEST_FIELD_FILTERS,				FIELD_TYPE_STRING,	REQ_MULTI_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[24]},
-		{{BING_REQUEST_FIELD_SORT_BY,				FIELD_TYPE_STRING,	REQ_MULTI_SORTBY,	3,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
-				BING_SOURCETYPE_VIDEO}},																											&request_fields[25]},
-		{{BING_REQUEST_FIELD_FILE_TYPE,				FIELD_TYPE_STRING,	REQ_MULTI_FILETYPE,	2,	{BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},	NULL}
+		{{BING_REQUEST_FIELD_COUNT,					FIELD_TYPE_LONG,	REQ_MULTI_COUNT,	5,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
+				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																	&request_fields[21]},
+		{{BING_REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_MULTI_OFFSET,	5,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_MOBILE_WEB,
+				BING_SOURCETYPE_NEWS, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																	&request_fields[22]},
+		{{BING_REQUEST_FIELD_FILTERS,				FIELD_TYPE_STRING,	REQ_MULTI_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[23]},
+		{{BING_REQUEST_FIELD_SORT_BY,				FIELD_TYPE_STRING,	REQ_MULTI_SORTBY,	2,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_VIDEO}},		&request_fields[24]},
+		{{BING_REQUEST_FIELD_FILE_TYPE,				FIELD_TYPE_STRING,	REQ_MULTI_FILETYPE,	1,	{BING_SOURCETYPE_WEB}},								NULL}
 };
 
 #define DEFAULT_ELEMENT_COUNT 8
@@ -101,6 +97,7 @@ typedef struct request_source_type_s
 {
 	enum BING_SOURCE_TYPE type;
 	const char* source_type;
+	const char* composite_source_type;
 	int maxElements;
 	request_get_options_func getOptions;
 
@@ -118,14 +115,16 @@ const char* request_def_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Version=%s",		REQ_VERSION)
+		//TODO: "count" and "offset"
+
+		APPEND("&Version=%s",		REQ_VERSION)	//XXX Not needed
 		APPEND("&Market=%s",		REQ_MARKET)
 		APPEND("&Adult=%s",			REQ_ADULT)
-		APPEND("&Options=%s",		REQ_OPTIONS)
+		APPEND("&Options=%s",		REQ_OPTIONS)	//XXX Look to see what this is again. Might not be needed
 		APPEND("&Latitude=%f",		REQ_LATITUDE)
 		APPEND("&Longitude=%f",		REQ_LONGITUDE)
-		APPEND("&UILanguage=%s",	REQ_LANGUAGE)
-		APPEND("&Radius=%f",		REQ_RADIUS)
+		APPEND("&UILanguage=%s",	REQ_LANGUAGE)	//XXX Not needed
+		APPEND("&Radius=%f",		REQ_RADIUS)		//XXX Not needed
 
 		bing_mem_free(data);
 	}
@@ -225,9 +224,9 @@ const char* request_image_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Image.Count=%llu",		REQ_MULTI_COUNT)
-		APPEND("&Image.Offset=%llu",	REQ_MULTI_OFFSET)
-		APPEND("&Image.Filters=%s",		REQ_MULTI_FILTERS)
+		APPEND("&Image.Count=%llu",		REQ_MULTI_COUNT)	//XXX Not needed
+		APPEND("&Image.Offset=%llu",	REQ_MULTI_OFFSET)	//XXX Not needed
+		APPEND("&Image.Filters=%s",		REQ_MULTI_FILTERS)	//XXX Renamed
 
 		bing_mem_free(data);
 	}
@@ -265,33 +264,11 @@ const char* request_news_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&News.Count=%llu",			REQ_MULTI_COUNT)
-		APPEND("&News.Offset=%llu",			REQ_MULTI_OFFSET)
-		APPEND("&News.Category=%s",			REQ_NEWS_CAT)
-		APPEND("&News.LocationOverride=%s",	REQ_NEWS_LOCOVER)
-		APPEND("&News.SortBy=%s",			REQ_MULTI_SORTBY)
-
-		bing_mem_free(data);
-	}
-	return ret;
-}
-
-const char* request_phone_get_options(bing_request_t request)
-{
-	bing_request* req;
-	char* ret = (char*)request_def_get_options(request);
-	void* data = NULL;
-	size_t cursize = 0;
-	size_t retSize = strlen(ret) + 1;
-	if(request && ret)
-	{
-		req = (bing_request*)request;
-
-		APPEND("&Phonebook.Count=%llu",		REQ_MULTI_COUNT)
-		APPEND("&Phonebook.Offset=%llu",	REQ_MULTI_OFFSET)
-		APPEND("&Phonebook.FileType=%s",	REQ_MULTI_FILETYPE)
-		APPEND("&Phonebook.LocId=%s",		REQ_PHONE_LOCID)
-		APPEND("&Phonebook.SortBy=%s",		REQ_MULTI_SORTBY)
+		APPEND("&News.Count=%llu",			REQ_MULTI_COUNT)	//XXX Not needed
+		APPEND("&News.Offset=%llu",			REQ_MULTI_OFFSET)	//XXX Not needed
+		APPEND("&News.Category=%s",			REQ_NEWS_CAT)		//XXX Renamed
+		APPEND("&News.LocationOverride=%s",	REQ_NEWS_LOCOVER)	//XXX Renamed
+		APPEND("&News.SortBy=%s",			REQ_MULTI_SORTBY)	//XXX Renamed
 
 		bing_mem_free(data);
 	}
@@ -328,10 +305,10 @@ const char* request_video_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Video.Count=%llu",		REQ_MULTI_COUNT)
-		APPEND("&Video.Offset=%llu",	REQ_MULTI_OFFSET)
-		APPEND("&Video.Filters=%s",		REQ_MULTI_FILTERS)
-		APPEND("&Video.FileType=%s",	REQ_MULTI_SORTBY)
+		APPEND("&Video.Count=%llu",		REQ_MULTI_COUNT)	//XXX Not needed
+		APPEND("&Video.Offset=%llu",	REQ_MULTI_OFFSET)	//XXX Not needed
+		APPEND("&Video.Filters=%s",		REQ_MULTI_FILTERS)	//XXX Renamed
+		APPEND("&Video.FileType=%s",	REQ_MULTI_SORTBY)	//XXX Renamed
 
 		bing_mem_free(data);
 	}
@@ -349,10 +326,10 @@ const char* request_web_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Web.Count=%llu",	REQ_MULTI_COUNT)
-		APPEND("&Web.Offset=%llu",	REQ_MULTI_OFFSET)
-		APPEND("&Web.FileType=%s",	REQ_MULTI_FILETYPE)
-		APPEND("&Web.Options=%s",	REQ_WEB_OPTIONS)
+		APPEND("&Web.Count=%llu",	REQ_MULTI_COUNT)	//XXX Not needed
+		APPEND("&Web.Offset=%llu",	REQ_MULTI_OFFSET)	//XXX Not needed
+		APPEND("&Web.FileType=%s",	REQ_MULTI_FILETYPE)	//XXX This has changed
+		APPEND("&Web.Options=%s",	REQ_WEB_OPTIONS)	//XXX Look to see what this is again. Might not be needed
 
 		bing_mem_free(data);
 	}
@@ -409,17 +386,16 @@ const char* request_custom_get_options(bing_request_t request)
 
 static request_source_type request_source_types[] =
 {
-		{BING_SOURCETYPE_AD,				"ad",				DEFAULT_ELEMENT_COUNT + 6,	request_ad_get_options,		&request_source_types[1]},
-		{BING_SOURCETYPE_IMAGE,				"image",			DEFAULT_ELEMENT_COUNT + 3,	request_image_get_options,	&request_source_types[2]},
-		{BING_SOURCETYPE_INSTANT_ANWSER,	"instantAnswer",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]},
-		{BING_SOURCETYPE_MOBILE_WEB,		"mobileWeb",		DEFAULT_ELEMENT_COUNT + 3,	request_mw_get_options,		&request_source_types[4]},
-		{BING_SOURCETYPE_NEWS,				"news",				DEFAULT_ELEMENT_COUNT + 5,	request_news_get_options,	&request_source_types[5]},
-		{BING_SOURCETYPE_PHONEBOOK,			"phonebook",		DEFAULT_ELEMENT_COUNT + 5,	request_phone_get_options,	&request_source_types[6]},
-		{BING_SOURCETYPE_RELATED_SEARCH,	"relatedSearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[7]},
-		{BING_SOURCETYPE_SPELL,				"spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[8]},
-		{BING_SOURCETYPE_TRANSLATION,		"translation",		DEFAULT_ELEMENT_COUNT + 2,	request_transl_get_options,	&request_source_types[9]},
-		{BING_SOURCETYPE_VIDEO,				"video",			DEFAULT_ELEMENT_COUNT + 4,	request_video_get_options,	&request_source_types[10]},
-		{BING_SOURCETYPE_WEB,				"web",				DEFAULT_ELEMENT_COUNT + 4,	request_web_get_options,	NULL}
+		//{BING_SOURCETYPE_AD,				"ad",					NULL,				DEFAULT_ELEMENT_COUNT + 6,	request_ad_get_options,		&request_source_types[1]}, //XXX Need to see how this might/is done
+		{BING_SOURCETYPE_IMAGE,				"Image",				"image",			DEFAULT_ELEMENT_COUNT + 3,	request_image_get_options,	&request_source_types[1]},
+		//{BING_SOURCETYPE_INSTANT_ANWSER,	"instantAnswer",		NULL,				DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]}, //XXX ?? What happened to this
+		//{BING_SOURCETYPE_MOBILE_WEB,		"mobileWeb",			NULL,				DEFAULT_ELEMENT_COUNT + 3,	request_mw_get_options,		&request_source_types[4]}, //XXX ?? What happened to this
+		{BING_SOURCETYPE_NEWS,				"News",					"news",				DEFAULT_ELEMENT_COUNT + 5,	request_news_get_options,	&request_source_types[2]},
+		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",		"relatedsearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]}, //XXX Not sure if composite type is correct
+		{BING_SOURCETYPE_SPELL,				"SpellingSuggestion",	"spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[4]},
+		//{BING_SOURCETYPE_TRANSLATION,		"translation",			NULL,				DEFAULT_ELEMENT_COUNT + 2,	request_transl_get_options,	&request_source_types[9]}, //XXX Need to modify method of execution (can't use in composite)
+		{BING_SOURCETYPE_VIDEO,				"Video",				"video",			DEFAULT_ELEMENT_COUNT + 4,	request_video_get_options,	&request_source_types[5]},
+		{BING_SOURCETYPE_WEB,				"Web",					"web",				DEFAULT_ELEMENT_COUNT + 4,	request_web_get_options,	NULL}
 };
 
 enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)

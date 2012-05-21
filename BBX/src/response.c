@@ -14,9 +14,6 @@
 #define RESPONSE_AD_API_VERSION "AdAPIVersion"
 #define RESPONSE_AD_PAGE_NUMBER "PageNumber"
 
-#define RESPONSE_PHONEBOOK_TITLE "Title"
-#define RESPONSE_PHONEBOOK_LOCAL_SERP_URL "LocalSerpUrl"
-
 #define RESPONSE_NEWS_RELATEDSEARCHES "RelatedSearches"
 
 //Taken from result.c
@@ -78,45 +75,6 @@ int response_def_create(const char* name, bing_response_t response, data_diction
 void response_def_additional_data(bing_response_t response, data_dictionary_t dictionary)
 {
 	//Don't do anything. The dictionary is automatically freed.
-}
-
-void response_phonebook_additional_data(bing_response_t response, data_dictionary_t dictionary)
-{
-	int size;
-	void* data;
-	bing_response* res = (bing_response*)response;
-	if(dictionary)
-	{
-		//Get the data, then save the data
-
-		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_TITLE, NULL);
-		if(size > 0)
-		{
-			data = bing_mem_malloc(size);
-			if(data)
-			{
-				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_TITLE, (char*)data);
-
-				hashtable_set_data(res->data, RESPONSE_PHONEBOOK_TITLE, data, strlen((char*)data) + 1);
-
-				bing_mem_free(data);
-			}
-		}
-
-		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, NULL);
-		if(size > 0)
-		{
-			data = bing_mem_malloc(size);
-			if(data)
-			{
-				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, (char*)data);
-
-				hashtable_set_data(res->data, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, data, strlen((char*)data) + 1);
-
-				bing_mem_free(data);
-			}
-		}
-	}
 }
 
 void response_news_additional_data(bing_response_t response, data_dictionary_t dictionary)
@@ -235,20 +193,20 @@ typedef struct BING_RESPONSE_CREATOR_SEARCH_S
 
 #define RESPONSE_DEF_COUNT 5
 
+//XXX Need to rewrite
 static bing_response_creator_search response_def_creator[]=
 {
 		{{"web:Web",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_WEB,			RESPONSE_DEF_COUNT,		&response_def_creator[1]},
-		{{"pho:Phonebook",		response_def_create,	response_phonebook_additional_data},	BING_SOURCETYPE_PHONEBOOK,		RESPONSE_DEF_COUNT + 2,	&response_def_creator[2]},
-		{{"mms:Image",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_IMAGE, 			RESPONSE_DEF_COUNT,		&response_def_creator[3]},
-		{{"mms:Video",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_VIDEO,			RESPONSE_DEF_COUNT,		&response_def_creator[4]},
-		{{"news:News",			response_def_create,	response_news_additional_data},			BING_SOURCETYPE_NEWS,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[5]},
-		{{"ads:Ad",				response_def_create,	response_ad_additional_data},			BING_SOURCETYPE_AD, 			RESPONSE_DEF_COUNT + 2,	&response_def_creator[6]},
-		{{"rs:RelatedSearch",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_RELATED_SEARCH,	RESPONSE_DEF_COUNT,		&response_def_creator[7]},
-		{{"tra:Translation",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_TRANSLATION,	RESPONSE_DEF_COUNT,		&response_def_creator[8]},
-		{{"spl:Spell",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_SPELL,			RESPONSE_DEF_COUNT,		&response_def_creator[9]},
-		{{"mw:MobileWeb",		response_def_create,	response_def_additional_data},			BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[10]},
-		{{"ia:InstantAnswer",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[11]},
-		{{"bundle",				response_def_create,	response_def_additional_data},			BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[12]},
+		{{"mms:Image",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_IMAGE, 			RESPONSE_DEF_COUNT,		&response_def_creator[2]},
+		{{"mms:Video",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_VIDEO,			RESPONSE_DEF_COUNT,		&response_def_creator[3]},
+		{{"news:News",			response_def_create,	response_news_additional_data},			BING_SOURCETYPE_NEWS,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[4]},
+		{{"ads:Ad",				response_def_create,	response_ad_additional_data},			BING_SOURCETYPE_AD, 			RESPONSE_DEF_COUNT + 2,	&response_def_creator[5]},
+		{{"rs:RelatedSearch",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_RELATED_SEARCH,	RESPONSE_DEF_COUNT,		&response_def_creator[6]},
+		{{"tra:Translation",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_TRANSLATION,	RESPONSE_DEF_COUNT,		&response_def_creator[7]},
+		{{"spl:Spell",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_SPELL,			RESPONSE_DEF_COUNT,		&response_def_creator[8]},
+		{{"mw:MobileWeb",		response_def_create,	response_def_additional_data},			BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[9]},
+		{{"ia:InstantAnswer",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[10]},
+		{{"bundle",				response_def_create,	response_def_additional_data},			BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[11]},
 		{{"Errors",				response_def_create,	response_def_additional_data},			BING_RESULT_ERROR,				RESPONSE_DEF_COUNT,		NULL}
 };
 
@@ -984,16 +942,6 @@ int bing_response_get_bundle_responses(bing_response_t response, bing_response_t
 		}
 	}
 	return ret;
-}
-
-int bing_response_get_phonebook_title(bing_response_t response, char* buffer)
-{
-	return response_get_string(response, buffer, RESPONSE_PHONEBOOK_TITLE, BING_SOURCETYPE_PHONEBOOK);
-}
-
-int bing_response_get_phonebook_local_serp_url(bing_response_t response, char* buffer)
-{
-	return response_get_string(response, buffer, RESPONSE_PHONEBOOK_LOCAL_SERP_URL, BING_SOURCETYPE_PHONEBOOK);
 }
 
 int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches)

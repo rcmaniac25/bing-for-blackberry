@@ -84,15 +84,14 @@ enum BING_SOURCE_TYPE
 	BING_RESULT_ERROR,
 
 	//Standard source types
-	BING_SOURCETYPE_AD,
+	BING_SOURCETYPE_AD,				//XXX Hide
 	BING_SOURCETYPE_IMAGE,
-	BING_SOURCETYPE_INSTANT_ANWSER,
-	BING_SOURCETYPE_MOBILE_WEB,
+	BING_SOURCETYPE_INSTANT_ANWSER,	//XXX Remove??
+	BING_SOURCETYPE_MOBILE_WEB,		//XXX Remove??
 	BING_SOURCETYPE_NEWS,
-	BING_SOURCETYPE_PHONEBOOK,
 	BING_SOURCETYPE_RELATED_SEARCH,
 	BING_SOURCETYPE_SPELL,
-	BING_SOURCETYPE_TRANSLATION,
+	BING_SOURCETYPE_TRANSLATION,	//XXX Hide
 	BING_SOURCETYPE_VIDEO,
 	BING_SOURCETYPE_WEB,
 
@@ -257,7 +256,7 @@ void bing_free(unsigned int bing);
  * @return A boolean integer indicating if the value was set or not. Zero is false,
  * 	non-zero is true.
  */
-int bing_set_error_return(unsigned int bing, int error);
+int bing_set_error_return(unsigned int bing, int error); //XXX This might not be needed if no error results are returned
 
 /**
  * @brief Get if the internal parser should return search errors.
@@ -271,7 +270,7 @@ int bing_set_error_return(unsigned int bing, int error);
  * @return A boolean integer indicating if error cases should be returned. Zero is false,
  * non-zero is true.
  */
-int bing_get_error_return(unsigned int bing);
+int bing_get_error_return(unsigned int bing); //XXX This might not be needed if no error results are returned
 
 /**
  * @brief A non-threadsafe way to find the last error that occurred, if one happened at all.
@@ -460,17 +459,17 @@ enum BING_REQUEST_FIELD
 	//double
 	BING_REQUEST_FIELD_RADIUS,
 	//64bit integer
-	BING_REQUEST_FIELD_PAGE_NUMBER,
+	BING_REQUEST_FIELD_PAGE_NUMBER, //XXX Hide (unless something else uses this)
 	//64bit integer
-	BING_REQUEST_FIELD_AD_UNIT_ID,
+	BING_REQUEST_FIELD_AD_UNIT_ID, //XXX Hide
 	//64bit integer
-	BING_REQUEST_FIELD_PROPERTY_ID,
+	BING_REQUEST_FIELD_PROPERTY_ID, //XXX Hide (unless something else uses this)
 	//64bit integer
-	BING_REQUEST_FIELD_CHANNEL_ID,
+	BING_REQUEST_FIELD_CHANNEL_ID, //XXX Hide (unless something else uses this)
 	//64bit integer
-	BING_REQUEST_FIELD_MAINLINE_AD_COUNT,
+	BING_REQUEST_FIELD_MAINLINE_AD_COUNT, //XXX Hide
 	//64bit integer
-	BING_REQUEST_FIELD_SIDEBAR_AD_COUNT,
+	BING_REQUEST_FIELD_SIDEBAR_AD_COUNT, //XXX Hide
 	//64bit integer
 	BING_REQUEST_FIELD_COUNT,
 	//64bit integer
@@ -588,6 +587,8 @@ int bing_request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_
  * 	within the specified Bing request, otherwise zero on error or NULL request.
  */
 int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field);
+
+//TODO: Wait, how did I never offer the ability to set request params? Needed: 64bit, string, double
 
 /**
  * @brief Get a value from a Bing request.
@@ -791,7 +792,7 @@ enum BING_SOURCE_TYPE bing_response_get_source_type(bing_response_t response);
  *
  * @return The estimated Bing response total.
  */
-long long bing_response_get_total(bing_response_t response);
+long long bing_response_get_total(bing_response_t response); //XXX Not sure if this exists right now
 
 /**
  * @brief Get the offset within the results for a Bing response.
@@ -804,7 +805,7 @@ long long bing_response_get_total(bing_response_t response);
  *
  * @return The Bing response offset.
  */
-long long bing_response_get_offset(bing_response_t response);
+long long bing_response_get_offset(bing_response_t response); //XXX Not sure if this exists right now
 
 /**
  * @brief Get the query used to search for this Bing response.
@@ -818,7 +819,7 @@ long long bing_response_get_offset(bing_response_t response);
  * @return The size of the Bing response query in bytes, or -1
  * 	if an error occurred.
  */
-int bing_response_get_query(bing_response_t response, char* buffer);
+int bing_response_get_query(bing_response_t response, char* buffer); //XXX Not sure if this exists right now
 
 /**
  * @brief Get the altered query used to search for this Bing response.
@@ -833,7 +834,7 @@ int bing_response_get_query(bing_response_t response, char* buffer);
  * @return The size of the Bing response altered query in bytes, or
  * 	-1 if an error occurred.
  */
-int bing_response_get_altered_query(bing_response_t response, char* buffer);
+int bing_response_get_altered_query(bing_response_t response, char* buffer); //XXX Not sure if this exists right now
 
 /**
  * @brief Get the unaltered query used to search for this Bing response.
@@ -848,7 +849,7 @@ int bing_response_get_altered_query(bing_response_t response, char* buffer);
  * @return The size of the Bing response unaltered query in bytes, or
  * 	-1 if an error occurred.
  */
-int bing_response_get_alterations_override_query(bing_response_t response, char* buffer);
+int bing_response_get_alterations_override_query(bing_response_t response, char* buffer); //XXX Not sure if this exists right now
 
 /**
  * @brief Get the results from a Bing response.
@@ -894,7 +895,7 @@ void bing_response_free(bing_response_t response);
  * @return The size of the Bing Ad response API version in bytes, or
  * 	-1 if an error occurred or if the response is not an Ad type.
  */
-int bing_response_get_ad_api_version(bing_response_t response, char* buffer);
+int bing_response_get_ad_api_version(bing_response_t response, char* buffer); //XXX Hide
 
 /**
  * @brief Get the Ad page number for an Bing Ad response.
@@ -907,7 +908,7 @@ int bing_response_get_ad_api_version(bing_response_t response, char* buffer);
  * @return The Bing Ad page number, or -1 if an error occurred or
  * 	if the response is not an Ad type.
  */
-long long bing_response_get_ad_page_number(bing_response_t response);
+long long bing_response_get_ad_page_number(bing_response_t response); //XXX Hide
 
 /**
  * @brief Get the responses from a Bing Bundle response.
@@ -924,34 +925,6 @@ long long bing_response_get_ad_page_number(bing_response_t response);
 int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses);
 
 /**
- * @brief Get the title for an Bing Phonebook response.
- *
- * The @c bing_response_get_phonebook_title() function allows developers to
- * get the title of a Bing Phonebook response.
- *
- * @param response The Bing response to get the title from.
- * @param buffer The buffer to copy the title into.
- *
- * @return The size of the Bing Phonebook title in bytes, or -1 if an error
- * 	occurred or if the response is not an Phonebook type.
- */
-int bing_response_get_phonebook_title(bing_response_t response, char* buffer);
-
-/**
- * @brief Get the URL to the local search repository for an Bing Phonebook response.
- *
- * The @c bing_response_get_phonebook_local_serp_url() function allows developers to
- * get the URL to the local search repository of a Bing Phonebook response.
- *
- * @param response The Bing response to get the URL from.
- * @param buffer The buffer to copy the URL into.
- *
- * @return The size of the Bing Phonebook URL in bytes, or -1 if an error
- * 	occurred or if the response is not an Phonebook type.
- */
-int bing_response_get_phonebook_local_serp_url(bing_response_t response, char* buffer);
-
-/**
  * @brief Get the related searches for an Bing News response.
  *
  * The @c response_get_news_related_searches() function allows developers to
@@ -963,7 +936,7 @@ int bing_response_get_phonebook_local_serp_url(bing_response_t response, char* b
  * @return The Bing response "related searches" count, or -1 if an error
  * 	occurred or if the response is not a News type.
  */
-int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches);
+int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches); //XXX Not sure if this exists right now
 
 //Custom functions
 
@@ -1178,23 +1151,6 @@ enum BING_RESULT_FIELD
 	BING_RESULT_FIELD_SOURCE,
 	//bing_news_collection_s
 	BING_RESULT_FIELD_NEWSCOLLECTION,
-	//double
-	BING_RESULT_FIELD_LATITUDE,
-	//double
-	BING_RESULT_FIELD_LONGITUDE,
-	//double
-	BING_RESULT_FIELD_USER_RATING,
-	//64bit integer
-	BING_RESULT_FIELD_REVIEW_COUNT,
-	BING_RESULT_FIELD_BUSINESS_URL,
-	BING_RESULT_FIELD_CITY,
-	BING_RESULT_FIELD_COUNTRY_OR_REGION,
-	BING_RESULT_FIELD_PHONE_NUMBER,
-	BING_RESULT_FIELD_POSTAL_CODE,
-	BING_RESULT_FIELD_STATE_OR_PROVINCE,
-	BING_RESULT_FIELD_UNIQUE_ID,
-	BING_RESULT_FIELD_BUSINESS,
-	BING_RESULT_FIELD_ADDRESS,
 	BING_RESULT_FIELD_TRANSLATED_TERM,
 	BING_RESULT_FIELD_SOURCE_TITLE,
 	BING_RESULT_FIELD_RUN_TIME,

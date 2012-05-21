@@ -28,11 +28,6 @@
 
 #define RES_VIDEO_STATICTHUMBNAIL "StaticThumbnail"
 
-#define RES_PHONE_LAT "Latitude"
-#define RES_PHONE_LONG "Longitude"
-#define RES_PHONE_RATING "UserRating"
-#define RES_PHONE_REVW_COUNT "ReviewCount"
-
 #define RES_NEWS_BREAKINGNEWS "BreakingNews"
 #define RES_NEWS_COLLECTION "NewsCollection"
 
@@ -85,21 +80,6 @@ int result_def_create(const char* name, bing_result_t result, data_dictionary_t 
 		return TRUE;
 	}
 	return hashtable_copy(((bing_result*)result)->data, (hashtable_t*)dictionary);
-}
-
-int result_phonebook_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
-{
-	hashtable_t* table;
-	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
-	if(ret)
-	{
-		table = ((bing_result*)result)->data;
-		ret = replace_string_with_double(table, RES_PHONE_LAT);
-		ret &= replace_string_with_double(table, RES_PHONE_LONG);
-		ret &= replace_string_with_double(table, RES_PHONE_RATING);
-		ret &= replace_string_with_longlong(table, RES_PHONE_REVW_COUNT);
-	}
-	return ret;
 }
 
 int result_image_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
@@ -531,34 +511,34 @@ typedef struct BING_RESULT_CREATOR_SEARCH_S
 	struct BING_RESULT_CREATOR_SEARCH_S* next;
 } bing_result_creator_search;
 
+//XXX Need to rewrite
 static bing_result_creator_search result_def_creator[]=
 {
 		//Results
 		{{"web:WebResult",			FALSE,	FALSE,	result_def_create,			result_web_additional_result},		BING_SOURCETYPE_WEB,				8,	&result_def_creator[1]},
-		{{"pho:PhonebookResult",	FALSE,	FALSE,	result_phonebook_create,	result_def_additional_result},		BING_SOURCETYPE_PHONEBOOK,			16,	&result_def_creator[2]},
-		{{"mms:VideoResult",		FALSE,	FALSE,	result_def_create,			result_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[3]},
-		{{"mms:ImageResult",		FALSE,	FALSE,	result_image_create,		result_image_additional_result},	BING_SOURCETYPE_IMAGE,				9,	&result_def_creator[4]},
-		{{"news:NewsResult",		FALSE,	FALSE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[5]},
-		{{"news:NewsArticle",		FALSE,	TRUE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[6]}, //This is a special extra, same as news type but with different name
-		{{"ads:AdResult",			FALSE,	FALSE,	result_ad_create,			result_def_additional_result},		BING_SOURCETYPE_AD, 				6,	&result_def_creator[7]},
-		{{"rs:RelatedSearchResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		2,	&result_def_creator[8]},
-		{{"tra:TranslationResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_TRANSLATION,		1,	&result_def_creator[9]},
-		{{"spl:SpellResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_SPELL,				1,	&result_def_creator[10]},
-		{{"mw:MobileWebResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_MOBILE_WEB,			5,	&result_def_creator[11]},
-		{{"ia:InstantAnswerResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_INSTANT_ANWSER,		5,	&result_def_creator[12]},
-		{{"Error",					FALSE,	FALSE,	result_error_create,		result_def_additional_result},		BING_RESULT_ERROR,					7,	&result_def_creator[13]},
+		{{"mms:VideoResult",		FALSE,	FALSE,	result_def_create,			result_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[2]},
+		{{"mms:ImageResult",		FALSE,	FALSE,	result_image_create,		result_image_additional_result},	BING_SOURCETYPE_IMAGE,				9,	&result_def_creator[3]},
+		{{"news:NewsResult",		FALSE,	FALSE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[4]},
+		{{"news:NewsArticle",		FALSE,	TRUE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[5]}, //This is a special extra, same as news type but with different name
+		{{"ads:AdResult",			FALSE,	FALSE,	result_ad_create,			result_def_additional_result},		BING_SOURCETYPE_AD, 				6,	&result_def_creator[6]},
+		{{"rs:RelatedSearchResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		2,	&result_def_creator[7]},
+		{{"tra:TranslationResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_TRANSLATION,		1,	&result_def_creator[8]},
+		{{"spl:SpellResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_SPELL,				1,	&result_def_creator[9]},
+		{{"mw:MobileWebResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_MOBILE_WEB,			5,	&result_def_creator[10]},
+		{{"ia:InstantAnswerResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_INSTANT_ANWSER,		5,	&result_def_creator[11]},
+		{{"Error",					FALSE,	FALSE,	result_error_create,		result_def_additional_result},		BING_RESULT_ERROR,					7,	&result_def_creator[12]},
 
 		//Common
-		{{RES_COM_DEEPLINK_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_deeplink_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[14]},
-		{{RES_COM_DEEPLINK,			FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[15]},
-		{{RES_COM_NEWS_ARRAY,		TRUE,	TRUE,	result_def_common_create,		result_common_news_array_additional_result},			BING_RESULT_COMMON,	2,	&result_def_creator[16]},
-		{{RES_COM_NEWSCOL,			TRUE,	TRUE,	result_def_common_create,		result_common_news_col_additional_result},				BING_RESULT_COMMON,	3,	&result_def_creator[17]},
-		{{RES_COM_NEWSCOL_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_news_col_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[18]},
-		{{RES_COM_RELSEARCH_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_related_search_array_additional_result},	BING_RESULT_COMMON,	2,	&result_def_creator[19]},
-		{{RES_COM_RELSEARCH,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[20]},
-		{{RES_COM_SEARCHTAG,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[21]},
-		{{RES_COM_SEARCHTAG_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_search_tag_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[22]},
-		{{RES_COM_THUMBNAIL,		FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	&result_def_creator[23]},
+		{{RES_COM_DEEPLINK_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_deeplink_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[13]},
+		{{RES_COM_DEEPLINK,			FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[14]},
+		{{RES_COM_NEWS_ARRAY,		TRUE,	TRUE,	result_def_common_create,		result_common_news_array_additional_result},			BING_RESULT_COMMON,	2,	&result_def_creator[15]},
+		{{RES_COM_NEWSCOL,			TRUE,	TRUE,	result_def_common_create,		result_common_news_col_additional_result},				BING_RESULT_COMMON,	3,	&result_def_creator[16]},
+		{{RES_COM_NEWSCOL_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_news_col_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[17]},
+		{{RES_COM_RELSEARCH_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_related_search_array_additional_result},	BING_RESULT_COMMON,	2,	&result_def_creator[18]},
+		{{RES_COM_RELSEARCH,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[19]},
+		{{RES_COM_SEARCHTAG,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[20]},
+		{{RES_COM_SEARCHTAG_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_search_tag_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[21]},
+		{{RES_COM_THUMBNAIL,		FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	&result_def_creator[22]},
 		{{RES_COM_STATICTHUMBNAIL,	FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	NULL}
 };
 
@@ -567,13 +547,13 @@ static bing_field_search result_fields[] =
 		//Ad
 		{{BING_RESULT_FIELD_RANK,							FIELD_TYPE_LONG,	RES_AD_RANK,					1,	{BING_SOURCETYPE_AD}},						&result_fields[1]},
 		{{BING_RESULT_FIELD_POSITION,						FIELD_TYPE_STRING,	"Position",						1,	{BING_SOURCETYPE_AD}},						&result_fields[2]},
-		{{BING_RESULT_FIELD_TITLE,							FIELD_TYPE_STRING,	RES_AD_TITLE,					9,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
-				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
-				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																	&result_fields[3]},
+		{{BING_RESULT_FIELD_TITLE,							FIELD_TYPE_STRING,	RES_AD_TITLE,					8,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
+				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_RELATED_SEARCH,
+				BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																									&result_fields[3]},
 		{{BING_RESULT_FIELD_DESCRIPTION,					FIELD_TYPE_STRING,	"Description",					3,	{BING_SOURCETYPE_AD,
 				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_WEB}},																								&result_fields[4]},
-		{{BING_RESULT_FIELD_DISPLAY_URL,					FIELD_TYPE_STRING,	"DisplayUrl",					5,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
-				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_PHONEBOOK, BING_SOURCETYPE_WEB}},																	&result_fields[5]},
+		{{BING_RESULT_FIELD_DISPLAY_URL,					FIELD_TYPE_STRING,	"DisplayUrl",					4,	{BING_SOURCETYPE_AD, BING_SOURCETYPE_IMAGE,
+				BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_WEB}},																								&result_fields[5]},
 		{{BING_RESULT_FIELD_ADLINK_URL,						FIELD_TYPE_STRING,	"AdlinkURL",					1,	{BING_SOURCETYPE_AD}},						&result_fields[6]},
 
 		//Error
@@ -590,9 +570,8 @@ static bing_field_search result_fields[] =
 		{{BING_RESULT_FIELD_WIDTH,							FIELD_TYPE_LONG,	RES_IMAGE_WIDTH,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[15]},
 		{{BING_RESULT_FIELD_FILE_SIZE,						FIELD_TYPE_LONG,	RES_IMAGE_FILESIZE,				1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[16]},
 		{{BING_RESULT_FIELD_MEDIA_URL,						FIELD_TYPE_STRING,	"MediaUrl",						1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[17]},
-		{{BING_RESULT_FIELD_URL,							FIELD_TYPE_STRING,	RES_IMAGE_URL,					7,	{BING_SOURCETYPE_IMAGE,
-				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_PHONEBOOK,
-				BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_WEB}},																							&result_fields[18]},
+		{{BING_RESULT_FIELD_URL,							FIELD_TYPE_STRING,	RES_IMAGE_URL,					6,	{BING_SOURCETYPE_IMAGE,
+				BING_SOURCETYPE_INSTANT_ANWSER, BING_SOURCETYPE_MOBILE_WEB, BING_SOURCETYPE_NEWS, BING_SOURCETYPE_RELATED_SEARCH, BING_SOURCETYPE_WEB}},		&result_fields[18]},
 		{{BING_RESULT_FIELD_CONTENT_TYPE,					FIELD_TYPE_STRING,	RES_IMAGE_CONTENTTYPE,			2,	{BING_SOURCETYPE_IMAGE,
 				BING_SOURCETYPE_INSTANT_ANWSER}},																												&result_fields[19]},
 		{{BING_RESULT_FIELD_THUMBNAIL,						FIELD_TYPE_ARRAY,	RES_IMAGE_THUMBNAIL,			1,	{BING_SOURCETYPE_IMAGE}},					&result_fields[20]},
@@ -612,34 +591,19 @@ static bing_field_search result_fields[] =
 		{{BING_RESULT_FIELD_SOURCE,							FIELD_TYPE_STRING,	"Source",						1,	{BING_SOURCETYPE_NEWS}},					&result_fields[27]},
 		{{BING_RESULT_FIELD_NEWSCOLLECTION,					FIELD_TYPE_ARRAY,	RES_NEWS_COLLECTION,			1,	{BING_SOURCETYPE_NEWS}},					&result_fields[28]},
 
-		//PhoneBook
-		{{BING_RESULT_FIELD_LATITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LAT,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[29]},
-		{{BING_RESULT_FIELD_LONGITUDE,						FIELD_TYPE_DOUBLE,	RES_PHONE_LONG,					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[30]},
-		{{BING_RESULT_FIELD_USER_RATING,					FIELD_TYPE_DOUBLE,	RES_PHONE_RATING,				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[31]},
-		{{BING_RESULT_FIELD_REVIEW_COUNT,					FIELD_TYPE_LONG,	RES_PHONE_REVW_COUNT,			1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[32]},
-		{{BING_RESULT_FIELD_BUSINESS_URL,					FIELD_TYPE_STRING,	"BusinessUrl",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[33]},
-		{{BING_RESULT_FIELD_CITY,							FIELD_TYPE_STRING,	"City",							1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[34]},
-		{{BING_RESULT_FIELD_COUNTRY_OR_REGION,				FIELD_TYPE_STRING,	"CountryOrRegion",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[35]},
-		{{BING_RESULT_FIELD_PHONE_NUMBER,					FIELD_TYPE_STRING,	"PhoneNumber",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[36]},
-		{{BING_RESULT_FIELD_POSTAL_CODE,					FIELD_TYPE_STRING,	"PostalCode",					1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[37]},
-		{{BING_RESULT_FIELD_STATE_OR_PROVINCE,				FIELD_TYPE_STRING,	"StateOrProvince",				1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[38]},
-		{{BING_RESULT_FIELD_UNIQUE_ID,						FIELD_TYPE_STRING,	"UniqueId",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[39]},
-		{{BING_RESULT_FIELD_BUSINESS,						FIELD_TYPE_STRING,	"Business",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[40]},
-		{{BING_RESULT_FIELD_ADDRESS,						FIELD_TYPE_STRING,	"Address",						1,	{BING_SOURCETYPE_PHONEBOOK}},				&result_fields[41]},
-
 		//Translation
-		{{BING_RESULT_FIELD_TRANSLATED_TERM,				FIELD_TYPE_STRING,	"TranslatedTerm",				1,	{BING_SOURCETYPE_TRANSLATION}},				&result_fields[42]},
+		{{BING_RESULT_FIELD_TRANSLATED_TERM,				FIELD_TYPE_STRING,	"TranslatedTerm",				1,	{BING_SOURCETYPE_TRANSLATION}},				&result_fields[29]},
 
 		//Video
-		{{BING_RESULT_FIELD_SOURCE_TITLE,					FIELD_TYPE_STRING,	"SourceTitle",					1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[43]},
-		{{BING_RESULT_FIELD_RUN_TIME,						FIELD_TYPE_STRING,	"RunTime",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[44]},
-		{{BING_RESULT_FIELD_PLAY_URL,						FIELD_TYPE_STRING,	"PlayUrl",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[45]},
-		{{BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL,			FIELD_TYPE_STRING,	"ClickThroughPageUrl",			1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[46]},
-		{{BING_RESULT_FIELD_STATIC_THUMBNAIL,				FIELD_TYPE_ARRAY,	RES_VIDEO_STATICTHUMBNAIL,		1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[47]},
+		{{BING_RESULT_FIELD_SOURCE_TITLE,					FIELD_TYPE_STRING,	"SourceTitle",					1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[30]},
+		{{BING_RESULT_FIELD_RUN_TIME,						FIELD_TYPE_STRING,	"RunTime",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[31]},
+		{{BING_RESULT_FIELD_PLAY_URL,						FIELD_TYPE_STRING,	"PlayUrl",						1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[32]},
+		{{BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL,			FIELD_TYPE_STRING,	"ClickThroughPageUrl",			1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[33]},
+		{{BING_RESULT_FIELD_STATIC_THUMBNAIL,				FIELD_TYPE_ARRAY,	RES_VIDEO_STATICTHUMBNAIL,		1,	{BING_SOURCETYPE_VIDEO}},					&result_fields[34]},
 
 		//Web
-		{{BING_RESULT_FIELD_CACHE_URL,						FIELD_TYPE_STRING,	"CacheUrl",						1,	{BING_SOURCETYPE_WEB}},						&result_fields[48]},
-		{{BING_RESULT_FIELD_DEEP_LINKS,						FIELD_TYPE_ARRAY,	RES_WEB_DEEPLINKS,				1,	{BING_SOURCETYPE_WEB}},						&result_fields[49]},
+		{{BING_RESULT_FIELD_CACHE_URL,						FIELD_TYPE_STRING,	"CacheUrl",						1,	{BING_SOURCETYPE_WEB}},						&result_fields[35]},
+		{{BING_RESULT_FIELD_DEEP_LINKS,						FIELD_TYPE_ARRAY,	RES_WEB_DEEPLINKS,				1,	{BING_SOURCETYPE_WEB}},						&result_fields[36]},
 		{{BING_RESULT_FIELD_SEARCH_TAGS,					FIELD_TYPE_ARRAY,	RES_WEB_SEARCHTAGS,				1,	{BING_SOURCETYPE_WEB}},						NULL}
 };
 
