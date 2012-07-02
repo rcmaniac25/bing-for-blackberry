@@ -42,7 +42,7 @@ typedef void* bing_request_t;
 
 typedef void* data_dictionary_t;
 
-typedef struct _bing_news_collection
+typedef struct _bing_news_collection //XXX Not Used
 {
 	const char* name;
 	unsigned int news_article_count;
@@ -58,13 +58,13 @@ typedef struct _bing_thumbnail
 	long long file_size;
 } bing_thumbnail_s, *bing_thumbnail_t;
 
-typedef struct _bing_title_url
+typedef struct _bing_title_url //XXX Not Used
 {
 	const char* title;
 	const char* url;
 } bing_deep_link_s, bing_related_search_s, *bing_deep_link_t, *bing_related_search_t;
 
-typedef struct _bing_search_tag
+typedef struct _bing_search_tag //XXX Not Used
 {
 	const char* name;
 	const char* value;
@@ -84,14 +84,14 @@ enum BING_SOURCE_TYPE
 	BING_RESULT_ERROR,
 
 	//Standard source types
-	BING_SOURCETYPE_AD,				//XXX Hide
+	BING_SOURCETYPE_AD,				//XXX Remove
 	BING_SOURCETYPE_IMAGE,
-	BING_SOURCETYPE_INSTANT_ANWSER,	//XXX Remove??
-	BING_SOURCETYPE_MOBILE_WEB,		//XXX Remove??
+	BING_SOURCETYPE_INSTANT_ANWSER,	//XXX Remove
+	BING_SOURCETYPE_MOBILE_WEB,		//XXX Remove
 	BING_SOURCETYPE_NEWS,
 	BING_SOURCETYPE_RELATED_SEARCH,
 	BING_SOURCETYPE_SPELL,
-	BING_SOURCETYPE_TRANSLATION,	//XXX Hide
+	BING_SOURCETYPE_TRANSLATION,
 	BING_SOURCETYPE_VIDEO,
 	BING_SOURCETYPE_WEB,
 
@@ -107,7 +107,7 @@ enum BING_SOURCE_TYPE
  * Function delegates
  */
 
-typedef void (*receive_bing_response_func) (bing_response_t response, void* user_data);
+typedef void (*receive_bing_response_func) (bing_response_t response, const void* user_data);
 typedef const char* (*request_get_options_func)(bing_request_t request);
 typedef void (*request_finish_get_options_func)(bing_request_t request, const char* options);
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
@@ -256,7 +256,7 @@ void bing_free(unsigned int bing);
  * @return A boolean integer indicating if the value was set or not. Zero is false,
  * 	non-zero is true.
  */
-int bing_set_error_return(unsigned int bing, int error); //XXX This might not be needed if no error results are returned
+int bing_set_error_return(unsigned int bing, int error); //XXX Reword if no error type is returned
 
 /**
  * @brief Get if the internal parser should return search errors.
@@ -270,7 +270,7 @@ int bing_set_error_return(unsigned int bing, int error); //XXX This might not be
  * @return A boolean integer indicating if error cases should be returned. Zero is false,
  * non-zero is true.
  */
-int bing_get_error_return(unsigned int bing); //XXX This might not be needed if no error results are returned
+int bing_get_error_return(unsigned int bing); //XXX Reword if no error type is returned
 
 /**
  * @brief A non-threadsafe way to find the last error that occurred, if one happened at all.
@@ -292,7 +292,7 @@ int bing_get_error_return(unsigned int bing); //XXX This might not be needed if 
  *
  * @return A integer defining the last error code to have occurred after a search.
  */
-int bing_get_last_error_code();
+int bing_get_last_error_code(); //XXX Will need to be updated once search is finished
 
 #endif
 
@@ -308,7 +308,7 @@ int bing_get_last_error_code();
  *
  * @return The length of the application ID, or -1 if an error occurred.
  */
-int bing_get_app_ID(unsigned int bing, char* buffer);
+int bing_get_app_ID(unsigned int bing, char* buffer); //XXX Rename when done (account key)
 
 /**
  * @brief Set a Bing service's application ID.
@@ -328,7 +328,7 @@ int bing_get_app_ID(unsigned int bing, char* buffer);
  * 	If this is a non-zero value then the operation completed. Otherwise it
  * 	failed.
  */
-int bing_set_app_ID(unsigned int bing, const char* appId);
+int bing_set_app_ID(unsigned int bing, const char* appId); //XXX Rename when done (account key)
 
 /**
  * @brief Perform a synchronous search.
@@ -348,6 +348,22 @@ int bing_set_app_ID(unsigned int bing, const char* appId);
  * 	function to prevent memory leaks.
  */
 bing_response_t bing_search_sync(unsigned int bing, const char* query, const bing_request_t request);
+
+/**
+ * @brief Perform a synchronous search.
+ *
+ * The @c bing_search_next_sync() function allows developers to perform a blocking
+ * search operation that will return when the search is complete. This is the same
+ * as bing_search_sync but it takes the previous response so it can search for the
+ * next set of search results.
+ *
+ * @param pre_response The previous search response.
+ *
+ * @return A response to the next set of results for the original search query.
+ * 	This object, when not NULL for errors or for lack of a next page, is allocated
+ * 	and should be freed using the free_response function to prevent memory leaks.
+ */
+bing_response_t bing_search_next_sync(const bing_response_t pre_response); //TODO
 
 /**
  * @brief Perform a asynchronous search.
@@ -371,7 +387,27 @@ bing_response_t bing_search_sync(unsigned int bing, const char* query, const bin
  * @return A boolean result which is non-zero for a successful query, otherwise
  * 	zero on error or bad query.
  */
-int bing_search_async(unsigned int bing, const char* query, const bing_request_t request, void* user_data, receive_bing_response_func response_func);
+int bing_search_async(unsigned int bing, const char* query, const bing_request_t request, const void* user_data, receive_bing_response_func response_func);
+
+/**
+ * @brief Perform a asynchronous search.
+ *
+ * The @c bing_search_next_async() function allows developers to perform a non-blocking
+ * search operation that will return immediately and call the specified callback
+ * function with the response. This is the same as bing_search_async but it takes the
+ * previous response so it can search for the next set of search results. Remember,
+ * the callback will be called by a different thread other than the one calling this
+ * function. So plan synchronization out properly with your callback function.
+ *
+ * @param pre_response The previous search response.
+ * @param user_data Any user data that will be passed to the response function.
+ * @param response_func The function that will be called with a response from
+ * 	the search. If this is NULL, then the function returns a zero (false) value.
+ *
+ * @return A boolean result which is non-zero for a successful query, otherwise
+ * 	zero on error, bad query, or lack of next set of results.
+ */
+int bing_search_next_async(const bing_response_t pre_response, const void* user_data, receive_bing_response_func response_func); //TODO
 
 /**
  * @brief Perform a asynchronous search but returns with an event.
@@ -393,6 +429,22 @@ int bing_search_async(unsigned int bing, const char* query, const bing_request_t
  * 	zero on error or bad query.
  */
 int bing_search_event_async(unsigned int bing, const char* query, const bing_request_t request);
+
+/**
+ * @brief Perform a asynchronous search but returns with an event.
+ *
+ * The @c bing_search_event_next_async() function allows developers to perform a
+ * non-blocking search operation that will return immediately and delegate an
+ * event with the response. This is the same as bing_search_event_async but it takes
+ * the previous response so it can search for the next set of search results.
+ * The response should NOT be freed by any receiving functions.
+ *
+ * @param pre_response The previous search response.
+ *
+ * @return A boolean result which is non-zero for a successful query, otherwise
+ * 	zero on error, bad query, or lack of next set of results.
+ */
+int bing_search_event_next_async(const bing_response_t pre_response); //TODO
 
 /**
  * @brief Get a URL that can invoke a Bing search request.
@@ -447,7 +499,7 @@ enum BING_REQUEST_FIELD
 
 	BING_REQUEST_FIELD_UNKNOWN,
 
-	BING_REQUEST_FIELD_VERSION,
+	BING_REQUEST_FIELD_VERSION, //XXX Not used
 	BING_REQUEST_FIELD_MARKET,
 	BING_REQUEST_FIELD_ADULT,
 	BING_REQUEST_FIELD_OPTIONS,
@@ -455,35 +507,37 @@ enum BING_REQUEST_FIELD
 	BING_REQUEST_FIELD_LATITUDE,
 	//double
 	BING_REQUEST_FIELD_LONGITUDE,
-	BING_REQUEST_FIELD_LANGUAGE,
+	BING_REQUEST_FIELD_LANGUAGE, //XXX Not used
 	//double
-	BING_REQUEST_FIELD_RADIUS,
+	BING_REQUEST_FIELD_RADIUS, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_PAGE_NUMBER, //XXX Hide (unless something else uses this)
+	BING_REQUEST_FIELD_PAGE_NUMBER, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_AD_UNIT_ID, //XXX Hide
+	BING_REQUEST_FIELD_AD_UNIT_ID, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_PROPERTY_ID, //XXX Hide (unless something else uses this)
+	BING_REQUEST_FIELD_PROPERTY_ID, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_CHANNEL_ID, //XXX Hide (unless something else uses this)
+	BING_REQUEST_FIELD_CHANNEL_ID, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_MAINLINE_AD_COUNT, //XXX Hide
+	BING_REQUEST_FIELD_MAINLINE_AD_COUNT, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_SIDEBAR_AD_COUNT, //XXX Hide
+	BING_REQUEST_FIELD_SIDEBAR_AD_COUNT, //XXX Not used
 	//64bit integer
 	BING_REQUEST_FIELD_COUNT,
 	//64bit integer
 	BING_REQUEST_FIELD_OFFSET,
 	BING_REQUEST_FIELD_FILTERS,
-	BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS,
+	BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS, //XXX Not used
 	BING_REQUEST_FIELD_CATEGORY,
 	BING_REQUEST_FIELD_LOCATION_OVERRIDE,
 	BING_REQUEST_FIELD_SORT_BY,
 	BING_REQUEST_FIELD_FILE_TYPE,
-	BING_REQUEST_FIELD_LOC_ID,
-	BING_REQUEST_FIELD_SOURCE_LANGUAGE,
-	BING_REQUEST_FIELD_TARGET_LANGUAGE,
-	BING_REQUEST_FIELD_WEB_OPTIONS
+	BING_REQUEST_FIELD_LOC_ID, //XXX Not used
+	BING_REQUEST_FIELD_SOURCE_LANGUAGE, //XXX Not used
+	BING_REQUEST_FIELD_TARGET_LANGUAGE, //XXX Not used
+	BING_REQUEST_FIELD_WEB_OPTIONS, //XXX Not used
+	BING_REQUEST_FIELD_TO,
+	BING_REQUEST_FILED_FROM
 };
 
 //Helper functions to make the end result better, from http://stackoverflow.com/questions/195975/how-to-make-a-char-string-from-a-c-macros-value
@@ -495,7 +549,7 @@ enum BING_REQUEST_FIELD
 #endif
 
 #define BING_DEFAULT_SEARCH_MARKET "en-US"
-#define BING_DEFAULT_API_VERSION VALUE_NAME(BING_VERSION)
+#define BING_DEFAULT_API_VERSION VALUE_NAME(BING_VERSION) //XXX This no longer is needed
 
 #define BING_OPTION_SEPERATOR "+"
 
@@ -509,23 +563,39 @@ enum BING_REQUEST_FIELD
 #define BING_SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION "DisableLocationDetection"
 #define BING_SEARCH_OPTIONS_ENABLE_HIGHLIGHTING "EnableHighlighting"
 
-//Used for the BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS field (separated with BING_MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
-#define BING_MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
-#define BING_MOBILE_WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
-#define BING_MOBILE_WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
+//Used for the BING_REQUEST_FIELD_FILTERS field (separated with BING_IMAGE_FILTERS_SEPERATOR). You cannot include more than one value for duration in the same request.
+#define BING_IMAGE_FILTERS_SEPERATOR OPTION_SEPERATOR
+#define BING_IMAGE_FILTERS_SIZE_SMALL "Size:Small"
+#define BING_IMAGE_FILTERS_SIZE_MEDIUM "Size:Medium"
+#define BING_IMAGE_FILTERS_SIZE_LARGE "Size:Large"
+//Append on to this the desired height of the image as an unsigned integer
+#define BING_IMAGE_FILTERS_SIZE_HEIGHT "Size:Height:"
+//Append on to this the desired width of the image as an unsigned integer
+#define BING_IMAGE_FILTERS_SIZE_WIDTH "Size:Width:"
+#define BING_IMAGE_FILTERS_ASPECT_SQUARE "Aspect:Square"
+#define BING_IMAGE_FILTERS_ASPECT_WIDE "Aspect:Wide"
+#define BING_IMAGE_FILTERS_ASPECT_TALL "Aspect:Tall"
+#define BING_IMAGE_FILTERS_COLOR_COLOR "Color:Color"
+#define BING_IMAGE_FILTERS_COLOR_MONOCHROME "Color:Monochrome"
+#define BING_IMAGE_FILTERS_STYLE_PHOTO "Style:Photo"
+#define BING_IMAGE_FILTERS_STYLE_GRAPHICS "Style:Graphics"
+#define BING_IMAGE_FILTERS_FACE_FACE "Face:Face"
+#define BING_IMAGE_FILTERS_FACE_PORTRAIT "Face:Portrait"
+#define BING_IMAGE_FILTERS_FACE_OTHER "Face:Other"
+
+//Used for the BING_REQUEST_FIELD_CATEGORY field when used on a news source type
+#define BING_NEWS_CATEGORY_BUSINESS "rt_Business"
+#define BING_NEWS_CATEGORY_ENTERTAINMENT "rt_Entertainment"
+#define BING_NEWS_CATEGORY_HEALTH "rt_Health"
+#define BING_NEWS_CATEGORY_POLITICS "rt_Politics"
+#define BING_NEWS_CATEGORY_SPORTS "rt_Sports"
+#define BING_NEWS_CATEGORY_US "rt_US"
+#define BING_NEWS_CATEGORY_WORLD "rt_World"
+#define BING_NEWS_CATEGORY_SCITECH "rt_ScienceAndTechnology"
 
 //Used for the BING_REQUEST_FIELD_SORT_BY field when used on a news source type
 #define BING_NEWS_SORT_OPTIONS_DATE "Date"
 #define BING_NEWS_SORT_OPTIONS_RELEVANCE "Relevance"
-
-//Used for the BING_REQUEST_FIELD_SORT_BY field when used on a phonebook source type
-#define BING_PHONEBOOK_SORT_OPTION_DEFAULT "Default"
-#define BING_PHONEBOOK_SORT_OPTION_DISTANCE "Distance"
-#define BING_PHONEBOOK_SORT_OPTION_RELEVANCE "Relevance"
-
-//Used for the BING_REQUEST_FIELD_SORT_BY field when used on a video source type
-#define BING_VIDEO_SORT_OPTION_DATE "Date"
-#define BING_VIDEO_SORT_OPTION_RELEVANCE "Relevance"
 
 //Used for the BING_REQUEST_FIELD_FILTERS field (separated with BING_VIDEO_FILTERS_SEPERATOR). You cannot include more than one value for duration in the same request.
 #define BING_VIDEO_FILTERS_SEPERATOR OPTION_SEPERATOR
@@ -538,10 +608,22 @@ enum BING_REQUEST_FIELD
 #define BING_VIDEO_FILTERS_RESOLUTION_MEDIUM "Resolution:Medium"
 #define BING_VIDEO_FILTERS_RESOLUTION_HIGH "Resolution:High"
 
-//Used for the BING_REQUEST_FIELD_WEB_OPTIONS field (separated with BING_MOBILE_WEB_SEARCH_OPTIONS_SEPERATOR)
-#define BING_WEB_SEARCH_OPTIONS_SEPERATOR OPTION_SEPERATOR
-#define BING_WEB_SEARCH_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
-#define BING_WEB_SEARCH_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
+//Used for the BING_REQUEST_FIELD_SORT_BY field when used on a video source type
+#define BING_VIDEO_SORT_OPTION_DATE "Date"
+#define BING_VIDEO_SORT_OPTION_RELEVANCE "Relevance"
+
+//Used for the BING_REQUEST_FIELD_FILE_TYPE field when used on a web source type
+#define BING_WEB_FILE_TYPE_DOC "DOC"
+#define BING_WEB_FILE_TYPE_DWF "DWF"
+#define BING_WEB_FILE_TYPE_RSS "FEED"
+#define BING_WEB_FILE_TYPE_HTM "HTM"
+#define BING_WEB_FILE_TYPE_HTML "HTML"
+#define BING_WEB_FILE_TYPE_PDF "PDF"
+#define BING_WEB_FILE_TYPE_PPT "PPT"
+#define BING_WEB_FILE_TYPE_RTF "RTF"
+#define BING_WEB_FILE_TYPE_TEXT "TEXT"
+#define BING_WEB_FILE_TYPE_TXT "TXT"
+#define BING_WEB_FILE_TYPE_XLS "XLS"
 
 //Standard functions
 
@@ -560,7 +642,7 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request);
 /**
  * @brief Create a standard Bing request.
  *
- * The @c bing_request_create_request() functions allows developers to create a new
+ * The @c bing_request_create() functions allows developers to create a new
  * Bing request that can be used to search. It is up to the dev to free this
  * request using free_request() to prevent a memory leak.
  *
@@ -572,7 +654,7 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request);
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error, invalid source types, or NULL request pointer.
  */
-int bing_request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request);
+int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* request);
 
 /**
  * @brief Check if the Bing request type is supported.
@@ -587,8 +669,6 @@ int bing_request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_
  * 	within the specified Bing request, otherwise zero on error or NULL request.
  */
 int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FIELD field);
-
-//TODO: Wait, how did I never offer the ability to set request params? Needed: 64bit, string, double
 
 /**
  * @brief Get a value from a Bing request.
@@ -616,6 +696,39 @@ int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FI
 int bing_request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value);
 int bing_request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value);
 int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value);
+
+/**
+ * @brief Set a value for a Bing request.
+ *
+ * The @c bing_request_set_*() functions allows developers to set values to a
+ * Bing request. All values are self contained and will be copied to the value
+ * parameter. All values are self contained and will be copied from the value
+ * parameter.
+ *
+ * In the case of string, the entire data amount is copied using strlen for
+ * string.
+ *
+ * If the field does not exist then it will be created, if and only if
+ * value is not NULL. If the value is NULL and the field exists, it will
+ * be removed.
+ *
+ * @param request The Bing request to set data to.
+ * @param field The field to set the data to. If the field already
+ * 	exists, the data will be replaced. If the field doesn't exist and
+ * 	the value is not NULL, then the field will be created. If the field
+ * 	exists and the value is NULL, the field is removed.
+ * @param value The value to copy data from. Note that no data is passed,
+ * 	all is copied. So changing any values will not effect the Bing request.
+ * 	If this is NULL then no effect occurs unless the field exists, in which
+ * 	case the field is removed.
+ *
+ * @return A boolean value which is non-zero for a successful data set,
+ * 	otherwise zero on error.
+ */
+
+int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value);
+int bing_request_set_string(bing_request_t request, enum BING_REQUEST_FIELD field, const char* value);
+int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value);
 
 /**
  * @brief Add a request to a bundle request.
@@ -710,7 +823,7 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
  * be removed.
  *
  * @param request The Bing request to set data to.
- * @param field The field name to get the data of. If the field already
+ * @param field The field name to set the data to. If the field already
  * 	exists, the data will be replaced. If the field doesn't exist and
  * 	the value is not NULL, then the field will be created. If the field
  * 	exists and the value is NULL, the field is removed.
@@ -723,9 +836,9 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
  * 	otherwise zero on error.
  */
 
-int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value);
+int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value);
 int bing_request_custom_set_string(bing_request_t request, const char* field, const char* value);
-int bing_request_custom_set_double(bing_request_t request, const char* field, double* value);
+int bing_request_custom_set_double(bing_request_t request, const char* field, const double* value);
 
 /**
  * @brief Create a custom request.
@@ -759,13 +872,26 @@ int bing_request_custom_set_double(bing_request_t request, const char* field, do
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error.
  */
-int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func);
+int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func); //XXX Modify based on how "source_type" is determined/handled
 
 /*
  * Response functions
  */
 
 //Standard operations
+
+/**
+ * @brief Determine if the specified Bing response has a "next page" of results.
+ *
+ * The @c bing_response_has_next_results() function allows developers to find out
+ * if there is a next set of results that can be queried on.
+ *
+ * @param response The Bing response to check for a next set of results.
+ *
+ * @return A boolean value which is non-zero if more results exist,
+ * 	otherwise zero when no more results exist.
+ */
+int bing_response_has_next_results(bing_response_t response); //TODO
 
 /**
  * @brief Get the Bing response source type.
@@ -792,7 +918,7 @@ enum BING_SOURCE_TYPE bing_response_get_source_type(bing_response_t response);
  *
  * @return The estimated Bing response total.
  */
-long long bing_response_get_total(bing_response_t response); //XXX Not sure if this exists right now
+long long bing_response_get_total(bing_response_t response); //XXX Not used anymore, remove
 
 /**
  * @brief Get the offset within the results for a Bing response.
@@ -805,7 +931,7 @@ long long bing_response_get_total(bing_response_t response); //XXX Not sure if t
  *
  * @return The Bing response offset.
  */
-long long bing_response_get_offset(bing_response_t response); //XXX Not sure if this exists right now
+long long bing_response_get_offset(bing_response_t response); //XXX Not used anymore but could be something to retrieve and parse so custom offsets can be used.
 
 /**
  * @brief Get the query used to search for this Bing response.
@@ -819,7 +945,7 @@ long long bing_response_get_offset(bing_response_t response); //XXX Not sure if 
  * @return The size of the Bing response query in bytes, or -1
  * 	if an error occurred.
  */
-int bing_response_get_query(bing_response_t response, char* buffer); //XXX Not sure if this exists right now
+int bing_response_get_query(bing_response_t response, char* buffer); //XXX Not used anymore, remove
 
 /**
  * @brief Get the altered query used to search for this Bing response.
@@ -834,7 +960,7 @@ int bing_response_get_query(bing_response_t response, char* buffer); //XXX Not s
  * @return The size of the Bing response altered query in bytes, or
  * 	-1 if an error occurred.
  */
-int bing_response_get_altered_query(bing_response_t response, char* buffer); //XXX Not sure if this exists right now
+int bing_response_get_altered_query(bing_response_t response, char* buffer); //XXX Not used anymore, remove
 
 /**
  * @brief Get the unaltered query used to search for this Bing response.
@@ -849,7 +975,7 @@ int bing_response_get_altered_query(bing_response_t response, char* buffer); //X
  * @return The size of the Bing response unaltered query in bytes, or
  * 	-1 if an error occurred.
  */
-int bing_response_get_alterations_override_query(bing_response_t response, char* buffer); //XXX Not sure if this exists right now
+int bing_response_get_alterations_override_query(bing_response_t response, char* buffer); //XXX Not used anymore, remove
 
 /**
  * @brief Get the results from a Bing response.
@@ -895,7 +1021,7 @@ void bing_response_free(bing_response_t response);
  * @return The size of the Bing Ad response API version in bytes, or
  * 	-1 if an error occurred or if the response is not an Ad type.
  */
-int bing_response_get_ad_api_version(bing_response_t response, char* buffer); //XXX Hide
+int bing_response_get_ad_api_version(bing_response_t response, char* buffer); //XXX Not used anymore, remove
 
 /**
  * @brief Get the Ad page number for an Bing Ad response.
@@ -908,7 +1034,7 @@ int bing_response_get_ad_api_version(bing_response_t response, char* buffer); //
  * @return The Bing Ad page number, or -1 if an error occurred or
  * 	if the response is not an Ad type.
  */
-long long bing_response_get_ad_page_number(bing_response_t response); //XXX Hide
+long long bing_response_get_ad_page_number(bing_response_t response); //XXX Not used anymore, remove
 
 /**
  * @brief Get the responses from a Bing Bundle response.
@@ -936,7 +1062,7 @@ int bing_response_get_bundle_responses(bing_response_t response, bing_response_t
  * @return The Bing response "related searches" count, or -1 if an error
  * 	occurred or if the response is not a News type.
  */
-int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches); //XXX Not sure if this exists right now
+int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches); //XXX Not used anymore, remove
 
 //Custom functions
 
@@ -1019,10 +1145,10 @@ int bing_response_custom_get_array(bing_response_t response, const char* field, 
  * 	otherwise zero on error.
  */
 
-int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, long long* value);
+int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, const long long* value);
 int bing_response_custom_set_string(bing_response_t response, const char* field, const char* value);
-int bing_response_custom_set_double(bing_response_t response, const char* field, double* value);
-int bing_response_custom_set_boolean(bing_response_t response, const char* field, int* value);
+int bing_response_custom_set_double(bing_response_t response, const char* field, const double* value);
+int bing_response_custom_set_boolean(bing_response_t response, const char* field, const int* value);
 int bing_response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size);
 
 /**
@@ -1088,7 +1214,7 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func);
+int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func); //XXX Modify based on how "name" is determined/handled
 
 /**
  * @brief Unregister a response creator.
@@ -1102,7 +1228,7 @@ int bing_response_register_response_creator(const char* name, response_creation_
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_response_unregister_response_creator(const char* name);
+int bing_response_unregister_response_creator(const char* name); //XXX Modify based on how "name" is determined/handled
 
 /*
  * Result functions
@@ -1115,20 +1241,20 @@ enum BING_RESULT_FIELD
 	BING_RESULT_FIELD_UNKNOWN,
 
 	//64bit integer
-	BING_RESULT_FIELD_RANK,
-	BING_RESULT_FIELD_POSITION,
+	BING_RESULT_FIELD_RANK, //XXX Not used
+	BING_RESULT_FIELD_POSITION, //XXX Not used
 	BING_RESULT_FIELD_TITLE,
 	BING_RESULT_FIELD_DESCRIPTION,
 	BING_RESULT_FIELD_DISPLAY_URL,
-	BING_RESULT_FIELD_ADLINK_URL,
+	BING_RESULT_FIELD_ADLINK_URL, //XXX Not used
 	//64bit integer
-	BING_RESULT_FIELD_CODE,
-	BING_RESULT_FIELD_MESSAGE,
-	BING_RESULT_FIELD_HELP_URL,
-	BING_RESULT_FIELD_PARAMETER,
-	BING_RESULT_FIELD_SOURCE_TYPE,
+	BING_RESULT_FIELD_CODE, //XXX Not used
+	BING_RESULT_FIELD_MESSAGE, //XXX Not used
+	BING_RESULT_FIELD_HELP_URL, //XXX Not used
+	BING_RESULT_FIELD_PARAMETER, //XXX Not used
+	BING_RESULT_FIELD_SOURCE_TYPE, //XXX Not used
 	//64bit integer
-	BING_RESULT_FIELD_SOURCE_TYPE_ERROR_CODE,
+	BING_RESULT_FIELD_SOURCE_TYPE_ERROR_CODE, //XXX Not used
 	BING_RESULT_FIELD_VALUE,
 	//64bit integer
 	BING_RESULT_FIELD_HEIGHT,
@@ -1141,28 +1267,36 @@ enum BING_RESULT_FIELD
 	BING_RESULT_FIELD_CONTENT_TYPE,
 	//bing_thumbnail_t
 	BING_RESULT_FIELD_THUMBNAIL,
-	BING_RESULT_FIELD_ATTRIBUTION,
-	BING_RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA,
-	BING_RESULT_FIELD_DATE_TIME,
+	BING_RESULT_FIELD_ATTRIBUTION, //XXX Not used
+	BING_RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA, //XXX Not used
+	BING_RESULT_FIELD_DATE_TIME, //XXX Not used
 	//boolean
-	BING_RESULT_FIELD_BREAKING_NEWS,
+	BING_RESULT_FIELD_BREAKING_NEWS, //XXX Not used
+	//64bit integer (represents number of milliseconds since epoch)
 	BING_RESULT_FIELD_DATE,
-	BING_RESULT_FIELD_SNIPPET,
+	BING_RESULT_FIELD_SNIPPET, //XXX Not used
 	BING_RESULT_FIELD_SOURCE,
 	//bing_news_collection_s
-	BING_RESULT_FIELD_NEWSCOLLECTION,
-	BING_RESULT_FIELD_TRANSLATED_TERM,
-	BING_RESULT_FIELD_SOURCE_TITLE,
-	BING_RESULT_FIELD_RUN_TIME,
-	BING_RESULT_FIELD_PLAY_URL,
-	BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL,
+	BING_RESULT_FIELD_NEWSCOLLECTION, //XXX Not used
+	BING_RESULT_FIELD_TRANSLATED_TERM, //XXX Not used
+	BING_RESULT_FIELD_SOURCE_TITLE, //XXX Not used
+	BING_RESULT_FIELD_RUN_TIME, //XXX Not used
+	BING_RESULT_FIELD_PLAY_URL, //XXX Not used
+	BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL, //XXX Not used
 	//bing_thumbnail_t
-	BING_RESULT_FIELD_STATIC_THUMBNAIL,
-	BING_RESULT_FIELD_CACHE_URL,
+	BING_RESULT_FIELD_STATIC_THUMBNAIL, //XXX Not used
+	BING_RESULT_FIELD_CACHE_URL, //XXX Not used
 	//bing_deep_link_s
-	BING_RESULT_FIELD_DEEP_LINKS,
+	BING_RESULT_FIELD_DEEP_LINKS, //XXX Not used
 	//bing_search_tag_s
-	BING_RESULT_FIELD_SEARCH_TAGS
+	BING_RESULT_FIELD_SEARCH_TAGS, //XXX Not used
+	BING_RESULT_FIELD_ID,
+	BING_RESULT_FIELD_SOURCE_URL,
+	//64bit integer
+	BING_RESULT_FIELD_RUN_TIME_LENGTH,
+	BING_RESULT_FIELD_BING_URL,
+	BING_RESULT_FIELD_TEXT,
+	BING_RESULT_FIELD_RESULT
 };
 
 //Standard operations
@@ -1306,10 +1440,10 @@ int bing_result_custom_get_array(bing_result_t result, const char* field, void* 
  * 	otherwise zero on error.
  */
 
-int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, long long* value);
+int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, const long long* value);
 int bing_result_custom_set_string(bing_result_t result, const char* field, const char* value);
-int bing_result_custom_set_double(bing_result_t result, const char* field, double* value);
-int bing_result_custom_set_boolean(bing_result_t result, const char* field, int* value);
+int bing_result_custom_set_double(bing_result_t result, const char* field, const double* value);
+int bing_result_custom_set_boolean(bing_result_t result, const char* field, const int* value);
 int bing_result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
 
 /**
@@ -1384,7 +1518,7 @@ void* bing_result_custom_allocation(bing_result_t result, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func);
+int bing_result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func); //XXX Modify based on how "name" is determined/handled
 
 /**
  * @brief Unregister a result creator.
@@ -1398,7 +1532,7 @@ int bing_result_register_result_creator(const char* name, int array, int common,
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_result_unregister_result_creator(const char* name);
+int bing_result_unregister_result_creator(const char* name); //XXX Modify based on how "name" is determined/handled
 
 __END_DECLS
 

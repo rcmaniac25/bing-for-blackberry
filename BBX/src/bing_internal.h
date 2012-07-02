@@ -154,6 +154,8 @@ typedef struct BING_RESPONSE_S
 	response_additional_data_func additionalData;
 	hashtable_t* data;
 
+	const char* nextUrl;
+
 	unsigned int resultCount;
 	bing_result_t* results;
 

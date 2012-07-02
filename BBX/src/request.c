@@ -120,7 +120,7 @@ const char* request_def_get_options(bing_request_t request)
 		APPEND("&Version=%s",		REQ_VERSION)	//XXX Not needed
 		APPEND("&Market=%s",		REQ_MARKET)
 		APPEND("&Adult=%s",			REQ_ADULT)
-		APPEND("&Options=%s",		REQ_OPTIONS)	//XXX Look to see what this is again. Might not be needed
+		APPEND("&Options=%s",		REQ_OPTIONS)
 		APPEND("&Latitude=%f",		REQ_LATITUDE)
 		APPEND("&Longitude=%f",		REQ_LONGITUDE)
 		APPEND("&UILanguage=%s",	REQ_LANGUAGE)	//XXX Not needed
@@ -506,7 +506,7 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 	return ret;
 }
 
-int bing_request_create_request(enum BING_SOURCE_TYPE source_type, bing_request_t* request)
+int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* request)
 {
 	BOOL ret = FALSE;
 	int tableSize;
@@ -575,6 +575,21 @@ int request_get_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum
 	return ret;
 }
 
+int request_set_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum FIELD_TYPE type, const void* value, size_t size)
+{
+	BOOL ret = FALSE;
+	const char* key;
+	if(request && value)
+	{
+		//Get the key
+		key = find_field(request_fields, field, type, bing_request_get_source_type(request), TRUE);
+
+		//Now set the data
+		ret = hashtable_set_data(((bing_request*)request)->data, key, value, size);
+	}
+	return ret;
+}
+
 int request_get_str_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum FIELD_TYPE type, char* value)
 {
 	int ret = -1;
@@ -586,6 +601,21 @@ int request_get_str_data(bing_request_t request, enum BING_REQUEST_FIELD field, 
 
 		//Now get the data
 		ret = bing_request_custom_get_string(request, key, value);
+	}
+	return ret;
+}
+
+int request_set_str_data(bing_request_t request, enum BING_REQUEST_FIELD field, enum FIELD_TYPE type, const char* value)
+{
+	int ret = -1;
+	const char* key;
+	if(request)
+	{
+		//Get the key
+		key = find_field(request_fields, field, type, bing_request_get_source_type(request), TRUE);
+
+		//Now set the data
+		ret = bing_request_custom_set_string(request, key, value);
 	}
 	return ret;
 }
@@ -605,16 +635,33 @@ int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
 	return request_get_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
 }
 
+int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value)
+{
+	return request_set_data(request, field, FIELD_TYPE_LONG, value, sizeof(long long));
+}
+
+int bing_request_set_string(bing_request_t request, enum BING_REQUEST_FIELD field, const char* value)
+{
+	return request_set_str_data(request, field, FIELD_TYPE_STRING, value);
+}
+
+int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value)
+{
+	return bing_request_set_64bit_int(request, field, (long long*)value);
+}
+
 void request_remove_parent_options(bing_request* request)
 {
-	hashtable_remove_item(request->data, REQ_VERSION);
+	//TODO: "count" and "offset"
+
+	hashtable_remove_item(request->data, REQ_VERSION);	//XXX Not needed
 	hashtable_remove_item(request->data, REQ_MARKET);
 	hashtable_remove_item(request->data, REQ_ADULT);
 	hashtable_remove_item(request->data, REQ_OPTIONS);
 	hashtable_remove_item(request->data, REQ_LATITUDE);
 	hashtable_remove_item(request->data, REQ_LONGITUDE);
-	hashtable_remove_item(request->data, REQ_LANGUAGE);
-	hashtable_remove_item(request->data, REQ_RADIUS);
+	hashtable_remove_item(request->data, REQ_LANGUAGE);	//XXX Not needed
+	hashtable_remove_item(request->data, REQ_RADIUS);	//XXX Not needed
 }
 
 int bing_request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
@@ -757,7 +804,7 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
 	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(double));
 }
 
-int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, long long* value)
+int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value)
 {
 	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
 }
@@ -767,7 +814,7 @@ int bing_request_custom_set_string(bing_request_t request, const char* field, co
 	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
 }
 
-int bing_request_custom_set_double(bing_request_t request, const char* field, double* value)
+int bing_request_custom_set_double(bing_request_t request, const char* field, const double* value)
 {
 	return bing_request_custom_set_64bit_int(request, field, (long long*)value);
 }

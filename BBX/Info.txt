@@ -1,11 +1,17 @@
 TODO:
+-Rewrite to Azure
+--Design
+---Figure out what happens on error
+--Make modifications
+--Test
+--Rename functions/types to match Azure
+--Release
+--Add compression support
 -Document public function saftey info (thread safe, interrupt safe, etc.)
 -Produce C++ version of library
---Make sure it has QString support
--Figure out segfault when async functions are used (and memory analysis is on)
--Start working on rewrite to Azure (when info is avaliable)
---Design
---Add compression support
+--Generic for first version
+--Add QString support
+--Add signal/slot support
 
 Defines:
 BING_DEBUG - Some debug output, optional search error returns. If search error returns are enabled then if an error occurs it will return an object 
