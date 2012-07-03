@@ -18,8 +18,7 @@
 
 #include <curl/curl.h>
 
-//XXX Going to have to redo this (almost entirely)
-
+//XXX New error codes once updated
 enum PARSER_ERROR
 {
 	PE_NO_ERROR,
@@ -64,8 +63,8 @@ typedef struct BING_PARSER_S
 	pstack* lastResult;
 	pstack* lastResultElement;
 	const char* query;
-	const char* alteredQuery;
-	const char* alterationOverrideQuery;
+	const char* alteredQuery; //XXX Remove
+	const char* alterationOverrideQuery; //XXX Remove
 
 	//State info
 	unsigned int bing;
@@ -160,8 +159,8 @@ BOOL checkForError(bing_parser* parser)
 
 		//Finally, free any strings
 		bing_mem_free((void*)parser->query);
-		bing_mem_free((void*)parser->alteredQuery);
-		bing_mem_free((void*)parser->alterationOverrideQuery);
+		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
+		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
 
 		//Mark everything as NULL to prevent errors later
 		parser->response = NULL;
@@ -285,6 +284,7 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 
 //The real "meat and potatoes" of the parser. Many if blocks for safety and to increase flexibility (and hopefully readability...)
 
+//XXX Rewrite
 void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI, int nb_namespaces, const xmlChar** namespaces, int nb_attributes, int nb_defaulted, const xmlChar** attributes)
 {
 	bing_result_t result = NULL;
@@ -581,6 +581,7 @@ void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, 
 	}
 }
 
+//XXX Rewrite
 void endElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI)
 {
 	pstack* st;
@@ -684,7 +685,7 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//startElement
 		NULL,			//endElement
 		NULL,			//reference
-		NULL,			//characters
+		NULL,			//characters //XXX Add
 		NULL,			//ignorableWhitespace
 		NULL,			//processingInstruction
 		NULL,			//comment
@@ -751,8 +752,8 @@ void search_cleanup(bing_parser* parser)
 
 		//Cleanup strings
 		bing_mem_free((void*)parser->query);
-		bing_mem_free((void*)parser->alteredQuery);
-		bing_mem_free((void*)parser->alterationOverrideQuery);
+		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
+		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
 
 		//Free the bing parser
 		bing_mem_free(parser);
@@ -886,7 +887,7 @@ BOOL check_for_connection()
 }
 
 //Search functions
-bing_response_t bing_search_url_sync(unsigned int bingID, const char* query, const char* url)
+bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 {
 	bing_parser* parser;
 	bing_response_t ret = NULL;
@@ -978,7 +979,7 @@ bing_response_t bing_search_sync(unsigned int bingID, const char* query, const b
 		url = bing_request_url(bingID, query, request);
 		if(url)
 		{
-			ret = bing_search_url_sync(bingID, query, url);
+			ret = bing_search_url_sync(bingID, url);
 
 			//Free URL
 			bing_mem_free((void*)url);
@@ -989,6 +990,19 @@ bing_response_t bing_search_sync(unsigned int bingID, const char* query, const b
 			BING_MSG_PRINTOUT("Could not create URL\n");
 		}
 #endif
+	}
+
+	return ret;
+}
+
+bing_response_t bing_search_next_sync(const bing_response_t pre_response)
+{
+	bing_response_t ret = NULL;
+	bing_response* res = (bing_response*)pre_response;
+
+	if(check_for_connection() && bing_response_has_next_results(pre_response))
+	{
+		ret = bing_search_url_sync(res->bing, res->nextUrl);
 	}
 
 	return ret;
@@ -1095,7 +1109,7 @@ void event_invocation(bing_response_t response, const void* user_data)
 	}
 }
 
-int search_async_url_in(unsigned int bingID, const char* query, const char* url, const void* user_data, BOOL user_data_is_parser, receive_bing_response_func response_func)
+int search_async_url_in(unsigned int bingID, const char* url, const void* user_data, BOOL user_data_is_parser, receive_bing_response_func response_func)
 {
 	bing_parser* parser;
 	pthread_attr_t thread_atts;
@@ -1163,7 +1177,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 		url = bing_request_url(bingID, query, request);
 		if(url)
 		{
-			ret = search_async_url_in(bingID, query, url, user_data, user_data_is_parser, response_func);
+			ret = search_async_url_in(bingID, url, user_data, user_data_is_parser, response_func);
 
 			//Free URL
 			bing_mem_free((void*)url);

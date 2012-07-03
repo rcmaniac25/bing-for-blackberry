@@ -363,7 +363,7 @@ bing_response_t bing_search_sync(unsigned int bing, const char* query, const bin
  * 	This object, when not NULL for errors or for lack of a next page, is allocated
  * 	and should be freed using the free_response function to prevent memory leaks.
  */
-bing_response_t bing_search_next_sync(const bing_response_t pre_response); //TODO
+bing_response_t bing_search_next_sync(const bing_response_t pre_response);
 
 /**
  * @brief Perform a asynchronous search.
@@ -891,7 +891,7 @@ int bing_request_create_custom_request(const char* source_type, bing_request_t* 
  * @return A boolean value which is non-zero if more results exist,
  * 	otherwise zero when no more results exist.
  */
-int bing_response_has_next_results(bing_response_t response); //TODO
+int bing_response_has_next_results(bing_response_t response);
 
 /**
  * @brief Get the Bing response source type.

@@ -889,6 +889,18 @@ int response_get_string(bing_response_t response, char* buffer, const char* fiel
 	return ret;
 }
 
+int bing_response_has_next_results(bing_response_t response)
+{
+	BOOL ret = FALSE;
+
+	if(response)
+	{
+		ret = ((bing_response*)response)->nextUrl != NULL;
+	}
+
+	return ret;
+}
+
 int bing_response_get_ad_api_version(bing_response_t response, char* buffer)
 {
 	return response_get_string(response, buffer, RESPONSE_AD_API_VERSION, BING_SOURCETYPE_AD);
