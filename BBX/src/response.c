@@ -669,6 +669,8 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 			res->type = type;
 			res->bing = responseParent ? 0 : bing;
 
+			res->nextUrl = NULL;
+
 			res->creation = creation;
 			res->additionalData = additionalData;
 
@@ -792,6 +794,9 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 
 		//Remove response from Bing
 		response_remove_from_bing(res, bundle_free);
+
+		//Free "next" URL if one exists
+		bing_mem_free((void*)res->nextUrl);
 
 		//Free allocated memory (allocated by response and result)
 		for(i = 0; i < res->allocatedMemoryCount; i++)

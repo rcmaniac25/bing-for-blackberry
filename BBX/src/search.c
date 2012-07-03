@@ -1198,9 +1198,35 @@ int bing_search_async(unsigned int bingID, const char* query, const bing_request
 	return search_async_in(bingID, query, request, user_data, FALSE, response_func);
 }
 
+int bing_search_next_async(const bing_response_t pre_response, const void* user_data, receive_bing_response_func response_func)
+{
+	BOOL ret = FALSE;
+	bing_response* res = (bing_response*)pre_response;
+
+	if(check_for_connection() && bing_response_has_next_results(pre_response))
+	{
+		ret = search_async_url_in(res->bing, res->nextUrl, user_data, FALSE, response_func);
+	}
+
+	return ret;
+}
+
 int bing_search_event_async(unsigned int bingID, const char* query, const bing_request_t request)
 {
 	return search_async_in(bingID, query, request, NULL, TRUE, event_invocation);
+}
+
+int bing_search_event_next_async(const bing_response_t pre_response)
+{
+	BOOL ret = FALSE;
+	bing_response* res = (bing_response*)pre_response;
+
+	if(check_for_connection() && bing_response_has_next_results(pre_response))
+	{
+		ret = search_async_url_in(res->bing, res->nextUrl, NULL, TRUE, event_invocation);
+	}
+
+	return ret;
 }
 
 #if defined(BING_DEBUG)

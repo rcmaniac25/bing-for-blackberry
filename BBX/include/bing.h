@@ -81,7 +81,7 @@ enum BING_SOURCE_TYPE
 	BING_SOURCETYPE_BUNDLE,
 
 	//A error result (only used for result)
-	BING_RESULT_ERROR,
+	BING_RESULT_ERROR,				//XXX Remove?
 
 	//Standard source types
 	BING_SOURCETYPE_AD,				//XXX Remove
@@ -407,7 +407,7 @@ int bing_search_async(unsigned int bing, const char* query, const bing_request_t
  * @return A boolean result which is non-zero for a successful query, otherwise
  * 	zero on error, bad query, or lack of next set of results.
  */
-int bing_search_next_async(const bing_response_t pre_response, const void* user_data, receive_bing_response_func response_func); //TODO
+int bing_search_next_async(const bing_response_t pre_response, const void* user_data, receive_bing_response_func response_func);
 
 /**
  * @brief Perform a asynchronous search but returns with an event.
@@ -444,7 +444,7 @@ int bing_search_event_async(unsigned int bing, const char* query, const bing_req
  * @return A boolean result which is non-zero for a successful query, otherwise
  * 	zero on error, bad query, or lack of next set of results.
  */
-int bing_search_event_next_async(const bing_response_t pre_response); //TODO
+int bing_search_event_next_async(const bing_response_t pre_response);
 
 /**
  * @brief Get a URL that can invoke a Bing search request.
