@@ -94,6 +94,7 @@ enum FIELD_TYPE
 {
 	FIELD_TYPE_UNKNOWN,
 	FIELD_TYPE_LONG,
+	FIELD_TYPE_INT,
 	FIELD_TYPE_STRING,
 	FIELD_TYPE_DOUBLE,
 	FIELD_TYPE_BOOLEAN,
@@ -108,7 +109,7 @@ typedef struct BING_FIELD_SUPPORT_S
 	const char* name;
 
 	int sourceTypeCount;
-	enum BING_SOURCE_TYPE supportedTypes[15]; //BING_SOURCETYPE_COUNT
+	enum BING_SOURCE_TYPE supportedTypes[BING_SOURCETYPE_COUNT];
 } bing_field_support;
 
 #define BING_FIELD_SUPPORT_ALL_FIELDS -2
@@ -270,6 +271,7 @@ void free_result(bing_result* result);
 
 //Helper functions (primarily for creating/updating results/responses)
 BOOL replace_string_with_longlong(hashtable_t* table, const char* field);
+BOOL replace_string_with_int(hashtable_t* table, const char* field);
 BOOL replace_string_with_double(hashtable_t* table, const char* field);
 
 //Memory functions
