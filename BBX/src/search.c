@@ -80,6 +80,8 @@ typedef struct BING_PARSER_S
 #endif
 } bing_parser;
 
+//XXX Old
+
 //Processors
 void errorCallback(void *ctx, const char *msg, ...)
 {

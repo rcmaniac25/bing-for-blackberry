@@ -255,6 +255,9 @@ BOOL hashtable_set_data(hashtable_t* table, const char* field, const void* value
 //Bing functions
 bing* retrieveBing(unsigned int bingID);
 
+//Type functions
+BOOL isComplex(const char* name);
+
 //Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary);
