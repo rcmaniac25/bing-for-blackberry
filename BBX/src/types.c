@@ -14,7 +14,26 @@
 
 enum FIELD_TYPE getParsedTypeByType(const char* type)
 {
-	//TODO
+	if(type)
+	{
+		if(strcmp(type, "text") == 0 || strcmp(type, "Edm.String") == 0 || //Normal string types
+				strcmp(type, "Edm.Guid") == 0) //There is no dedicated GUID type, so simply return it as a string
+		{
+			return FIELD_TYPE_STRING;
+		}
+		else if(strcmp(type, "dateTime") == 0 || strcmp(type, "Edm.DateTime") == 0)
+		{
+			//TODO
+		}
+		else if(strcmp(type, "Edm.Int32") == 0)
+		{
+			return FIELD_TYPE_INT;
+		}
+		else if(strcmp(type, "Edm.Int64") == 0)
+		{
+			return FIELD_TYPE_LONG;
+		}
+	}
 	return FIELD_TYPE_UNKNOWN;
 }
 
@@ -22,7 +41,7 @@ enum FIELD_TYPE getParsedTypeByType(const char* type)
 void* parseByType(const char* type, xmlNodePtr node)
 {
 	const xmlChar* text;
-	const char* tmp;
+	void* tmp;
 	if(type && node)
 	{
 		//Could possibly change to an array of types-to-parsing types. Similar to what happens with finding the right result, response, etc. {type, FIELD_TYPE, parser func}
@@ -35,13 +54,13 @@ void* parseByType(const char* type, xmlNodePtr node)
 			if(text)
 			{
 				//Duplicate the string
-				tmp = bing_mem_strdup((const char*)text);
+				tmp = (void*)bing_mem_strdup((const char*)text);
 
 				//Free the contents
 				xmlMemFree((void*)text);
 
 				//Return the duplicated string
-				return (void*)tmp;
+				return tmp;
 			}
 		}
 		else if(strcmp(type, "dateTime") == 0 || strcmp(type, "Edm.DateTime") == 0)
@@ -50,15 +69,49 @@ void* parseByType(const char* type, xmlNodePtr node)
 		}
 		else if(strcmp(type, "Edm.Int32") == 0)
 		{
-			//TODO
+			//Get the node contents
+			text = xmlNodeGetContent(node);
+			if(text)
+			{
+				//Parse the int
+				tmp = (void*)atoi((const char*)text);
+
+				//Free the contents
+				xmlMemFree((void*)text);
+
+				//Return the int;
+				return tmp;
+			}
 		}
 		else if(strcmp(type, "Edm.Int64") == 0)
 		{
-			//TODO
-		}
-#if __SIZEOF_POINTER__ == 4
-		//hi
+			//Get the node contents
+			text = xmlNodeGetContent(node);
+			if(text)
+			{
+				//Parse the long long
+#if __SIZEOF_LONG_LONG__ != 8
+#error Long Long not equal to 8
 #endif
+#if __SIZEOF_POINTER__ == 8
+				//We can simply parse, a pointer is the size of a long long
+				tmp = (void*)atoll((const char*)text);
+#else
+				//We need to allocate memory for the long long
+				tmp = bing_mem_malloc(sizeof(long long));
+				if(tmp)
+				{
+					*((long long*)tmp) = atoi((const char*)text);
+				}
+#endif
+
+				//Free the contents
+				xmlMemFree((void*)text);
+
+				//Return the int;
+				return tmp;
+			}
+		}
 	}
 	return NULL;
 }
