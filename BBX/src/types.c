@@ -131,14 +131,14 @@ void* parseByType(const char* type, xmlNodePtr node)
 			{
 				//Parse the long long
 #if __SIZEOF_LONG_LONG__ != 8
-#error Long Long not equal to 8
+#error Long Long size not equal to 8
 #endif
 #if __SIZEOF_POINTER__ == 8
 				//We can simply parse, a pointer is the size of a long long
 				tmp = (void*)atoll((const char*)text);
 #else
 				//We need to allocate memory for the long long
-				SAVE_LONG_LONG(atoi((const char*)text))
+				SAVE_LONG_LONG(atoll((const char*)text))
 #endif
 
 				//Free the contents
@@ -201,4 +201,154 @@ BOOL isComplex(const char* name)
 		return strcmp(name, "Bing.Thumbnail") == 0;
 	}
 	return FALSE;
+}
+
+//Parse to a table (would really like to only have one function with the minor type change difference, but that would require templates [keeping this in C] or a massive macro [not pretty])
+
+BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* table)
+{
+	//table.Add(node.Name, ParseByType(stype, node));
+	void* parsedData;
+	size_t size;
+	BOOL res = FALSE;
+
+	//Get type
+	enum FIELD_TYPE type = getParsedTypeByType(stype);
+	if(type != FIELD_TYPE_UNKNOWN)
+	{
+		//Get data
+		parsedData = parseByType(stype, node);
+		if(parsedData)
+		{
+			//Determine size
+			switch(type)
+			{
+				case FIELD_TYPE_STRING:
+					size = strlen((const char*)parsedData) + 1;
+					break;
+				case FIELD_TYPE_LONG:
+					size = sizeof(long long);
+					break;
+				case FIELD_TYPE_INT:
+					size = sizeof(int);
+					break;
+				case FIELD_TYPE_DOUBLE:
+					size = sizeof(double);
+					break;
+				case FIELD_TYPE_BOOLEAN:
+					size = sizeof(BOOL);
+					break;
+				case FIELD_TYPE_ARRAY:
+					size = *((size_t*)parsedData);
+					parsedData = parsedData + sizeof(size_t); //Move the data position
+					break;
+				default:
+					size = 0;
+					break;
+			}
+#if __SIZEOF_LONG_LONG__ != 8
+#error Long Long size not equal to 8
+#endif
+			if(size > 0)
+			{
+				//Add to table
+#if __SIZEOF_POINTER__ == 8
+				//If type is int or long long, the value is stored in the pointer itself instead of a memory position the pointer points to. We need to get a pointer so hashtable can copy it
+				if(type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG)
+#else
+				//If type is int, the value is stored in the pointer itself instead of a memory position the pointer points to. We need to get a pointer so hashtable can copy it
+				if(type == FIELD_TYPE_INT)
+#endif
+				{
+					parsedData = &parsedData;
+				}
+				res = hashtable_put_item(table, (const char*)node->name, parsedData, size) != -1;
+			}
+#if __SIZEOF_POINTER__ == 8
+			//If data is not an int or long long, we need to free it
+			if(!(type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG))
+#else
+			//If data is not an int, we need to free it
+			if(type != FIELD_TYPE_INT)
+#endif
+			{
+				bing_mem_free(parsedData);
+			}
+		}
+	}
+	return res;
+}
+
+BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table)
+{
+	//table.Add(node.Name, ParseByName(node));
+	void* parsedData;
+	size_t size;
+	BOOL res = FALSE;
+
+	//Get type
+	enum FIELD_TYPE type = getParsedTypeByName(node);
+	if(type != FIELD_TYPE_UNKNOWN)
+	{
+		//Get data
+		parsedData = parseByName(node);
+		if(parsedData)
+		{
+			//Determine size
+			switch(type)
+			{
+				case FIELD_TYPE_STRING:
+					size = strlen((const char*)parsedData) + 1;
+					break;
+				case FIELD_TYPE_LONG:
+					size = sizeof(long long);
+					break;
+				case FIELD_TYPE_INT:
+					size = sizeof(int);
+					break;
+				case FIELD_TYPE_DOUBLE:
+					size = sizeof(double);
+					break;
+				case FIELD_TYPE_BOOLEAN:
+					size = sizeof(BOOL);
+					break;
+				case FIELD_TYPE_ARRAY:
+					size = *((size_t*)parsedData);
+					parsedData = parsedData + sizeof(size_t); //Move the data position
+					break;
+				default:
+					size = 0;
+					break;
+			}
+#if __SIZEOF_LONG_LONG__ != 8
+#error Long Long size not equal to 8
+#endif
+			if(size > 0)
+			{
+				//Add to table
+#if __SIZEOF_POINTER__ == 8
+				//If type is int or long long, the value is stored in the pointer itself instead of a memory position the pointer points to. We need to get a pointer so hashtable can copy it
+				if(type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG)
+#else
+				//If type is int, the value is stored in the pointer itself instead of a memory position the pointer points to. We need to get a pointer so hashtable can copy it
+				if(type == FIELD_TYPE_INT)
+#endif
+				{
+					parsedData = &parsedData;
+				}
+				res = hashtable_put_item(table, (const char*)node->name, parsedData, size) != -1;
+			}
+#if __SIZEOF_POINTER__ == 8
+			//If data is not an int or long long, we need to free it
+			if(!(type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG))
+#else
+			//If data is not an int, we need to free it
+			if(type != FIELD_TYPE_INT)
+#endif
+			{
+				bing_mem_free(parsedData);
+			}
+		}
+	}
+	return res;
 }

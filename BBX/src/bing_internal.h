@@ -15,7 +15,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <assert.h>
 #include <atomic.h>
 
 #include <libxml/tree.h>
@@ -264,6 +263,8 @@ enum FIELD_TYPE getParsedTypeByType(const char* type);
 enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node);
 void* parseByType(const char* type, xmlNodePtr node);
 void* parseByName(xmlNodePtr node);
+BOOL parseToHashtableByType(const char* type, xmlNodePtr node, hashtable_t* table);
+BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table);
 
 //Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);

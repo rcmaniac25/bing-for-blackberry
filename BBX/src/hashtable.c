@@ -9,6 +9,8 @@
 
 #include "bing_internal.h"
 
+#include <assert.h>
+
 #include <libxml/xmlstring.h>
 #include <libxml/hash.h>
 
@@ -27,7 +29,7 @@ hashtable_t* hashtable_create(int size)
 {
 	ht* hash;
 
-	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
+	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed. We do this at runtime since xmlChar is not a system type
 
 	hash = (ht*)bing_mem_malloc(sizeof(ht));
 	if(hash)

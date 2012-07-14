@@ -15,8 +15,11 @@
 
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
+#include <libxml/globals.h>
 
 #include <curl/curl.h>
+
+#define DEFAULT_HASHTABLE_SIZE 8
 
 //XXX New error codes once updated
 enum PARSER_ERROR
@@ -55,14 +58,20 @@ typedef struct PARSER_STACK_S
 	struct PARSER_STACK_S* prev;
 } pstack;
 
+typedef struct PARSER_STACK2_S
+{
+	void* value;
+	struct PARSER_STACK2_S* prev;
+} pstack2;
+
 typedef struct BING_PARSER_S
 {
 	//Freed on error
 	bing_response* response;
-	bing_response* current;
-	pstack* lastResult;
-	pstack* lastResultElement;
-	const char* query;
+	bing_response* current; //XXX Remove
+	pstack* lastResult; //XXX Remove
+	pstack* lastResultElement; //XXX Remove
+	const char* query; //XXX Remove
 	const char* alteredQuery; //XXX Remove
 	const char* alterationOverrideQuery; //XXX Remove
 
@@ -103,6 +112,150 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 
 bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent)
 {
+	bing_result* res;
+	xmlNodePtr node;
+	const xmlChar* xmlText;
+	char* text;
+	pstack2* additionalProcessing = NULL;
+	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
+	int size;
+
+	//Get data
+	if(!type)
+	{
+		//Go through all the nodes to get data
+		for(node = resultNode->children; node != NULL; node = node->next)
+		{
+			//We want to stop on content, we process that later
+			if(strcmp((const char*)node->name, "content") == 0)
+			{
+				break;
+			}
+
+			//If we have a node with a type property, it makes it easy for us
+			if(xmlHasProp(node, (const xmlChar*)"type"))
+			{
+				xmlText = xmlGetProp(node, (const xmlChar*)"type");
+				if(xmlText)
+				{
+					//Parse the data
+					if(parseToHashtableByType((const char*)xmlText, node, data))
+					{
+						//Check to see if this is a composite response
+						if(strcmp((const char*)node->name, "title") == 0)
+						{
+							size = hashtable_get_string(data, "title", NULL);
+							if(size > 0)
+							{
+								text = bing_mem_malloc(size);
+								if(text)
+								{
+									hashtable_get_string(data, "title", text);
+									text[size - 1] = '\0';
+									if(strcmp(text, "ExpandableSearchResult") == 0)
+									{
+										//This is a composite response
+										hashtable_free(data);
+										return NULL;
+									}
+									bing_mem_free(text);
+								}
+								else
+								{
+									//XXX Error
+								}
+							}
+						}
+					}
+					else
+					{
+						//XXX Error
+					}
+					xmlFree((void*)xmlText);
+				}
+				else
+				{
+					//XXX Error
+				}
+			}
+			else
+			{
+				if(xmlHasProp(node, (const xmlChar*)"m:type"))
+				{
+					xmlText = xmlGetProp(node, (const xmlChar*)"m:type");
+					if(xmlText)
+					{
+						if(!parseToHashtableByType((const char*)xmlText, node, data))
+						{
+							//XXX Error
+						}
+						xmlFree((void*)xmlText);
+					}
+					else
+					{
+						//XXX Error
+					}
+				}
+				else if(strcmp((const char*)node->name, "link") == 0)
+				{
+					xmlText = xmlGetProp(node, (const xmlChar*)"rel");
+					if(xmlText)
+					{
+						if(strcmp((const char*)xmlText, "next") == 0)
+						{
+							//XXX Special assignment
+							//TODO: data.Add("#nextLink", node.Attributes["href"].Value);
+						}
+						else if(strcmp((const char*)xmlText, "self") == 0)
+						{
+							//XXX Special assignment
+							//TODO: data.Add("#thisLink", node.Attributes["href"].Value);
+						}
+						else
+						{
+							//TODO (never encountered, unsure if there is something else)
+						}
+						xmlFree((void*)xmlText);
+					}
+					else
+					{
+						//XXX Error
+					}
+				}
+				else
+				{
+					parseToHashtableByName(node, data);
+				}
+			}
+		}
+
+		//If this is an empty result, ignore it
+		if (!node)
+		{
+			hashtable_free(data);
+			return NULL;
+		}
+
+		//If content is not the expected type, ignore it.
+		if(xmlHasProp(node, (const xmlChar*)"type"))
+		{
+			xmlText = xmlGetProp(node, (const xmlChar*)"type");
+			if(xmlText)
+			{
+				if(strcmp((const char*)xmlText, "application/xml") != 0)
+				{
+					xmlFree((void*)xmlText); //Would rather only have this once in the if block, but then I have to use gotos
+					hashtable_free(data);
+					return NULL;
+				}
+				xmlFree((void*)xmlText);
+			}
+		}
+
+		//Prepare for parse content
+		resultNode = node->children;
+	}
+
 	//TODO
 	return NULL;
 }
@@ -699,7 +852,7 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//startElement
 		NULL,			//endElement
 		NULL,			//reference
-		NULL,			//characters //XXX Add
+		NULL,			//characters
 		NULL,			//ignorableWhitespace
 		NULL,			//processingInstruction
 		NULL,			//comment
@@ -711,8 +864,8 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//externalSubset
 		XML_SAX2_MAGIC,	//initialized
 		NULL,			//_private
-		startElementNs,	//startElementNs
-		endElementNs,	//endElementNs
+		startElementNs,	//startElementNs //XXX Remove
+		endElementNs,	//endElementNs //XXX Remove
 		serrorCallback	//serror
 };
 
