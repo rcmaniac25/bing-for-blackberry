@@ -161,9 +161,9 @@ BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable)
 	return ret;
 }
 
-int resizeHashTable(ht* hash)
+BOOL resizeHashTableSize(ht* hash, int nAlloc)
 {
-	int nAlloc = hash->alloc * 2;
+	//Create hashtable
 	xmlHashTablePtr nTable = xmlHashCreate(nAlloc);
 	if(!nTable)
 	{
@@ -181,6 +181,28 @@ int resizeHashTable(ht* hash)
 	hash->alloc = nAlloc;
 
 	return TRUE;
+}
+
+BOOL resizeHashTable(ht* hash)
+{
+	return resizeHashTableSize(hash, hash->alloc * 2);
+}
+
+BOOL hashtable_compact(hashtable_t* table)
+{
+	ht* hash;
+	if(table)
+	{
+		hash = (ht*)table;
+
+		//If the allocated size of the table is larger then the actual size, reduce it
+		if(hash->alloc > xmlHashSize(hash->table))
+		{
+			return resizeHashTableSize(hash, xmlHashSize(hash->table));
+		}
+		return TRUE;
+	}
+	return FALSE;
 }
 
 int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size)

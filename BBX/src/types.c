@@ -9,8 +9,32 @@
 
 #include "bing_internal.h"
 
-#include <libxml/tree.h>
+#include <time.h>
+
 #include <libxml/xmlmemory.h>
+#include <libxml/globals.h>
+
+long long parseTime(const char* stime)
+{
+	struct tm ptime;
+	time_t t = time(NULL);
+	if(stime)
+	{
+		//Clear time structure
+		memset(&ptime, 0, sizeof(struct tm));
+
+		//Parse time
+		if (strptime(stime, "%Y-%m-%dT%H:%M:%SZ", &ptime) != NULL)
+		{
+			//Not set by strptime(); tells mktime() to determine whether daylight saving time is in effect
+			ptime.tm_isdst = -1;
+
+			//Get time as epoch
+			t = mktime(&ptime);
+		}
+	}
+	return (long long)t;
+}
 
 enum FIELD_TYPE getParsedTypeByType(const char* type)
 {
@@ -21,21 +45,25 @@ enum FIELD_TYPE getParsedTypeByType(const char* type)
 		{
 			return FIELD_TYPE_STRING;
 		}
-		else if(strcmp(type, "dateTime") == 0 || strcmp(type, "Edm.DateTime") == 0)
+		else if(strcmp(type, "dateTime") == 0 || strcmp(type, "Edm.DateTime") == 0 || strcmp(type, "Edm.Int64") == 0)
 		{
-			//TODO
+			return FIELD_TYPE_LONG;
 		}
 		else if(strcmp(type, "Edm.Int32") == 0)
 		{
 			return FIELD_TYPE_INT;
 		}
-		else if(strcmp(type, "Edm.Int64") == 0)
-		{
-			return FIELD_TYPE_LONG;
-		}
 	}
 	return FIELD_TYPE_UNKNOWN;
 }
+
+//Helper macro for saving a long long
+#define SAVE_LONG_LONG(x) \
+	tmp = bing_mem_malloc(sizeof(long long)); \
+	if(tmp) \
+	{ \
+		*((long long*)tmp) = (x); \
+	}
 
 //This will always produce a unique memory element. It will not pass a pointer.
 void* parseByType(const char* type, xmlNodePtr node)
@@ -57,7 +85,7 @@ void* parseByType(const char* type, xmlNodePtr node)
 				tmp = (void*)bing_mem_strdup((const char*)text);
 
 				//Free the contents
-				xmlMemFree((void*)text);
+				xmlFree((void*)text);
 
 				//Return the duplicated string
 				return tmp;
@@ -65,7 +93,19 @@ void* parseByType(const char* type, xmlNodePtr node)
 		}
 		else if(strcmp(type, "dateTime") == 0 || strcmp(type, "Edm.DateTime") == 0)
 		{
-			//TODO
+			//Get the node contents
+			text = xmlNodeGetContent(node);
+			if(text)
+			{
+				//We need to allocate memory for the long long
+				SAVE_LONG_LONG(parseTime((const char*)text))
+
+				//Free the contents
+				xmlFree((void*)text);
+
+				//Return the value
+				return tmp;
+			}
 		}
 		else if(strcmp(type, "Edm.Int32") == 0)
 		{
@@ -77,7 +117,7 @@ void* parseByType(const char* type, xmlNodePtr node)
 				tmp = (void*)atoi((const char*)text);
 
 				//Free the contents
-				xmlMemFree((void*)text);
+				xmlFree((void*)text);
 
 				//Return the int;
 				return tmp;
@@ -98,17 +138,13 @@ void* parseByType(const char* type, xmlNodePtr node)
 				tmp = (void*)atoll((const char*)text);
 #else
 				//We need to allocate memory for the long long
-				tmp = bing_mem_malloc(sizeof(long long));
-				if(tmp)
-				{
-					*((long long*)tmp) = atoi((const char*)text);
-				}
+				SAVE_LONG_LONG(atoi((const char*)text))
 #endif
 
 				//Free the contents
-				xmlMemFree((void*)text);
+				xmlFree((void*)text);
 
-				//Return the int;
+				//Return the value
 				return tmp;
 			}
 		}

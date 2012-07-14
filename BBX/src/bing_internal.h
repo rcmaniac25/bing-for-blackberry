@@ -18,6 +18,8 @@
 #include <assert.h>
 #include <atomic.h>
 
+#include <libxml/tree.h>
+
 /*
  * Defines
  */
@@ -242,6 +244,7 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 hashtable_t* hashtable_create(int size);
 void hashtable_free(hashtable_t* table);
 BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable);
+BOOL hashtable_compact(hashtable_t* table);
 int hashtable_key_exists(hashtable_t* table, const char* key);
 int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
 size_t hashtable_get_item(hashtable_t* table, const char* name, void* data);
@@ -257,6 +260,10 @@ bing* retrieveBing(unsigned int bingID);
 
 //Type functions
 BOOL isComplex(const char* name);
+enum FIELD_TYPE getParsedTypeByType(const char* type);
+enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node);
+void* parseByType(const char* type, xmlNodePtr node);
+void* parseByName(xmlNodePtr node);
 
 //Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);

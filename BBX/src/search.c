@@ -80,6 +80,39 @@ typedef struct BING_PARSER_S
 #endif
 } bing_parser;
 
+const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
+{
+	size_t size;
+	char* qualifiedName;
+	if(prefix)
+	{
+		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 2);
+		if(qualifiedName)
+		{
+			snprintf(qualifiedName, size, "%s:%s", prefix, localname);
+			qualifiedName[size - 1] = '\0';
+		}
+	}
+	else
+	{
+		//There is nothing that requires changing
+		qualifiedName = bing_mem_strdup((char*)localname);
+	}
+	return qualifiedName;
+}
+
+bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent)
+{
+	//TODO
+	return NULL;
+}
+
+bing_response* ParseResponse(xmlNodePtr responseNode, BOOL composite, bing_response* parent)
+{
+	//TODO
+	return NULL;
+}
+
 //XXX Old
 
 //Processors
@@ -261,27 +294,6 @@ void addResultToStack(bing_parser* parser, bing_result* result, const char* name
 
 		response_remove_result(parser->current, result, internal, TRUE);
 	}
-}
-
-const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
-{
-	size_t size;
-	char* qualifiedName;
-	if(prefix)
-	{
-		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 2);
-		if(qualifiedName)
-		{
-			snprintf(qualifiedName, size, "%s:%s", prefix, localname);
-			qualifiedName[size - 1] = '\0';
-		}
-	}
-	else
-	{
-		//There is nothing that requires changing
-		qualifiedName = bing_mem_strdup((char*)localname);
-	}
-	return qualifiedName;
 }
 
 //The real "meat and potatoes" of the parser. Many if blocks for safety and to increase flexibility (and hopefully readability...)
