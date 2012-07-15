@@ -11,9 +11,6 @@
 
 #include <time.h>
 
-#include <libxml/xmlmemory.h>
-#include <libxml/globals.h>
-
 long long parseTime(const char* stime)
 {
 	struct tm ptime;
@@ -66,7 +63,7 @@ enum FIELD_TYPE getParsedTypeByType(const char* type)
 	}
 
 //This will always produce a unique memory element. It will not pass a pointer.
-void* parseByType(const char* type, xmlNodePtr node)
+void* parseByType(const char* type, xmlNodePtr node, xmlFreeFunc xmlFree)
 {
 	const xmlChar* text;
 	void* tmp;
@@ -82,7 +79,7 @@ void* parseByType(const char* type, xmlNodePtr node)
 			if(text)
 			{
 				//Duplicate the string
-				tmp = (void*)bing_mem_strdup((const char*)text);
+				tmp = (void*)bing_mem_strdup((char*)text);
 
 				//Free the contents
 				xmlFree((void*)text);
@@ -98,7 +95,7 @@ void* parseByType(const char* type, xmlNodePtr node)
 			if(text)
 			{
 				//We need to allocate memory for the long long
-				SAVE_LONG_LONG(parseTime((const char*)text))
+				SAVE_LONG_LONG(parseTime((char*)text))
 
 				//Free the contents
 				xmlFree((void*)text);
@@ -114,7 +111,7 @@ void* parseByType(const char* type, xmlNodePtr node)
 			if(text)
 			{
 				//Parse the int
-				tmp = (void*)atoi((const char*)text);
+				tmp = (void*)atoi((char*)text);
 
 				//Free the contents
 				xmlFree((void*)text);
@@ -135,10 +132,10 @@ void* parseByType(const char* type, xmlNodePtr node)
 #endif
 #if __SIZEOF_POINTER__ == 8
 				//We can simply parse, a pointer is the size of a long long
-				tmp = (void*)atoll((const char*)text);
+				tmp = (void*)atoll((char*)text);
 #else
 				//We need to allocate memory for the long long
-				SAVE_LONG_LONG(atoll((const char*)text))
+				SAVE_LONG_LONG(atoll((char*)text))
 #endif
 
 				//Free the contents
@@ -157,7 +154,7 @@ enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node)
 	const char* name;
 	if(node && node->type == XML_ELEMENT_NODE)
 	{
-		name = (const char*)node->name;
+		name = (char*)node->name;
 
 		//We don't have many options right now, so just do this manually
 		if(strcmp(name, "id") == 0)
@@ -172,22 +169,22 @@ enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node)
 	return FIELD_TYPE_UNKNOWN;
 }
 
-void* parseByName(xmlNodePtr node)
+void* parseByName(xmlNodePtr node, xmlFreeFunc xmlFree)
 {
 	//We could parse by type, but if we end up with another type that returns a long, we would end up attempting to parse it as a date, which won't go well.
 	const char* name;
 	if(node && node->type == XML_ELEMENT_NODE)
 	{
-		name = (const char*)node->name;
+		name = (char*)node->name;
 
 		//We don't have many options right now, so just do this manually
 		if(strcmp(name, "id") == 0)
 		{
-			return parseByType("text", node);
+			return parseByType("text", node, xmlFree);
 		}
 		else if(strcmp(name, "updated") == 0)
 		{
-			return parseByType("dateTime", node);
+			return parseByType("dateTime", node, xmlFree);
 		}
 	}
 	return NULL;
@@ -205,7 +202,7 @@ BOOL isComplex(const char* name)
 
 //Parse to a table (would really like to only have one function with the minor type change difference, but that would require templates [keeping this in C] or a massive macro [not pretty])
 
-BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* table)
+BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree)
 {
 	//table.Add(node.Name, ParseByType(stype, node));
 	void* parsedData;
@@ -217,14 +214,14 @@ BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* tab
 	if(type != FIELD_TYPE_UNKNOWN)
 	{
 		//Get data
-		parsedData = parseByType(stype, node);
+		parsedData = parseByType(stype, node, xmlFree);
 		if(parsedData)
 		{
 			//Determine size
 			switch(type)
 			{
 				case FIELD_TYPE_STRING:
-					size = strlen((const char*)parsedData) + 1;
+					size = strlen((char*)parsedData) + 1;
 					break;
 				case FIELD_TYPE_LONG:
 					size = sizeof(long long);
@@ -262,7 +259,7 @@ BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* tab
 				{
 					parsedData = &parsedData;
 				}
-				res = hashtable_put_item(table, (const char*)node->name, parsedData, size) != -1;
+				res = hashtable_put_item(table, (char*)node->name, parsedData, size) != -1;
 			}
 #if __SIZEOF_POINTER__ == 8
 			//If data is not an int or long long, we need to free it
@@ -279,7 +276,7 @@ BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* tab
 	return res;
 }
 
-BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table)
+BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree)
 {
 	//table.Add(node.Name, ParseByName(node));
 	void* parsedData;
@@ -291,14 +288,14 @@ BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table)
 	if(type != FIELD_TYPE_UNKNOWN)
 	{
 		//Get data
-		parsedData = parseByName(node);
+		parsedData = parseByName(node, xmlFree);
 		if(parsedData)
 		{
 			//Determine size
 			switch(type)
 			{
 				case FIELD_TYPE_STRING:
-					size = strlen((const char*)parsedData) + 1;
+					size = strlen((char*)parsedData) + 1;
 					break;
 				case FIELD_TYPE_LONG:
 					size = sizeof(long long);
@@ -336,7 +333,7 @@ BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table)
 				{
 					parsedData = &parsedData;
 				}
-				res = hashtable_put_item(table, (const char*)node->name, parsedData, size) != -1;
+				res = hashtable_put_item(table, (char*)node->name, parsedData, size) != -1;
 			}
 #if __SIZEOF_POINTER__ == 8
 			//If data is not an int or long long, we need to free it

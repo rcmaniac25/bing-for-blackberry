@@ -14,8 +14,6 @@
 #include <bps/netstatus.h>
 
 #include <libxml/parser.h>
-#include <libxml/xmlmemory.h>
-#include <libxml/globals.h>
 
 #include <curl/curl.h>
 
@@ -110,13 +108,14 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 	return qualifiedName;
 }
 
-bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent)
+bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, xmlFreeFunc xmlFree)
 {
 	bing_result* res;
 	xmlNodePtr node;
 	const xmlChar* xmlText;
 	char* text;
 	pstack2* additionalProcessing = NULL;
+	pstack2* tStack;
 	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
 	int size;
 
@@ -127,22 +126,22 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		for(node = resultNode->children; node != NULL; node = node->next)
 		{
 			//We want to stop on content, we process that later
-			if(strcmp((const char*)node->name, "content") == 0)
+			if(strcmp((char*)node->name, "content") == 0)
 			{
 				break;
 			}
 
 			//If we have a node with a type property, it makes it easy for us
-			if(xmlHasProp(node, (const xmlChar*)"type"))
+			if(xmlHasProp(node, (xmlChar*)"type"))
 			{
-				xmlText = xmlGetProp(node, (const xmlChar*)"type");
+				xmlText = xmlGetProp(node, (xmlChar*)"type");
 				if(xmlText)
 				{
 					//Parse the data
-					if(parseToHashtableByType((const char*)xmlText, node, data))
+					if(parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 					{
 						//Check to see if this is a composite response
-						if(strcmp((const char*)node->name, "title") == 0)
+						if(strcmp((char*)node->name, "title") == 0)
 						{
 							size = hashtable_get_string(data, "title", NULL);
 							if(size > 0)
@@ -180,12 +179,12 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			}
 			else
 			{
-				if(xmlHasProp(node, (const xmlChar*)"m:type"))
+				if(xmlHasProp(node, (xmlChar*)"m:type"))
 				{
-					xmlText = xmlGetProp(node, (const xmlChar*)"m:type");
+					xmlText = xmlGetProp(node, (xmlChar*)"m:type");
 					if(xmlText)
 					{
-						if(!parseToHashtableByType((const char*)xmlText, node, data))
+						if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 						{
 							//XXX Error
 						}
@@ -196,20 +195,32 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 						//XXX Error
 					}
 				}
-				else if(strcmp((const char*)node->name, "link") == 0)
+				else if(strcmp((char*)node->name, "link") == 0)
 				{
-					xmlText = xmlGetProp(node, (const xmlChar*)"rel");
+					xmlText = xmlGetProp(node, (xmlChar*)"rel");
 					if(xmlText)
 					{
-						if(strcmp((const char*)xmlText, "next") == 0)
+						if(strcmp((char*)xmlText, "next") == 0)
 						{
+							xmlFree((void*)xmlText);
+
+							xmlText = xmlGetProp(node, (xmlChar*)"href");
 							//XXX Special assignment
-							//TODO: data.Add("#nextLink", node.Attributes["href"].Value);
+							if(!hashtable_put_item(data, "#nextLink", xmlText, strlen((char*)xmlText) + 1))
+							{
+								//XXX Error
+							}
 						}
-						else if(strcmp((const char*)xmlText, "self") == 0)
+						else if(strcmp((char*)xmlText, "self") == 0)
 						{
+							xmlFree((void*)xmlText);
+
+							xmlText = xmlGetProp(node, (xmlChar*)"href");
 							//XXX Special assignment
-							//TODO: data.Add("#thisLink", node.Attributes["href"].Value);
+							if(!hashtable_put_item(data, "#thisLink", xmlText, strlen((char*)xmlText) + 1))
+							{
+								//XXX Error
+							}
 						}
 						else
 						{
@@ -224,7 +235,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 				}
 				else
 				{
-					parseToHashtableByName(node, data);
+					parseToHashtableByName(node, data, xmlFree);
 				}
 			}
 		}
@@ -237,12 +248,12 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		}
 
 		//If content is not the expected type, ignore it.
-		if(xmlHasProp(node, (const xmlChar*)"type"))
+		if(xmlHasProp(node, (xmlChar*)"type"))
 		{
-			xmlText = xmlGetProp(node, (const xmlChar*)"type");
+			xmlText = xmlGetProp(node, (xmlChar*)"type");
 			if(xmlText)
 			{
-				if(strcmp((const char*)xmlText, "application/xml") != 0)
+				if(strcmp((char*)xmlText, "application/xml") != 0)
 				{
 					xmlFree((void*)xmlText); //Would rather only have this once in the if block, but then I have to use gotos
 					hashtable_free(data);
@@ -256,11 +267,83 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		resultNode = node->children;
 	}
 
+	//Parse content
+	for(node = resultNode->children; node != NULL; node = node->next)
+	{
+		//Determine if we have a node with a type (pointers will be embedded in lib so no need to free them)
+		xmlText = (xmlChar*)"type";
+		if(!xmlHasProp(node, xmlText))
+		{
+			xmlText = (xmlChar*)"m:type";
+			if(!xmlHasProp(node, xmlText))
+			{
+				xmlText = NULL;
+			}
+		}
+
+		//Process the node
+		if(xmlText)
+		{
+			//... as stated before, pointers will be embedded in lib so no need to free them.
+			xmlText = xmlGetProp(node, (xmlChar*)"type");
+			if(xmlText)
+			{
+				if(isComplex((char*)xmlText))
+				{
+					//Push a new value onto the stack (order doesn't matter)
+					tStack = bing_mem_malloc(sizeof(pstack2));
+					if(!tStack)
+					{
+						//XXX Error
+					}
+					tStack->prev = additionalProcessing;
+					tStack->value = node;
+					additionalProcessing = tStack;
+				}
+				else
+				{
+					if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
+					{
+						//XXX Error
+					}
+				}
+				xmlFree((void*)xmlText);
+			}
+		}
+		else
+		{
+			if(!parseToHashtableByName(node, data, xmlFree))
+			{
+				//XXX Error
+			}
+		}
+	}
+
+	//Create
+	res = NULL; //XXX Temp
+	if(type)
+	{
+		//TODO result_create_raw(resultNode.Attributes["m:type"].Value, &res, parent)
+	}
+	else
+	{
+		//TODO result_create_raw((string)data["title"], &res, parent)
+	}
+
+	//Run creation callback
 	//TODO
-	return NULL;
+
+	//Additional content processing
+	while(additionalProcessing)
+	{
+		//TODO
+		additionalProcessing = additionalProcessing->prev;
+	}
+
+	return res;
 }
 
-bing_response* ParseResponse(xmlNodePtr responseNode, BOOL composite, bing_response* parent)
+bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_response* parent, xmlFreeFunc xmlFree)
 {
 	//TODO
 	return NULL;

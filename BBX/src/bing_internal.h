@@ -18,6 +18,7 @@
 #include <atomic.h>
 
 #include <libxml/tree.h>
+#include <libxml/xmlmemory.h>
 
 /*
  * Defines
@@ -261,10 +262,10 @@ bing* retrieveBing(unsigned int bingID);
 BOOL isComplex(const char* name);
 enum FIELD_TYPE getParsedTypeByType(const char* type);
 enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node);
-void* parseByType(const char* type, xmlNodePtr node);
-void* parseByName(xmlNodePtr node);
-BOOL parseToHashtableByType(const char* type, xmlNodePtr node, hashtable_t* table);
-BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table);
+void* parseByType(const char* type, xmlNodePtr node, xmlFreeFunc xmlFree);
+void* parseByName(xmlNodePtr node, xmlFreeFunc xmlFree);
+BOOL parseToHashtableByType(const char* type, xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree);
+BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree);
 
 //Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);
