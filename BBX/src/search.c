@@ -110,7 +110,9 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 
 bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, xmlFreeFunc xmlFree)
 {
+	//Not really the greatest names, could probably change
 	bing_result* res;
+	bing_result* tres;
 	xmlNodePtr node;
 	const xmlChar* xmlText;
 	char* text;
@@ -118,6 +120,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	pstack2* tStack;
 	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
 	int size;
+	BOOL keep;
 
 	//Get data
 	if(!type)
@@ -324,19 +327,62 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	if(type)
 	{
 		//TODO result_create_raw(resultNode.Attributes["m:type"].Value, &res, parent)
+		//Internal
 	}
 	else
 	{
 		//TODO result_create_raw((string)data["title"], &res, parent)
+		//Public
 	}
 
 	//Run creation callback
-	//TODO
+	if (type)
+	{
+		//TODO res->creation(resultNode.Attributes["m:type"].Value, res, (data_dictionary_t)data);
+	}
+	else
+	{
+		//TODO res->creation((string)data["title"], res, (data_dictionary_t)data);
+	}
 
 	//Additional content processing
 	while(additionalProcessing)
 	{
-		//TODO
+		tres = parseResult(node, TRUE, parent, xmlFree);
+		if(tres)
+		{
+			keep = FALSE;
+			res->additionalResult((char*)node->name, res, tres, &keep);
+			if(!keep)
+			{
+				//The result shouldn't be kept
+				if(type)
+				{
+					//Free from internal
+					if(response_remove_result(parent, tres, TRUE, TRUE))
+					{
+						tres = NULL;
+					}
+				}
+				else
+				{
+					//Free from public
+					if(response_remove_result(parent, tres, FALSE, TRUE))
+					{
+						tres = NULL;
+					}
+				}
+				if(tres)
+				{
+					//Couldn't remove the response, just free it
+					free_result(tres);
+				}
+			}
+		}
+		else
+		{
+			//TODO (never encountered, unsure if this would be an error or not)
+		}
 		additionalProcessing = additionalProcessing->prev;
 	}
 
