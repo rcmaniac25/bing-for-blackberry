@@ -17,7 +17,11 @@
 
 #include <curl/curl.h>
 
+//Defines for parsing
 #define DEFAULT_HASHTABLE_SIZE 8
+#define PARSE_PROPERTY_TYPE ((xmlChar*)"type")
+#define PARSE_PROPERTY_MTYPE ((xmlChar*)"m:type")
+#define PARSE_KEY_TITLE "title"
 
 //XXX New error codes once updated
 enum PARSER_ERROR
@@ -111,7 +115,7 @@ const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
 bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, xmlFreeFunc xmlFree)
 {
 	//Not really the greatest names, could probably change
-	bing_result* res;
+	bing_result* res = NULL;
 	bing_result* tres;
 	xmlNodePtr node;
 	const xmlChar* xmlText;
@@ -135,24 +139,24 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			}
 
 			//If we have a node with a type property, it makes it easy for us
-			if(xmlHasProp(node, (xmlChar*)"type"))
+			if(xmlHasProp(node, PARSE_PROPERTY_TYPE))
 			{
-				xmlText = xmlGetProp(node, (xmlChar*)"type");
+				xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
 				if(xmlText)
 				{
 					//Parse the data
 					if(parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 					{
 						//Check to see if this is a composite response
-						if(strcmp((char*)node->name, "title") == 0)
+						if(strcmp((char*)node->name, PARSE_KEY_TITLE) == 0)
 						{
-							size = hashtable_get_string(data, "title", NULL);
+							size = hashtable_get_string(data, PARSE_KEY_TITLE, NULL);
 							if(size > 0)
 							{
 								text = bing_mem_malloc(size);
 								if(text)
 								{
-									hashtable_get_string(data, "title", text);
+									hashtable_get_string(data, PARSE_KEY_TITLE, text);
 									text[size - 1] = '\0';
 									if(strcmp(text, "ExpandableSearchResult") == 0)
 									{
@@ -182,9 +186,9 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			}
 			else
 			{
-				if(xmlHasProp(node, (xmlChar*)"m:type"))
+				if(xmlHasProp(node, PARSE_PROPERTY_MTYPE))
 				{
-					xmlText = xmlGetProp(node, (xmlChar*)"m:type");
+					xmlText = xmlGetProp(node, PARSE_PROPERTY_MTYPE);
 					if(xmlText)
 					{
 						if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
@@ -251,9 +255,9 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		}
 
 		//If content is not the expected type, ignore it.
-		if(xmlHasProp(node, (xmlChar*)"type"))
+		if(xmlHasProp(node, PARSE_PROPERTY_TYPE))
 		{
-			xmlText = xmlGetProp(node, (xmlChar*)"type");
+			xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
 			if(xmlText)
 			{
 				if(strcmp((char*)xmlText, "application/xml") != 0)
@@ -274,10 +278,10 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	for(node = resultNode->children; node != NULL; node = node->next)
 	{
 		//Determine if we have a node with a type (pointers will be embedded in lib so no need to free them)
-		xmlText = (xmlChar*)"type";
+		xmlText = PARSE_PROPERTY_TYPE;
 		if(!xmlHasProp(node, xmlText))
 		{
-			xmlText = (xmlChar*)"m:type";
+			xmlText = PARSE_PROPERTY_MTYPE;
 			if(!xmlHasProp(node, xmlText))
 			{
 				xmlText = NULL;
@@ -288,7 +292,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		if(xmlText)
 		{
 			//... as stated before, pointers will be embedded in lib so no need to free them.
-			xmlText = xmlGetProp(node, (xmlChar*)"type");
+			xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
 			if(xmlText)
 			{
 				if(isComplex((char*)xmlText))
@@ -322,68 +326,121 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		}
 	}
 
-	//Create
-	res = NULL; //XXX Temp
+	//Prepare for creation and running callback
+	xmlText = NULL;
+	text = NULL;
+
+	//Create (this will also retrieve the name used by both the creation function and the the creation callbacks)
 	if(type)
 	{
-		//TODO result_create_raw(resultNode.Attributes["m:type"].Value, &res, parent)
-		//Internal
+		xmlText = xmlGetProp(resultNode, PARSE_PROPERTY_MTYPE);
+		if(xmlText)
+		{
+			if(result_create_raw((char*)xmlText, (bing_result_t*)&res, parent))
+			{
+				//Make this an internal result
+				response_swap_result(parent, res, RESULT_CREATE_DEFAULT_INTERNAL);
+			}
+			else
+			{
+				//XXX Error
+			}
+		}
+		else
+		{
+			//XXX Error
+		}
 	}
 	else
 	{
-		//TODO result_create_raw((string)data["title"], &res, parent)
-		//Public
+		size = hashtable_get_item(data, PARSE_KEY_TITLE, NULL);
+		if(size > 0)
+		{
+			text = bing_mem_malloc(size);
+			if(text)
+			{
+				hashtable_get_item(data, PARSE_KEY_TITLE, text);
+				if(!result_create_raw(text, (bing_result_t*)&res, parent))
+				{
+					//XXX Error
+				}
+			}
+		}
 	}
 
-	//Run creation callback
-	if (type)
+	//Only run if there is a result to run on
+	if(res && (xmlText || text))
 	{
-		//TODO res->creation(resultNode.Attributes["m:type"].Value, res, (data_dictionary_t)data);
+		//Run creation callback
+		if (type)
+		{
+			res->creation((char*)xmlText, res, (data_dictionary_t)data);
+		}
+		else
+		{
+			res->creation(text, res, (data_dictionary_t)data);
+		}
 	}
-	else
+
+	//Cleanup text
+	if(xmlText)
 	{
-		//TODO res->creation((string)data["title"], res, (data_dictionary_t)data);
+		xmlFree((void*)xmlText);
+	}
+	if(text)
+	{
+		bing_mem_free((void*)text);
 	}
 
 	//Additional content processing
 	while(additionalProcessing)
 	{
-		tres = parseResult(node, TRUE, parent, xmlFree);
-		if(tres)
+		//Only run if there is a result to run on (we still do the loop so we can free the stack)
+		if(res)
 		{
-			keep = FALSE;
-			res->additionalResult((char*)node->name, res, tres, &keep);
-			if(!keep)
+			tres = parseResult(node, TRUE, parent, xmlFree);
+			if(tres)
 			{
-				//The result shouldn't be kept
-				if(type)
+				keep = FALSE;
+				res->additionalResult((char*)node->name, res, tres, &keep);
+				if(!keep)
 				{
-					//Free from internal
-					if(response_remove_result(parent, tres, TRUE, TRUE))
+					//The result shouldn't be kept
+					if(type)
 					{
-						tres = NULL;
+						//Free from internal
+						if(response_remove_result(parent, tres, TRUE, TRUE))
+						{
+							tres = NULL;
+						}
 					}
-				}
-				else
-				{
-					//Free from public
-					if(response_remove_result(parent, tres, FALSE, TRUE))
+					else
 					{
-						tres = NULL;
+						//Free from public
+						if(response_remove_result(parent, tres, FALSE, TRUE))
+						{
+							tres = NULL;
+						}
 					}
-				}
-				if(tres)
-				{
-					//Couldn't remove the response, just free it
-					free_result(tres);
+					if(tres)
+					{
+						//Couldn't remove the response, just free it
+						free_result(tres);
+					}
 				}
 			}
+			else
+			{
+				//TODO (never encountered, unsure if this would be an error or not)
+			}
 		}
-		else
-		{
-			//TODO (never encountered, unsure if this would be an error or not)
-		}
+
+		//Move to next stack element
+		tStack = additionalProcessing;
 		additionalProcessing = additionalProcessing->prev;
+
+		//Free stack element
+		bing_mem_free((void*)tStack);
 	}
 
 	return res;
