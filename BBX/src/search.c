@@ -22,6 +22,7 @@
 #define PARSE_PROPERTY_TYPE ((xmlChar*)"type")
 #define PARSE_PROPERTY_MTYPE ((xmlChar*)"m:type")
 #define PARSE_KEY_TITLE "title"
+#define PARSE_KEY_SUBTITLE "subtitle"
 
 //XXX New error codes once updated
 enum PARSER_ERROR
@@ -70,7 +71,7 @@ typedef struct BING_PARSER_S
 {
 	//Freed on error
 	bing_response* response;
-	bing_response* current; //XXX Remove
+	bing_response* current;
 	pstack* lastResult; //XXX Remove
 	pstack* lastResultElement; //XXX Remove
 	const char* query; //XXX Remove
@@ -326,10 +327,6 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		}
 	}
 
-	//Prepare for creation and running callback
-	xmlText = NULL;
-	text = NULL;
-
 	//Create (this will also retrieve the name used by both the creation function and the the creation callbacks)
 	if(type)
 	{
@@ -340,11 +337,18 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			{
 				//Make this an internal result
 				response_swap_result(parent, res, RESULT_CREATE_DEFAULT_INTERNAL);
+
+				//Run creation callback
+				if(!res->creation((char*)xmlText, res, (data_dictionary_t)data))
+				{
+					//XXX Error
+				}
 			}
 			else
 			{
 				//XXX Error
 			}
+			xmlFree((void*)xmlText);
 		}
 		else
 		{
@@ -360,36 +364,20 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			if(text)
 			{
 				hashtable_get_item(data, PARSE_KEY_TITLE, text);
-				if(!result_create_raw(text, (bing_result_t*)&res, parent))
+				if(result_create_raw(text, (bing_result_t*)&res, parent))
+				{
+					if(!res->creation(text, res, (data_dictionary_t)data))
+					{
+						//XXX Error
+					}
+				}
+				else
 				{
 					//XXX Error
 				}
+				bing_mem_free((void*)text);
 			}
 		}
-	}
-
-	//Only run if there is a result to run on
-	if(res && (xmlText || text))
-	{
-		//Run creation callback
-		if (type)
-		{
-			res->creation((char*)xmlText, res, (data_dictionary_t)data);
-		}
-		else
-		{
-			res->creation(text, res, (data_dictionary_t)data);
-		}
-	}
-
-	//Cleanup text
-	if(xmlText)
-	{
-		xmlFree((void*)xmlText);
-	}
-	if(text)
-	{
-		bing_mem_free((void*)text);
 	}
 
 	//Additional content processing
@@ -443,18 +431,260 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		bing_mem_free((void*)tStack);
 	}
 
+	//Cleanup table
+	hashtable_free(data);
+
 	return res;
 }
 
-bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_response* parent, xmlFreeFunc xmlFree)
+bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parser* parser, xmlFreeFunc xmlFree)
 {
-	//TODO
-	return NULL;
+	//Not really the greatest names, could probably change
+	bing_response* tmp;
+	xmlNodePtr node;
+	xmlNodePtr node2;
+	const xmlChar* xmlText;
+	char* text;
+	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
+	size_t size;
+	BOOL subResComp;
+
+	//Get general data
+	for(node = responseNode->children; node != NULL; node = node->next)
+	{
+		//We want to stop on content, we process that later
+		if(strcmp((char*)node->name, "entry") == 0)
+		{
+			break;
+		}
+
+		//If we have a node with a type property, it makes it easy for us
+		if(xmlHasProp(node, PARSE_PROPERTY_TYPE))
+		{
+			xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
+			if(xmlText)
+			{
+				//Parse the data
+				if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
+				{
+					//XXX Error
+				}
+				xmlFree((void*)xmlText);
+			}
+			else
+			{
+				//XXX Error
+			}
+		}
+		else
+		{
+			if(strcmp((char*)node->name, "link") == 0)
+			{
+				xmlText = xmlGetProp(node, (xmlChar*)"rel");
+				if(xmlText)
+				{
+					if(strcmp((char*)xmlText, "next") == 0)
+					{
+						xmlFree((void*)xmlText);
+
+						xmlText = xmlGetProp(node, (xmlChar*)"href");
+						//XXX Special assignment
+						if(!hashtable_put_item(data, "#nextLink", xmlText, strlen((char*)xmlText) + 1))
+						{
+							//XXX Error
+						}
+					}
+					else if(strcmp((char*)xmlText, "self") == 0)
+					{
+						xmlFree((void*)xmlText);
+
+						xmlText = xmlGetProp(node, (xmlChar*)"href");
+						//XXX Special assignment
+						if(!hashtable_put_item(data, "#thisLink", xmlText, strlen((char*)xmlText) + 1))
+						{
+							//XXX Error
+						}
+					}
+					else
+					{
+						//TODO (never encountered, unsure if there is something else)
+					}
+					xmlFree((void*)xmlText);
+				}
+				else
+				{
+					//XXX Error
+				}
+			}
+			else
+			{
+				parseToHashtableByName(node, data, xmlFree);
+			}
+		}
+	}
+
+	//If this is an empty response, ignore it
+	if (!node)
+	{
+		hashtable_free(data);
+		return NULL;
+	}
+
+	//Get the name in preparation for response creation
+	text = NULL;
+	size = hashtable_get_item(data, (composite ? PARSE_KEY_TITLE : PARSE_KEY_SUBTITLE), NULL);
+	if(size > 0)
+	{
+		text = bing_mem_malloc(size);
+		if(text)
+		{
+			hashtable_get_item(data, (composite ? PARSE_KEY_TITLE : PARSE_KEY_SUBTITLE), text);
+
+			//Create response
+			parser->current = NULL;
+			if(response_create_raw(text, (bing_response_t*)&parser->current, parser->bing,
+					(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE) ? parser->response : NULL)) //The general idea is that if there is already a response and it is bundle, it will be the parent. Otherwise add it to Bing
+			{
+				//Run creation functions
+				if(response_def_create_standard_responses(parser->current, (data_dictionary_t)data) &&
+						parser->current->creation(text, (bing_response_t)parser->current, (data_dictionary_t)data))
+				{
+					//Should we do any extra processing on the response?
+					if(parser->response)
+					{
+						//Response already exists. If it is a bundle then it is already added, otherwise we need to replace it
+						if(parser->response->type != BING_SOURCETYPE_BUNDLE)
+						{
+							//Save it temporarily
+							tmp = parser->response;
+
+							if(response_create_raw("bundle", (bing_response_t*)&parser->response, parser->bing, NULL))
+							{
+								//We need to take the original response and make it a child of the new bundle response
+								response_swap_response(tmp, parser->response);
+
+								//We also need the new current response to be a child of the new bundle response
+								response_swap_response(parser->current, parser->response);
+							}
+							else
+							{
+								//Darn it, that failed
+								bing_response_free(parser->current);
+								parser->parseError = PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL; //XXX Rename
+							}
+						}
+					}
+					else if(parser->current)
+					{
+						//Response doesn't exist, make current
+						parser->response = parser->current;
+					}
+				}
+				else
+				{
+					//Darn it, that failed
+					if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
+					{
+						//This wasn't a bundled response, just free it (otherwise it will never get freed)
+						bing_response_free(parser->current);
+					}
+					parser->parseError = PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL; //XXX Rename
+				}
+			}
+			else
+			{
+				parser->parseError = PE_START_ELE_RESPONSE_CREATE_FAIL; //XXX Rename
+			}
+
+			bing_mem_free((void*)text);
+		}
+	}
+
+	if(parser->current)
+	{
+		//Parse entries
+		for(; node != NULL; node = node->next)
+		{
+			if(strcmp((char*)node->name, "entry") == 0)
+			{
+				//Result automatically added to response
+				if(!parseResult(node, FALSE, parser->current, xmlFree))
+				{
+					//Check if composite (we find out first before processing because if it isn't, we have no way to... react. We also want to check a "link" node which requires additional checking)
+					subResComp = FALSE;
+					for(node2 = node->children; node2 != NULL; node2 = node2->next)
+					{
+						//Check the "title"
+						if(strcmp((char*)node2->name, PARSE_KEY_TITLE) == 0)
+						{
+							//Get the inner text
+							xmlText = xmlNodeGetContent(node);
+							if(xmlText)
+							{
+								if(strcmp((char*)xmlText, "ExpandableSearchResult") == 0)
+								{
+									//Yep, it's a composite
+									subResComp = TRUE;
+								}
+								xmlFree((char*)xmlText);
+							}
+							break;
+						}
+					}
+					if(subResComp)
+					{
+						for(node2 = node->children; node2 != NULL; node2 = node2->next)
+						{
+							//Find the "link" node
+							if(strcmp((char*)node2->name, "link") == 0)
+							{
+								//Get the "type" property of the link (if it's a composite, it will have a "type" property. Check anyway)
+								if(xmlHasProp(node2, PARSE_PROPERTY_TYPE))
+								{
+									xmlText = xmlGetProp(node2, PARSE_PROPERTY_TYPE);
+									if(xmlText)
+									{
+										if(strcmp((char*)xmlText, "application/atom+xml;type=feed") == 0)
+										{
+											//Yep, this is a composite node (node2->children->children gets us straight to the internal response [as opposed to the "container" of the response])
+											if(!parseResponse(node2->children->children, TRUE, parser, xmlFree))
+											{
+												//XXX Error
+											}
+										}
+										else
+										{
+											//XXX Error
+										}
+										xmlFree((void*)xmlText);
+									}
+									else
+									{
+										//XXX Error
+									}
+								}
+							}
+						}
+					}
+					else
+					{
+						//TODO (never encountered, unsure what to do)
+					}
+				}
+			}
+			else
+			{
+				//TODO (never encountered, unsure what to do)
+			}
+		}
+	}
+
+	//Cleanup table
+	hashtable_free(data);
+
+	return parser->current;
 }
 
-//XXX Old
-
-//Processors
 void errorCallback(void *ctx, const char *msg, ...)
 {
 	bing_parser* parser = (bing_parser*)ctx;
@@ -466,6 +696,10 @@ void serrorCallback(void* userData, xmlErrorPtr error)
 	bing_parser* parser = (bing_parser*)userData;
 	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
+
+//XXX Old
+
+//Processors
 
 //*sigh* C doesn't have an equivalent function of endWith unless it's a character.
 BOOL endsWith(const char* str1, const char* str2)

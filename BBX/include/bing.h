@@ -111,7 +111,7 @@ typedef void (*receive_bing_response_func) (bing_response_t response, const void
 typedef const char* (*request_get_options_func)(bing_request_t request);
 typedef void (*request_finish_get_options_func)(bing_request_t request, const char* options);
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
-typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary);
+typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary); //XXX Remove
 typedef int (*result_creation_func)(const char* name, bing_result_t result, data_dictionary_t dictionary);
 typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult);
 
