@@ -52,6 +52,7 @@ enum PARSER_ERROR
 	PE_GETXMLDATA_CTX_CREATE_FAIL
 };
 
+/* XXX
 typedef struct PARSER_STACK_S
 {
 	void* value;
@@ -60,6 +61,7 @@ typedef struct PARSER_STACK_S
 	bing_response* addToResponse;
 	struct PARSER_STACK_S* prev;
 } pstack;
+*/
 
 typedef struct PARSER_STACK2_S
 {
@@ -72,11 +74,13 @@ typedef struct BING_PARSER_S
 	//Freed on error
 	bing_response* response;
 	bing_response* current;
+	/* XXX
 	pstack* lastResult; //XXX Remove
 	pstack* lastResultElement; //XXX Remove
 	const char* query; //XXX Remove
 	const char* alteredQuery; //XXX Remove
 	const char* alterationOverrideQuery; //XXX Remove
+	*/
 
 	//State info
 	unsigned int bing;
@@ -92,7 +96,7 @@ typedef struct BING_PARSER_S
 #endif
 } bing_parser;
 
-const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix)
+const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix) //XXX Actually, might not be needed
 {
 	size_t size;
 	char* qualifiedName;
@@ -383,6 +387,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	//Additional content processing
 	while(additionalProcessing)
 	{
+		//TODO Check for error, don't execute processing on error (let loop continue)
 		//Only run if there is a result to run on (we still do the loop so we can free the stack)
 		if(res)
 		{
@@ -605,6 +610,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 		//Parse entries
 		for(; node != NULL; node = node->next)
 		{
+			//TODO Check for error, stop if error
 			if(strcmp((char*)node->name, "entry") == 0)
 			{
 				//Result automatically added to response
@@ -697,7 +703,7 @@ void serrorCallback(void* userData, xmlErrorPtr error)
 	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
-//XXX Old
+/* XXX Old
 
 //Processors
 
@@ -753,36 +759,6 @@ void cleanStacks(bing_parser* parser)
 	}
 }
 
-BOOL checkForError(bing_parser* parser)
-{
-	if(parser->parseError != PE_NO_ERROR)
-	{
-		//Error, cleanup everything
-
-		//First clean the stacks
-		cleanStacks(parser);
-
-		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
-		bing_response_free(parser->current);
-
-		//Finally, free any strings
-		bing_mem_free((void*)parser->query);
-		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
-		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
-
-		//Mark everything as NULL to prevent errors later
-		parser->response = NULL;
-		parser->current = NULL;
-		parser->lastResult = NULL;
-		parser->lastResultElement = NULL;
-		parser->query = NULL;
-		parser->alteredQuery = NULL;
-		parser->alterationOverrideQuery = NULL;
-
-		return FALSE; //Don't continue
-	}
-	return TRUE; //No error, continue
-}
 
 hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
 {
@@ -1252,6 +1228,42 @@ void endElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, co
 		}
 	}
 }
+*/
+
+BOOL checkForError(bing_parser* parser)
+{
+	if(parser->parseError != PE_NO_ERROR)
+	{
+		//Error, cleanup everything
+
+		//First clean the stacks
+		//cleanStacks(parser); //XXX Not needed
+
+		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
+		bing_response_free(parser->current);
+
+		/* XXX Not needed
+		//Finally, free any strings
+		bing_mem_free((void*)parser->query);
+		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
+		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
+		*/
+
+		//Mark everything as NULL to prevent errors later
+		parser->response = NULL;
+		parser->current = NULL;
+		/* XXX Not needed
+		parser->lastResult = NULL;
+		parser->lastResultElement = NULL;
+		parser->query = NULL;
+		parser->alteredQuery = NULL;
+		parser->alterationOverrideQuery = NULL;
+		*/
+
+		return FALSE; //Don't continue
+	}
+	return TRUE; //No error, continue
+}
 
 static const xmlSAXHandler parserHandler=
 {
@@ -1284,8 +1296,8 @@ static const xmlSAXHandler parserHandler=
 		NULL,			//externalSubset
 		XML_SAX2_MAGIC,	//initialized
 		NULL,			//_private
-		startElementNs,	//startElementNs //XXX Remove
-		endElementNs,	//endElementNs //XXX Remove
+		NULL,			//startElementNs
+		NULL,			//endElementNs
 		serrorCallback	//serror
 };
 
@@ -1334,6 +1346,7 @@ void search_cleanup(bing_parser* parser)
 		//Close thread (if used)
 		parser->thread = NULL; //pthread_exit (called implicitly at end of execution) frees the thread
 
+		/*
 		//Cleanup stacks
 		cleanStacks(parser);
 
@@ -1341,6 +1354,7 @@ void search_cleanup(bing_parser* parser)
 		bing_mem_free((void*)parser->query);
 		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
 		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
+		*/
 
 		//Free the bing parser
 		bing_mem_free(parser);
@@ -1416,6 +1430,7 @@ CURL* setupCurl(const char* url, bing_parser* parser)
 		if(curl_easy_setopt(ret, CURLOPT_URL, url) == CURLE_OK && //Check this as it is one of three important options, the rest are optional
 				curl_easy_setopt(ret, CURLOPT_WRITEFUNCTION, getxmldata) == CURLE_OK &&
 				curl_easy_setopt(ret, CURLOPT_WRITEDATA, (void*)parser) == CURLE_OK)
+			//XXX Will need to figure out authentication
 		{
 			//We don't want any progress meters
 			curl_easy_setopt(ret, CURLOPT_NOPROGRESS, 1L);
@@ -1506,6 +1521,9 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 
 						//Finish parsing
 						xmlParseChunk(parser->ctx, NULL, 0, TRUE);
+
+						//Parse document
+						parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFree);
 
 						//We check for an error, if none exists then we get the response
 						if(checkForError(parser))
@@ -1618,6 +1636,9 @@ void* async_search(void* ctx)
 
 			//Finish parsing
 			xmlParseChunk(parser->ctx, NULL, 0, TRUE);
+
+			//Parse document
+			parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFree);
 
 			//We check for an error
 #if defined(BING_DEBUG)
