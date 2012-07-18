@@ -436,10 +436,8 @@ const char* encodeUrl(const char* url)
 	return ret;
 }
 
-const char* bing_request_url(unsigned int bingID, const char* query, const bing_request_t request)
+const char* bing_request_url(const char* query, const bing_request_t request)
 {
-	//bingID is not needed anymore
-
 	char* ret = NULL;
 	const char* queryStr;
 	const char* appIdStr;
@@ -448,6 +446,8 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 	char* sourceTypeTmp;
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 26 + 1; //This is the length of the URL format and null char. We don't include '?' because when the size of sourceType is taken, it will include that
+
+	//TODO Modify to handle translation requests (cannot be in bundles, at least this function won't allow it. Can modify search functions to do it)
 
 	if(request)
 	{

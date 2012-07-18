@@ -24,6 +24,11 @@
 #define PARSE_KEY_TITLE "title"
 #define PARSE_KEY_SUBTITLE "subtitle"
 
+//Defines for cURL
+#define CURL_TRUE 1L
+#define CURL_FALSE 0L
+#define CURL_EMPTY_STRING ""
+
 //XXX New error codes once updated
 enum PARSER_ERROR
 {
@@ -1420,26 +1425,38 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	return atcsize;
 }
 
-CURL* setupCurl(const char* url, bing_parser* parser)
+CURL* setupCurl(bing* bingI, const char* url, bing_parser* parser)
 {
-	CURL* ret = curl_easy_init();
-
-	if(ret)
+	CURL* ret;
+	if(bingI)
 	{
-		//Set the URL
-		if(curl_easy_setopt(ret, CURLOPT_URL, url) == CURLE_OK && //Check this as it is one of three important options, the rest are optional
-				curl_easy_setopt(ret, CURLOPT_WRITEFUNCTION, getxmldata) == CURLE_OK &&
-				curl_easy_setopt(ret, CURLOPT_WRITEDATA, (void*)parser) == CURLE_OK)
-			//XXX Will need to figure out authentication
+		pthread_mutex_lock(&bingI->mutex);
+
+		if(bingI->appId)
 		{
-			//We don't want any progress meters
-			curl_easy_setopt(ret, CURLOPT_NOPROGRESS, 1L);
+			ret = curl_easy_init();
+
+			if(ret)
+			{
+				//Set the URL
+				if(curl_easy_setopt(ret, CURLOPT_URL, url) == CURLE_OK &&							//The URL, required
+						curl_easy_setopt(ret, CURLOPT_WRITEFUNCTION, getxmldata) == CURLE_OK &&		//The function to handle the data, required
+						curl_easy_setopt(ret, CURLOPT_WRITEDATA, (void*)parser) == CURLE_OK &&		//The "userdata" to be passed into the write function, required
+						curl_easy_setopt(ret, CURLOPT_SSL_VERIFYPEER, CURL_FALSE) == CURLE_OK &&	//We don't have a SSL cert for verification, so skip it
+						curl_easy_setopt(ret, CURLOPT_USERNAME, CURL_EMPTY_STRING) == CURLE_OK &&	//For basic HTTP authentication, this is the "user ID", which is ignored right now
+						curl_easy_setopt(ret, CURLOPT_PASSWORD, bingI->appId) == CURLE_OK)			//For basic HTTP authentication, this is the "account key"
+				{
+					//We don't want any progress meters
+					curl_easy_setopt(ret, CURLOPT_NOPROGRESS, CURL_TRUE);
+				}
+				else
+				{
+					curl_easy_cleanup(ret);
+					ret = NULL;
+				}
+			}
 		}
-		else
-		{
-			curl_easy_cleanup(ret);
-			ret = NULL;
-		}
+		pthread_mutex_unlock(&bingI->mutex);
 	}
 
 	return ret;
@@ -1448,31 +1465,24 @@ CURL* setupCurl(const char* url, bing_parser* parser)
 BOOL setupParser(bing_parser* parser, unsigned int bingID, const char* url)
 {
 	BOOL ret = FALSE;
-#if defined(BING_DEBUG)
-	bing* bingI;
-#endif
-
-	memset(parser, 0, sizeof(bing_parser));
-
-	parser->bing = bingID;
-	parser->curl = setupCurl(url, parser);
-	if(parser->curl)
+	bing* bingI = retrieveBing(bingID);
+	if(bingI)
 	{
-#if defined(BING_DEBUG)
-		bingI = retrieveBing(bingID);
-		if(bingI)
+		memset(parser, 0, sizeof(bing_parser));
+
+		parser->bing = bingID;
+		parser->curl = setupCurl(bingI, url, parser);
+		if(parser->curl)
 		{
+#if defined(BING_DEBUG)
 			pthread_mutex_lock(&bingI->mutex);
 
 			parser->errorRet = bingI->errorRet;
 
 			pthread_mutex_unlock(&bingI->mutex);
-
+#endif
 			ret = TRUE;
 		}
-#else
-		ret = TRUE;
-#endif
 	}
 
 	return ret;
@@ -1496,6 +1506,8 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 #if defined(BING_DEBUG)
 	int curlCode;
 #endif
+
+	//TODO: Need to figure out how to get translation APIs to work when in a composite bundle (will need to do two separate searches)
 
 	if(check_for_connection() && url)
 	{
@@ -1581,7 +1593,7 @@ bing_response_t bing_search_sync(unsigned int bingID, const char* query, const b
 		search_setup();
 
 		//Get the URL
-		url = bing_request_url(bingID, query, request);
+		url = bing_request_url(query, request);
 		if(url)
 		{
 			ret = bing_search_url_sync(bingID, url);
@@ -1723,6 +1735,8 @@ int search_async_url_in(unsigned int bingID, const char* url, const void* user_d
 	pthread_attr_t thread_atts;
 	BOOL ret = FALSE;
 
+	//TODO: Need to figure out how to get translation APIs to work when in a composite bundle (will need to do two separate searches)
+
 	if(check_for_connection() && url)
 	{
 		search_setup();
@@ -1782,7 +1796,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 		search_setup();
 
 		//Get the URL
-		url = bing_request_url(bingID, query, request);
+		url = bing_request_url(query, request);
 		if(url)
 		{
 			ret = search_async_url_in(bingID, url, user_data, user_data_is_parser, response_func);

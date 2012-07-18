@@ -454,7 +454,6 @@ int bing_search_event_next_async(const bing_response_t pre_response);
  * a developer to custom tailor the search URL and handle the result in whatever
  * manner they deem necessary.
  *
- * @param bing The unique Bing ID to generate a URL for.
  * @param query The search query to perform. If this is NULL, then the function
  * 	returns a URL with an empty query.
  * @param request The type of search to perform. This determines the response
@@ -462,10 +461,10 @@ int bing_search_event_next_async(const bing_response_t pre_response);
  * 	NULL.
  *
  * @return A URL string that can be used for searches, or NULL on error. This
- * 	function allocates memory with malloc and it is up to the developer to
- * 	free it to avoid memory leaks.
+ * 	function allocates memory with the bing_malloc callback (see bing_set_memory_handlers)
+ * 	and it is up to the developer to free it to avoid memory leaks.
  */
-const char* bing_request_url(unsigned int bing, const char* query, const bing_request_t request);
+const char* bing_request_url(const char* query, const bing_request_t request);
 
 /**
  * @brief Set memory handlers to be used by Bing.
