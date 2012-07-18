@@ -96,7 +96,7 @@ enum BING_SOURCE_TYPE
 	BING_SOURCETYPE_WEB,
 
 	//Common result types
-	BING_RESULT_COMMON,
+	BING_RESULT_COMMON,				//XXX Rename to "type"
 
 	BING_SOURCETYPE_COUNT
 };
@@ -1213,7 +1213,8 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func); //XXX Modify based on how "name" is determined/handled
+//XXX Add composite name param, rename "name" to individual name, remove additional_func
+int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func);
 
 /**
  * @brief Unregister a response creator.
@@ -1227,7 +1228,8 @@ int bing_response_register_response_creator(const char* name, response_creation_
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_response_unregister_response_creator(const char* name); //XXX Modify based on how "name" is determined/handled
+//XXX Add composite name param, rename "name" to individual name
+int bing_response_unregister_response_creator(const char* name);
 
 /*
  * Result functions
@@ -1517,7 +1519,8 @@ void* bing_result_custom_allocation(bing_result_t result, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func); //XXX Modify based on how "name" is determined/handled
+//XXX Remove array param, rename "common" to "type"
+int bing_result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func);
 
 /**
  * @brief Unregister a result creator.
@@ -1531,7 +1534,7 @@ int bing_result_register_result_creator(const char* name, int array, int common,
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_result_unregister_result_creator(const char* name); //XXX Modify based on how "name" is determined/handled
+int bing_result_unregister_result_creator(const char* name);
 
 __END_DECLS
 

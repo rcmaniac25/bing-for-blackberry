@@ -184,7 +184,8 @@ typedef struct BING_S
 
 typedef struct BING_RESPONSE_CREATOR_S
 {
-	const char* name;
+	const char* name; //XXX Rename to individual name
+	//const char* bundleName; //XXX uncomment
 	response_creation_func creation;
 	response_additional_data_func additionalData;
 } bing_response_creator;
@@ -192,8 +193,8 @@ typedef struct BING_RESPONSE_CREATOR_S
 typedef struct BING_RESULT_CREATOR_S
 {
 	const char* name;
-	BOOL array;
-	BOOL common;
+	BOOL array; //XXX remove
+	BOOL common; //XXX rename to "type"
 	result_creation_func creation;
 	result_additional_result_func additionalResult;
 } bing_result_creator;
