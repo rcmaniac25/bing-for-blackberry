@@ -984,6 +984,11 @@ int bing_response_custom_is_field_supported(bing_response_t response, const char
 	return ret;
 }
 
+int bing_response_custom_get_32bit_int(bing_response_t response, const char* field, int* value)
+{
+	return hashtable_get_data_key(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
+}
+
 int bing_response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value)
 {
 	return hashtable_get_data_key(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(long long));
@@ -1010,6 +1015,11 @@ int bing_response_custom_get_boolean(bing_response_t response, const char* field
 int bing_response_custom_get_array(bing_response_t response, const char* field, void* value)
 {
 	return bing_response_custom_get_string(response, field, (char*)value);
+}
+
+int bing_response_custom_set_32bit_int(bing_response_t response, const char* field, const int* value)
+{
+	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
 }
 
 int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, const long long* value)

@@ -19,9 +19,9 @@
 #define RES_ERROR_ERRORCODE "SourceTypeErrorCode"
 #define RES_ERROR_VALUE "Value"
 
-#define RES_IMAGE_HEIGHT "Height"
-#define RES_IMAGE_WIDTH "Width"
-#define RES_IMAGE_FILESIZE "FileSize"
+#define RES_IMAGE_HEIGHT "d:Height"
+#define RES_IMAGE_WIDTH "d:Width"
+#define RES_IMAGE_FILESIZE "d:FileSize"
 #define RES_IMAGE_CONTENTTYPE "ContentType"
 #define RES_IMAGE_URL "Url"
 #define RES_IMAGE_THUMBNAIL "Thumbnail"
@@ -272,12 +272,6 @@ void copyArray(hashtable_t* resultData, hashtable_t* new_resultData, bing_respon
 	}
 }
 
-void result_web_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
-{
-	result_additional_result_helper(result, new_result, RES_COM_DEEPLINK_ARRAY_NAME, RES_COM_WEB_DEEPLINK_ARRAY, copyArray);
-	result_additional_result_helper(result, new_result, RES_COM_SEARCHTAG_ARRAY_NAME, RES_COM_WEB_SEARCHTAGS, copyArray);
-}
-
 void loadThumbnail(hashtable_t* resultData, hashtable_t* new_resultData, bing_response* pres, void* data)
 {
 	int size;
@@ -511,35 +505,18 @@ typedef struct BING_RESULT_CREATOR_SEARCH_S
 	struct BING_RESULT_CREATOR_SEARCH_S* next;
 } bing_result_creator_search;
 
-//XXX Need to rewrite
 static bing_result_creator_search result_def_creator[]=
 {
 		//Results
-		{{"web:WebResult",			FALSE,	FALSE,	result_def_create,			result_web_additional_result},		BING_SOURCETYPE_WEB,				8,	&result_def_creator[1]},
-		{{"mms:VideoResult",		FALSE,	FALSE,	result_def_create,			result_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[2]},
-		{{"mms:ImageResult",		FALSE,	FALSE,	result_image_create,		result_image_additional_result},	BING_SOURCETYPE_IMAGE,				9,	&result_def_creator[3]},
-		{{"news:NewsResult",		FALSE,	FALSE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[4]},
-		{{"news:NewsArticle",		FALSE,	TRUE,	result_news_create,			result_news_additional_result},		BING_SOURCETYPE_NEWS,				7,	&result_def_creator[5]}, //This is a special extra, same as news type but with different name
-		{{"ads:AdResult",			FALSE,	FALSE,	result_ad_create,			result_def_additional_result},		BING_SOURCETYPE_AD, 				6,	&result_def_creator[6]},
-		{{"rs:RelatedSearchResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		2,	&result_def_creator[7]},
-		{{"tra:TranslationResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_TRANSLATION,		1,	&result_def_creator[8]},
-		{{"spl:SpellResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_SPELL,				1,	&result_def_creator[9]},
-		{{"mw:MobileWebResult",		FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_MOBILE_WEB,			5,	&result_def_creator[10]},
-		{{"ia:InstantAnswerResult",	FALSE,	FALSE,	result_def_create,			result_def_additional_result},		BING_SOURCETYPE_INSTANT_ANWSER,		5,	&result_def_creator[11]},
-		{{"Error",					FALSE,	FALSE,	result_error_create,		result_def_additional_result},		BING_RESULT_ERROR,					7,	&result_def_creator[12]},
+		{{"WebResult",				FALSE,	FALSE,	result_def_create,				result_def_additional_result},		BING_SOURCETYPE_WEB,				5,	&result_def_creator[1]},
+		{{"VideoResult",			FALSE,	FALSE,	result_def_create,				result_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[2]}, //XXX New create and additional result functions
+		{{"ImageResult",			FALSE,	FALSE,	result_image_create,			result_image_additional_result},	BING_SOURCETYPE_IMAGE,				10,	&result_def_creator[3]}, //XXX Modify create and additional result functions
+		{{"NewsResult",				FALSE,	FALSE,	result_news_create,				result_news_additional_result},		BING_SOURCETYPE_NEWS,				6,	&result_def_creator[4]}, //XXX Remove additional result function, modify create function
+		{{"RelatedSearchResult",	FALSE,	FALSE,	result_def_create,				result_def_additional_result},		BING_SOURCETYPE_RELATED_SEARCH,		3,	&result_def_creator[5]},
+		{{"SpellResult",			FALSE,	FALSE,	result_def_create,				result_def_additional_result},		BING_SOURCETYPE_SPELL,				2,	&result_def_creator[6]},
 
-		//Common
-		{{RES_COM_DEEPLINK_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_deeplink_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[13]},
-		{{RES_COM_DEEPLINK,			FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[14]},
-		{{RES_COM_NEWS_ARRAY,		TRUE,	TRUE,	result_def_common_create,		result_common_news_array_additional_result},			BING_RESULT_COMMON,	2,	&result_def_creator[15]},
-		{{RES_COM_NEWSCOL,			TRUE,	TRUE,	result_def_common_create,		result_common_news_col_additional_result},				BING_RESULT_COMMON,	3,	&result_def_creator[16]},
-		{{RES_COM_NEWSCOL_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_news_col_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[17]},
-		{{RES_COM_RELSEARCH_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_related_search_array_additional_result},	BING_RESULT_COMMON,	2,	&result_def_creator[18]},
-		{{RES_COM_RELSEARCH,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[19]},
-		{{RES_COM_SEARCHTAG,		FALSE,	TRUE,	result_def_common_create,		result_def_additional_result},							BING_RESULT_COMMON,	3,	&result_def_creator[20]},
-		{{RES_COM_SEARCHTAG_ARRAY,	TRUE,	TRUE,	result_def_common_create,		result_common_search_tag_array_additional_result},		BING_RESULT_COMMON,	2,	&result_def_creator[21]},
-		{{RES_COM_THUMBNAIL,		FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	&result_def_creator[22]},
-		{{RES_COM_STATICTHUMBNAIL,	FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},							BING_RESULT_COMMON,	6,	NULL}
+		//Type
+		{{"Bing.Thumbnail",			FALSE,	TRUE,	result_common_thumbnail_create,	result_def_additional_result},		BING_RESULT_COMMON,					5,	NULL},
 };
 
 static bing_field_search result_fields[] =
@@ -811,6 +788,11 @@ int result_get_str_data(bing_result_t result, enum BING_RESULT_FIELD field, enum
 	return ret;
 }
 
+int bing_result_get_32bit_int(bing_result_t result, enum BING_RESULT_FIELD field, int* value)
+{
+	return result_get_data(result, field, FIELD_TYPE_INT, value, sizeof(int));
+}
+
 int bing_result_get_64bit_int(bing_result_t result, enum BING_RESULT_FIELD field, long long* value)
 {
 	return result_get_data(result, field, FIELD_TYPE_LONG, value, sizeof(long long));
@@ -848,6 +830,11 @@ int bing_result_custom_is_field_supported(bing_result_t result, const char* fiel
 	return ret;
 }
 
+int bing_result_custom_get_32bit_int(bing_result_t result, const char* field, int* value)
+{
+	return hashtable_get_data_key(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(int));
+}
+
 int bing_result_custom_get_64bit_int(bing_result_t result, const char* field, long long* value)
 {
 	return hashtable_get_data_key(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(long long));
@@ -874,6 +861,11 @@ int bing_result_custom_get_boolean(bing_result_t result, const char* field, int*
 int bing_result_custom_get_array(bing_result_t result, const char* field, void* value)
 {
 	return bing_result_custom_get_string(result, field, (char*)value);
+}
+
+int bing_result_custom_set_32bit_int(bing_result_t result, const char* field, const int* value)
+{
+	return hashtable_set_data(result ? ((bing_result*)result)->data : NULL, field, value, sizeof(int));
 }
 
 int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, const long long* value)

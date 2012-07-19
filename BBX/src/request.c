@@ -620,6 +620,11 @@ int request_set_str_data(bing_request_t request, enum BING_REQUEST_FIELD field, 
 	return ret;
 }
 
+int bing_request_get_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, int* value)
+{
+	return request_get_data(request, field, FIELD_TYPE_INT, value, sizeof(int));
+}
+
 int bing_request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value)
 {
 	return request_get_data(request, field, FIELD_TYPE_LONG, value, sizeof(long long));
@@ -633,6 +638,11 @@ int bing_request_get_string(bing_request_t request, enum BING_REQUEST_FIELD fiel
 int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value)
 {
 	return request_get_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
+}
+
+int bing_request_set_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const int* value)
+{
+	return request_set_data(request, field, FIELD_TYPE_INT, value, sizeof(int));
 }
 
 int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value)
@@ -792,6 +802,11 @@ int bing_request_custom_is_field_supported(bing_request_t request, const char* f
 	return ret;
 }
 
+int bing_request_custom_get_32bit_int(bing_request_t request, const char* field, int* value)
+{
+	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(int));
+}
+
 int bing_request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value)
 {
 	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
@@ -805,6 +820,11 @@ int bing_request_custom_get_string(bing_request_t request, const char* field, ch
 int bing_request_custom_get_double(bing_request_t request, const char* field, double* value)
 {
 	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(double));
+}
+
+int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, const int* value)
+{
+	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(int));
 }
 
 int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value)

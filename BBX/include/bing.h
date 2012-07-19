@@ -692,6 +692,7 @@ int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FI
  * 	type then the result is -1.
  */
 
+int bing_request_get_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, int* value);
 int bing_request_get_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long* value);
 int bing_request_get_string(bing_request_t request, enum BING_REQUEST_FIELD field, char* value);
 int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD field, double* value);
@@ -725,6 +726,7 @@ int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
  * 	otherwise zero on error.
  */
 
+int bing_request_set_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const int* value);
 int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value);
 int bing_request_set_string(bing_request_t request, enum BING_REQUEST_FIELD field, const char* value);
 int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value);
@@ -802,6 +804,7 @@ int bing_request_custom_is_field_supported(bing_request_t request, const char* f
  * 	type then the result is -1.
  */
 
+int bing_request_custom_get_32bit_int(bing_request_t request, const char* field, int* value);
 int bing_request_custom_get_64bit_int(bing_request_t request, const char* field, long long* value);
 int bing_request_custom_get_string(bing_request_t request, const char* field, char* value);
 int bing_request_custom_get_double(bing_request_t request, const char* field, double* value);
@@ -835,6 +838,7 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
  * 	otherwise zero on error.
  */
 
+int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, const int* value);
 int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value);
 int bing_request_custom_set_string(bing_request_t request, const char* field, const char* value);
 int bing_request_custom_set_double(bing_request_t request, const char* field, const double* value);
@@ -1105,6 +1109,7 @@ int bing_response_custom_is_field_supported(bing_response_t response, const char
  * 	types, the length of the data in bytes is returned.
  */
 
+int bing_response_custom_get_32bit_int(bing_response_t response, const char* field, int* value);
 int bing_response_custom_get_64bit_int(bing_response_t response, const char* field, long long* value);
 int bing_response_custom_get_string(bing_response_t response, const char* field, char* value);
 int bing_response_custom_get_double(bing_response_t response, const char* field, double* value);
@@ -1144,6 +1149,7 @@ int bing_response_custom_get_array(bing_response_t response, const char* field, 
  * 	otherwise zero on error.
  */
 
+int bing_response_custom_set_32bit_int(bing_response_t response, const char* field, const int* value);
 int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, const long long* value);
 int bing_response_custom_set_string(bing_response_t response, const char* field, const char* value);
 int bing_response_custom_set_double(bing_response_t response, const char* field, const double* value);
@@ -1352,6 +1358,7 @@ int bing_result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD 
  * 	types, the length of the data in bytes is returned.
  */
 
+int bing_result_get_32bit_int(bing_result_t result, enum BING_RESULT_FIELD field, int* value);
 int bing_result_get_64bit_int(bing_result_t result, enum BING_RESULT_FIELD field, long long* value);
 int bing_result_get_string(bing_result_t result, enum BING_RESULT_FIELD field, char* value);
 int bing_result_get_double(bing_result_t result, enum BING_RESULT_FIELD field, double* value);
@@ -1402,6 +1409,7 @@ int bing_result_custom_is_field_supported(bing_result_t result, const char* fiel
  * 	types, the length of the data in bytes is returned.
  */
 
+int bing_result_custom_get_32bit_int(bing_result_t result, const char* field, int* value);
 int bing_result_custom_get_64bit_int(bing_result_t result, const char* field, long long* value);
 int bing_result_custom_get_string(bing_result_t result, const char* field, char* value);
 int bing_result_custom_get_double(bing_result_t result, const char* field, double* value);
@@ -1441,6 +1449,7 @@ int bing_result_custom_get_array(bing_result_t result, const char* field, void* 
  * 	otherwise zero on error.
  */
 
+int bing_result_custom_set_32bit_int(bing_result_t result, const char* field, const int* value);
 int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, const long long* value);
 int bing_result_custom_set_string(bing_result_t result, const char* field, const char* value);
 int bing_result_custom_set_double(bing_result_t result, const char* field, const double* value);
