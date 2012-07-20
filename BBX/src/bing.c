@@ -57,7 +57,8 @@ int bing_shutdown()
 			//Free all the creator strings, then the creators themselves
 			while(bingSystem.bingResponseCreatorCount > 0)
 			{
-				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
+				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].dedicatedName);
+				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].bundleName);
 			}
 			while(bingSystem.bingResultCreatorCount > 0)
 			{

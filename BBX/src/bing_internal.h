@@ -153,7 +153,6 @@ typedef struct BING_RESPONSE_S
 
 	//These will never be NULL
 	response_creation_func creation;
-	response_additional_data_func additionalData;
 	hashtable_t* data;
 
 	const char* nextUrl;
@@ -183,10 +182,9 @@ typedef struct BING_S
 
 typedef struct BING_RESPONSE_CREATOR_S
 {
-	const char* name; //XXX Rename to individual name
-	//const char* bundleName; //XXX uncomment
+	const char* dedicatedName;
+	const char* bundleName;
 	response_creation_func creation;
-	response_additional_data_func additionalData;
 } bing_response_creator;
 
 typedef struct BING_RESULT_CREATOR_S

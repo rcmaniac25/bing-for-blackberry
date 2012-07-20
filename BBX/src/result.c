@@ -682,6 +682,8 @@ int bing_result_register_result_creator(const char* name, int type, result_creat
 int bing_result_unregister_result_creator(const char* name)
 {
 	BOOL ret = FALSE;
+
+	const char* rn;
 	unsigned int i;
 	bing_result_creator* c;
 	if(name && bingSystem.bingResultCreatorCount > 0) //We don't want to run if there is nothing to run on
@@ -701,6 +703,9 @@ int bing_result_unregister_result_creator(const char* name)
 
 		if(i < bingSystem.bingResultCreatorCount)
 		{
+			//Get the name
+			rn = bingSystem.bingResultCreators[i].name;
+
 			//If there is only one creator, simply free everything
 			if(bingSystem.bingResultCreatorCount == 1)
 			{
@@ -728,6 +733,12 @@ int bing_result_unregister_result_creator(const char* name)
 
 					ret = TRUE;
 				}
+			}
+
+			//Free memory if everything else worked
+			if(ret)
+			{
+				bing_mem_free((void*)rn);
 			}
 		}
 

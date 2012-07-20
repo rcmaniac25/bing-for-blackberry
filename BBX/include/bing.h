@@ -92,7 +92,6 @@ typedef void (*receive_bing_response_func) (bing_response_t response, const void
 typedef const char* (*request_get_options_func)(bing_request_t request);
 typedef void (*request_finish_get_options_func)(bing_request_t request, const char* options);
 typedef int (*response_creation_func)(const char* name, bing_response_t response, data_dictionary_t dictionary);
-typedef void (*response_additional_data_func)(bing_response_t response, data_dictionary_t dictionary); //XXX Remove
 typedef int (*result_creation_func)(const char* name, bing_result_t result, data_dictionary_t dictionary);
 typedef void (*result_additional_result_func)(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult);
 
@@ -994,33 +993,6 @@ void bing_response_free(bing_response_t response);
 //Specific functions
 
 /**
- * @brief Get the Ad API version for an Bing Ad response.
- *
- * The @c bing_response_get_ad_api_version() function allows developers to
- * get the API version of a Bing Ad response.
- *
- * @param response The Bing response to get the Ad API version from.
- * @param buffer The buffer to copy the Ad API version into.
- *
- * @return The size of the Bing Ad response API version in bytes, or
- * 	-1 if an error occurred or if the response is not an Ad type.
- */
-int bing_response_get_ad_api_version(bing_response_t response, char* buffer); //XXX Not used anymore, remove
-
-/**
- * @brief Get the Ad page number for an Bing Ad response.
- *
- * The @c bing_response_get_ad_page_number() function allows developers to
- * get the Ad page number of a Bing Ad response.
- *
- * @param response The Bing response to get the Ad page number from.
- *
- * @return The Bing Ad page number, or -1 if an error occurred or
- * 	if the response is not an Ad type.
- */
-long long bing_response_get_ad_page_number(bing_response_t response); //XXX Not used anymore, remove
-
-/**
  * @brief Get the responses from a Bing Bundle response.
  *
  * The @c bing_response_get_bundle_responses() function allows developers to
@@ -1155,6 +1127,13 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  * register a set of callbacks and a name for a, as of now, unsupported
  * Bing response within this library.
  *
+ * Each response has two names associated with them. A dedicated name and
+ * a bundle name. The dedicated name is the name that a response has when
+ * it is the only response. If the response is part of a bundle, then the
+ * bundle name is used. Each response creator must have their own unique
+ * dedicated and bundle names. If any names already exist, the function
+ * will fail.
+ *
  * The creation function is provided the internally allocated response,
  * the name the response is associated with, and a dictionary with all
  * the attributes that were passed with result. This can indicate if
@@ -1163,31 +1142,25 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  * it failed (and thus will not be returned). Standard response values
  * are handled regardless of what creation function is passed in.
  *
- * Some responses can actually contain additional data. That's where
- * the additional data function comes in. When additional data
- * is loaded, this function gets called so the data can be handled in
- * whatever manner is deemed appropriate. The dictionary will be freed
- * when the callback function returns. If a result is contained
- * within the dictionary, it will be freed on return from the function.
- *
  * The dictionaries that are passed in can be NULL.
  *
- * @param name The name associated with the response. Only unsupported
- * 	names can be registered. For example, the name "web:Web"
- * 	is for a web response type. If this was passed in, it would fail.
- * 	Names are the XML names that returned by the Bing service. If the
- * 	name already exists then this function fails.
+ * @param dedicatedName The name associated with the response when it is
+ * 	not within a bundle. Only unsupported names can be registered. For
+ * 	example, the name "Bing Web Search" is for a web response type. If
+ * 	this was passed in, it would fail. If the name already exists then
+ * 	this function fails.
+ * @param bundleName The name associated with the response when it is
+ * 	within a bundle. Only unsupported names can be registered. For
+ * 	example, the name "Web" is for a web response type. If this was
+ * 	passed in, it would fail. If the name already exists then this
+ * 	function fails.
  * @param creation_func The function that handles any data passed in to
  * 	a response. This is optional.
- * @param additional_func The function that handles any additional
- * 	data that are passed in to another response. This is optional.
- * 	If this is NULL and additional data is found, it is ignored.
  *
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-//XXX Add composite name param, rename "name" to individual name, remove additional_func
-int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func);
+int bing_response_register_response_creator(const char* dedicatedName, const char* bundleName, response_creation_func creation_func);
 
 /**
  * @brief Unregister a response creator.
@@ -1195,14 +1168,24 @@ int bing_response_register_response_creator(const char* name, response_creation_
  * The @c bing_response_unregister_response_creator() function allows developers to
  * unregister a set of response creator callbacks.
  *
- * @param name The name associated with the response. This is the same
- * 	as the name passed into response_register_response_creator.
+ * Each response has two names associated with them. A dedicated name and
+ * a bundle name. The dedicated name is the name that a response has when
+ * it is the only response. If the response is part of a bundle, then the
+ * bundle name is used. Each response creator must have their own unique
+ * dedicated and bundle names. If any names already exist, the function
+ * will fail.
+ *
+ * @param dedicatedName The dedicated name associated with the response.
+ * 	This is the same as the dedicatedName passed into
+ * 	response_register_response_creator.
+ * @param bundleName The bundle name associated with the response.
+ * 	This is the same as the bundleName passed into
+ * 	response_register_response_creator.
  *
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-//XXX Add composite name param, rename "name" to individual name
-int bing_response_unregister_response_creator(const char* name);
+int bing_response_unregister_response_creator(const char* dedicatedName, const char* bundleName);
 
 /*
  * Result functions
@@ -1441,7 +1424,7 @@ void* bing_result_custom_allocation(bing_result_t result, size_t size);
  * be removed when no longer needed.
  *
  * @param name The name associated with the result. Only unsupported
- * 	names can be registered. For example, the name "web:WebResult"
+ * 	names can be registered. For example, the name "WebResult"
  * 	is for a web result type. If this was passed in, it would fail.
  * 	Names are the XML names that returned by the Bing service. If the
  * 	name already exists then this function fails.

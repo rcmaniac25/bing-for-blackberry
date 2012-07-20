@@ -9,21 +9,11 @@
 
 #include "bing_internal.h"
 
-//TODO: This is going to need to be updated
-
-#define RESPONSE_AD_API_VERSION "AdAPIVersion"
-#define RESPONSE_AD_PAGE_NUMBER "PageNumber"
-
-#define RESPONSE_NEWS_RELATEDSEARCHES "RelatedSearches"
-
-//Taken from result.c
-#define RES_COM_RELSEARCH_ARRAY_NAME "RelatedSearchArray"
-#define RES_COM_WEB_RELATEDSEARCH "RelatedSearch"
-
 //Creation/update functions
 
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary)
 {
+	//TODO: Rewrite
 	BOOL ret = TRUE;
 	int size;
 	void* data;
@@ -72,115 +62,6 @@ int response_def_create(const char* name, bing_response_t response, data_diction
 	return TRUE;
 }
 
-void response_def_additional_data(bing_response_t response, data_dictionary_t dictionary)
-{
-	//Don't do anything. The dictionary is automatically freed.
-}
-
-void response_news_additional_data(bing_response_t response, data_dictionary_t dictionary)
-{
-	int size;
-	char* str;
-	bing_result* result;
-	bing_response* res = (bing_response*)response;
-	if(dictionary)
-	{
-		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_NEWS_RELATEDSEARCHES, NULL);
-		if(size > 0)
-		{
-			str = bing_mem_malloc(size);
-			if(str)
-			{
-				//We need to get the result
-				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_NEWS_RELATEDSEARCHES, str);
-				result = (bing_result*)str;
-
-				bing_mem_free(str);
-
-				//Make sure this is a valid result
-				if(result->type == BING_RESULT_TYPE)
-				{
-					size = hashtable_get_string(result->data, BING_RESULT_TYPE_FIELD, NULL);
-					if(size > 0) //Does it contain a common type?
-					{
-						str = bing_mem_malloc(size);
-						if(str)
-						{
-							hashtable_get_string(result->data, BING_RESULT_TYPE_FIELD, str);
-							if(strcmp(str, RES_COM_RELSEARCH_ARRAY_NAME) == 0) //Is it the correct common type?
-							{
-								bing_mem_free(str);
-
-								//It's a valid result, time to get the array
-								size = hashtable_get_string(result->data, RES_COM_WEB_RELATEDSEARCH, NULL);
-								if(size > 0)
-								{
-									str = bing_mem_malloc(size);
-									if(str)
-									{
-										hashtable_get_string(result->data, RES_COM_WEB_RELATEDSEARCH, str);
-
-										//Save the array
-										hashtable_set_data(res->data, RESPONSE_NEWS_RELATEDSEARCHES, str, size);
-
-										bing_mem_free(str);
-									}
-								}
-							}
-							else
-							{
-								bing_mem_free(str);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-void response_ad_additional_data(bing_response_t response, data_dictionary_t dictionary)
-{
-	int size;
-	void* data;
-	long long ll;
-	bing_response* res = (bing_response*)response;
-	if(dictionary)
-	{
-		//Get the data, then save the data
-
-		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_API_VERSION, NULL);
-		if(size > 0)
-		{
-			data = bing_mem_malloc(size);
-			if(data)
-			{
-				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_API_VERSION, (char*)data);
-
-				hashtable_set_data(res->data, RESPONSE_AD_API_VERSION, data, strlen((char*)data) + 1);
-
-				bing_mem_free(data);
-			}
-		}
-
-		size = hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_PAGE_NUMBER, NULL);
-		if(size > 0)
-		{
-			data = bing_mem_malloc(size);
-			if(data)
-			{
-				hashtable_get_string((hashtable_t*)dictionary, RESPONSE_AD_PAGE_NUMBER, (char*)data);
-
-				ll = atoll((char*)data);
-
-				hashtable_set_data(res->data, RESPONSE_AD_PAGE_NUMBER, &ll, sizeof(long long));
-
-				bing_mem_free(data);
-			}
-		}
-	}
-}
-
 //Search structure
 
 typedef struct BING_RESPONSE_CREATOR_SEARCH_S
@@ -191,23 +72,15 @@ typedef struct BING_RESPONSE_CREATOR_SEARCH_S
 	struct BING_RESPONSE_CREATOR_SEARCH_S* next;
 } bing_response_creator_search;
 
-#define RESPONSE_DEF_COUNT 5
-
-//XXX Need to rewrite
 static bing_response_creator_search response_def_creator[]=
 {
-		{{"web:Web",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_WEB,			RESPONSE_DEF_COUNT,		&response_def_creator[1]},
-		{{"mms:Image",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_IMAGE, 			RESPONSE_DEF_COUNT,		&response_def_creator[2]},
-		{{"mms:Video",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_VIDEO,			RESPONSE_DEF_COUNT,		&response_def_creator[3]},
-		{{"news:News",			response_def_create,	response_news_additional_data},			BING_SOURCETYPE_NEWS,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[4]},
-		{{"ads:Ad",				response_def_create,	response_ad_additional_data},			BING_SOURCETYPE_AD, 			RESPONSE_DEF_COUNT + 2,	&response_def_creator[5]},
-		{{"rs:RelatedSearch",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_RELATED_SEARCH,	RESPONSE_DEF_COUNT,		&response_def_creator[6]},
-		{{"tra:Translation",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_TRANSLATION,	RESPONSE_DEF_COUNT,		&response_def_creator[7]},
-		{{"spl:Spell",			response_def_create,	response_def_additional_data},			BING_SOURCETYPE_SPELL,			RESPONSE_DEF_COUNT,		&response_def_creator[8]},
-		{{"mw:MobileWeb",		response_def_create,	response_def_additional_data},			BING_SOURCETYPE_MOBILE_WEB,		RESPONSE_DEF_COUNT,		&response_def_creator[9]},
-		{{"ia:InstantAnswer",	response_def_create,	response_def_additional_data},			BING_SOURCETYPE_INSTANT_ANWSER,	RESPONSE_DEF_COUNT,		&response_def_creator[10]},
-		{{"bundle",				response_def_create,	response_def_additional_data},			BING_SOURCETYPE_BUNDLE,			RESPONSE_DEF_COUNT + 1,	&response_def_creator[11]},
-		{{"Errors",				response_def_create,	response_def_additional_data},			BING_RESULT_ERROR,				RESPONSE_DEF_COUNT,		NULL}
+		{{"Bing Web Search",	"Web",					response_def_create},		BING_SOURCETYPE_WEB,				0,	&response_def_creator[1]},
+		{{"Bing Video Search",	"Video",				response_def_create},		BING_SOURCETYPE_VIDEO,				0,	&response_def_creator[2]},
+		{{"Bing Image Search",	"Image",				response_def_create},		BING_SOURCETYPE_IMAGE,				0,	&response_def_creator[3]},
+		{{"Bing News Search",	"News",					response_def_create},		BING_SOURCETYPE_NEWS,				0,	&response_def_creator[4]},
+		{{"Bing Related Search","RelatedSearch",		response_def_create},		BING_SOURCETYPE_RELATED_SEARCH,		0,	&response_def_creator[5]},
+		{{"Bing Spell Search",	"SpellingSuggestions",	response_def_create},		BING_SOURCETYPE_SPELL,				0,	&response_def_creator[6]},
+		{{"bundle",				NULL,					response_def_create},		BING_SOURCETYPE_BUNDLE,				0,	NULL},
 };
 
 //Functions
@@ -250,6 +123,7 @@ int response_get(bing_response_t response, const char* name, void* data)
 	return ret;
 }
 
+//XXX Will need to redo this
 long long bing_response_get_total(bing_response_t response)
 {
 	long long ret = -1;
@@ -653,7 +527,7 @@ BOOL response_remove_from_bundle(bing_response* response, bing_response* respons
 	return ret;
 }
 
-BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, response_additional_data_func additionalData, int tableSize)
+BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsigned int bing, bing_response* responseParent, response_creation_func creation, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_response* res;
@@ -672,7 +546,6 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 			res->nextUrl = NULL;
 
 			res->creation = creation;
-			res->additionalData = additionalData;
 
 			res->resultCount = 0;
 			res->results = NULL;
@@ -724,7 +597,6 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 	BOOL ret = FALSE;
 	bing_response_creator_search* cr;
 	response_creation_func creationFunc;
-	response_additional_data_func additionalDataFunc;
 	unsigned int i;
 	if(type && response &&
 			(!(responseParent && responseParent->bing == 0) || bing > 0))
@@ -732,7 +604,7 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 		//Check default options
 		for(cr = response_def_creator; cr != NULL; cr = cr->next)
 		{
-			if(strcmp(type, cr->creator.name) == 0)
+			if(strcmp(type, cr->creator.dedicatedName) == 0 || strcmp(type, cr->creator.bundleName) == 0)
 			{
 				break;
 			}
@@ -740,22 +612,20 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 		if(cr)
 		{
 			//Create default options
-			ret = response_create(cr->type, response, bing, responseParent, cr->creator.creation, cr->creator.additionalData, cr->tableCount);
+			ret = response_create(cr->type, response, bing, responseParent, cr->creator.creation, cr->tableCount);
 		}
 		else
 		{
 			creationFunc = NULL;
-			additionalDataFunc = NULL;
 
 			//Search custom creators
 			pthread_mutex_lock(&bingSystem.mutex);
 
 			for(i = 0; i < bingSystem.bingResponseCreatorCount; i++)
 			{
-				if(strcmp(type, bingSystem.bingResponseCreators[i].name) == 0)
+				if(strcmp(type, bingSystem.bingResponseCreators[i].dedicatedName) == 0 || strcmp(type, bingSystem.bingResponseCreators[i].bundleName) == 0)
 				{
 					creationFunc = bingSystem.bingResponseCreators[i].creation;
-					additionalDataFunc = bingSystem.bingResponseCreators[i].additionalData;
 					ret = TRUE; //We only want a response to be created if we find something
 					break;
 				}
@@ -771,12 +641,7 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 					//The "do nothing" function
 					creationFunc = response_def_create;
 				}
-				if(!additionalDataFunc)
-				{
-					//The "do nothing" function
-					additionalDataFunc = response_def_additional_data;
-				}
-				ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, additionalDataFunc, -1);
+				ret = response_create(BING_SOURCETYPE_CUSTOM, response, bing, responseParent, creationFunc, -1);
 			}
 		}
 	}
@@ -906,11 +771,6 @@ int bing_response_has_next_results(bing_response_t response)
 	return ret;
 }
 
-int bing_response_get_ad_api_version(bing_response_t response, char* buffer)
-{
-	return response_get_string(response, buffer, RESPONSE_AD_API_VERSION, BING_SOURCETYPE_AD);
-}
-
 long long response_get_int64(bing_response_t response, const char* field, enum BING_SOURCE_TYPE type)
 {
 	long long ret = -1;
@@ -928,11 +788,6 @@ long long response_get_int64(bing_response_t response, const char* field, enum B
 		}
 	}
 	return ret;
-}
-
-long long bing_response_get_ad_page_number(bing_response_t response)
-{
-	return response_get_int64(response, RESPONSE_AD_PAGE_NUMBER, BING_SOURCETYPE_AD);
 }
 
 int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses)
@@ -1149,21 +1004,21 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size)
 	return ret;
 }
 
-int bing_response_register_response_creator(const char* name, response_creation_func creation_func, response_additional_data_func additional_func)
+int bing_response_register_response_creator(const char* dedicatedName, const char* bundleName, response_creation_func creation_func)
 {
 	BOOL ret = FALSE;
 	BOOL cont = TRUE;
 	unsigned int i;
 	bing_response_creator* c;
 	bing_response_creator_search* cr;
-	char* nName;
+	char* nDName, *nBName;
 	size_t size;
-	if(name)
+	if(dedicatedName && bundleName)
 	{
 		//Check if the name is a standard supported name, if so return
 		for(cr = response_def_creator; cr != NULL; cr = cr->next)
 		{
-			if(strcmp(name, cr->creator.name) == 0)
+			if(strcmp(dedicatedName, cr->creator.dedicatedName) == 0 || strcmp(bundleName, cr->creator.bundleName) == 0)
 			{
 				cont = FALSE;
 				break;
@@ -1178,7 +1033,7 @@ int bing_response_register_response_creator(const char* name, response_creation_
 			i = 0;
 			while(i < bingSystem.bingResponseCreatorCount && cont)
 			{
-				if(strcmp(bingSystem.bingResponseCreators[i++].name, name) == 0)
+				if(strcmp(bingSystem.bingResponseCreators[i++].dedicatedName, dedicatedName) == 0 || strcmp(bingSystem.bingResponseCreators[i++].bundleName, bundleName) == 0)
 				{
 					cont = FALSE;
 				}
@@ -1186,31 +1041,46 @@ int bing_response_register_response_creator(const char* name, response_creation_
 
 			if(cont)
 			{
-				//Reproduce the name
-				size = strlen(name) + 1;
-				nName = bing_mem_malloc(size);
+				//Reproduce the dedicatedName
+				size = strlen(dedicatedName) + 1;
+				nDName = bing_mem_malloc(size);
 
-				if(nName)
+				if(nDName)
 				{
-					strlcpy(nName, name, size);
-					nName[size - 1] = '\0';
+					strlcpy(nDName, dedicatedName, size);
+					nDName[size - 1] = '\0';
 
-					//Create the new version of the name
-					c = (bing_response_creator*)bing_mem_realloc(bingSystem.bingResponseCreators, sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount + 1));
+					//Reproduce the bundleName
+					size = strlen(bundleName) + 1;
+					nBName = bing_mem_malloc(size);
 
-					if(c)
+					if(nBName)
 					{
-						bingSystem.bingResponseCreators = c;
+						strlcpy(nBName, bundleName, size);
+						nBName[size - 1] = '\0';
 
-						c[bingSystem.bingResponseCreatorCount].name = nName;
-						c[bingSystem.bingResponseCreatorCount].creation = creation_func;
-						c[bingSystem.bingResponseCreatorCount++].additionalData = additional_func;
+						//Create the new version of the name
+						c = (bing_response_creator*)bing_mem_realloc(bingSystem.bingResponseCreators, sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount + 1));
 
-						ret = TRUE;
+						if(c)
+						{
+							bingSystem.bingResponseCreators = c;
+
+							c[bingSystem.bingResponseCreatorCount].dedicatedName = nDName;
+							c[bingSystem.bingResponseCreatorCount].bundleName = nBName;
+							c[bingSystem.bingResponseCreatorCount].creation = creation_func;
+
+							ret = TRUE;
+						}
+						else
+						{
+							bing_mem_free(nBName);
+							bing_mem_free(nDName);
+						}
 					}
 					else
 					{
-						bing_mem_free(nName);
+						bing_mem_free(nDName);
 					}
 				}
 			}
@@ -1221,13 +1091,14 @@ int bing_response_register_response_creator(const char* name, response_creation_
 	return ret;
 }
 
-int bing_response_unregister_response_creator(const char* name)
+int bing_response_unregister_response_creator(const char* dedicatedName, const char* bundleName)
 {
 	BOOL ret = FALSE;
 
+	const char* dn, *bn;
 	unsigned int i;
 	bing_response_creator* c;
-	if(name && bingSystem.bingResponseCreatorCount > 0) //We don't want to run if there is nothing to run on
+	if(dedicatedName && bundleName && bingSystem.bingResponseCreatorCount > 0) //We don't want to run if there is nothing to run on
 	{
 		pthread_mutex_lock(&bingSystem.mutex);
 
@@ -1235,7 +1106,7 @@ int bing_response_unregister_response_creator(const char* name)
 		i = 0;
 		while(i < bingSystem.bingResponseCreatorCount)
 		{
-			if(strcmp(bingSystem.bingResponseCreators[i].name, name) == 0)
+			if(strcmp(bingSystem.bingResponseCreators[i].dedicatedName, dedicatedName) == 0 && strcmp(bingSystem.bingResponseCreators[i].bundleName, bundleName) == 0)
 			{
 				break;
 			}
@@ -1244,6 +1115,10 @@ int bing_response_unregister_response_creator(const char* name)
 
 		if(i < bingSystem.bingResponseCreatorCount)
 		{
+			//Get the strings
+			dn = bingSystem.bingResponseCreators[i].dedicatedName;
+			bn = bingSystem.bingResponseCreators[i].bundleName;
+
 			//If there is only one creator, simply free everything
 			if(bingSystem.bingResponseCreatorCount == 1)
 			{
@@ -1271,6 +1146,13 @@ int bing_response_unregister_response_creator(const char* name)
 
 					ret = TRUE;
 				}
+			}
+
+			//Free memory if everything else worked
+			if(ret)
+			{
+				bing_mem_free((void*)dn);
+				bing_mem_free((void*)bn);
 			}
 		}
 
