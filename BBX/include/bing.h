@@ -42,33 +42,14 @@ typedef void* bing_request_t;
 
 typedef void* data_dictionary_t;
 
-typedef struct _bing_news_collection //XXX Not Used
-{
-	const char* name;
-	unsigned int news_article_count;
-	const bing_result_t* news_articles;
-} bing_news_collection_s, *bing_news_collection_t;
-
 typedef struct _bing_thumbnail
 {
-	const char* url;
+	const char* media_url;
 	const char* content_type;
-	long long height;
-	long long width;
+	int height;
+	int width;
 	long long file_size;
 } bing_thumbnail_s, *bing_thumbnail_t;
-
-typedef struct _bing_title_url //XXX Not Used
-{
-	const char* title;
-	const char* url;
-} bing_deep_link_s, bing_related_search_s, *bing_deep_link_t, *bing_related_search_t;
-
-typedef struct _bing_search_tag //XXX Not Used
-{
-	const char* name;
-	const char* value;
-} bing_search_tag_s, *bing_search_tag_t;
 
 enum BING_SOURCE_TYPE
 {
@@ -95,13 +76,13 @@ enum BING_SOURCE_TYPE
 	BING_SOURCETYPE_VIDEO,
 	BING_SOURCETYPE_WEB,
 
-	//Common result types
-	BING_RESULT_COMMON,				//XXX Rename to "type"
+	//Result type
+	BING_RESULT_TYPE,
 
 	BING_SOURCETYPE_COUNT
 };
 
-#define BING_RESULT_COMMON_TYPE "bb_result-common_type"
+#define BING_RESULT_TYPE_FIELD "bb_result-type"
 
 /*
  * Function delegates
@@ -1053,20 +1034,6 @@ long long bing_response_get_ad_page_number(bing_response_t response); //XXX Not 
  */
 int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses);
 
-/**
- * @brief Get the related searches for an Bing News response.
- *
- * The @c response_get_news_related_searches() function allows developers to
- * get the related searches to an Bing News response.
- *
- * @param response The Bing response to get the related search from.
- * @param searches The array of related searches to copy into.
- *
- * @return The Bing response "related searches" count, or -1 if an error
- * 	occurred or if the response is not a News type.
- */
-int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches); //XXX Not used anymore, remove
-
 //Custom functions
 
 /**
@@ -1184,7 +1151,7 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
 /**
  * @brief Register a new response creator.
  *
- * The @c bing_result_register_result_creator() function allows developers to
+ * The @c bing_response_register_response_creator() function allows developers to
  * register a set of callbacks and a name for a, as of now, unsupported
  * Bing response within this library.
  *
@@ -1247,25 +1214,13 @@ enum BING_RESULT_FIELD
 
 	BING_RESULT_FIELD_UNKNOWN,
 
-	//64bit integer
-	BING_RESULT_FIELD_RANK, //XXX Not used
-	BING_RESULT_FIELD_POSITION, //XXX Not used
 	BING_RESULT_FIELD_TITLE,
 	BING_RESULT_FIELD_DESCRIPTION,
 	BING_RESULT_FIELD_DISPLAY_URL,
-	BING_RESULT_FIELD_ADLINK_URL, //XXX Not used
-	//64bit integer
-	BING_RESULT_FIELD_CODE, //XXX Not used
-	BING_RESULT_FIELD_MESSAGE, //XXX Not used
-	BING_RESULT_FIELD_HELP_URL, //XXX Not used
-	BING_RESULT_FIELD_PARAMETER, //XXX Not used
-	BING_RESULT_FIELD_SOURCE_TYPE, //XXX Not used
-	//64bit integer
-	BING_RESULT_FIELD_SOURCE_TYPE_ERROR_CODE, //XXX Not used
 	BING_RESULT_FIELD_VALUE,
-	//64bit integer
+	//32bit integer
 	BING_RESULT_FIELD_HEIGHT,
-	//64bit integer
+	//32bit integer
 	BING_RESULT_FIELD_WIDTH,
 	//64bit integer
 	BING_RESULT_FIELD_FILE_SIZE,
@@ -1274,36 +1229,14 @@ enum BING_RESULT_FIELD
 	BING_RESULT_FIELD_CONTENT_TYPE,
 	//bing_thumbnail_t
 	BING_RESULT_FIELD_THUMBNAIL,
-	BING_RESULT_FIELD_ATTRIBUTION, //XXX Not used
-	BING_RESULT_FIELD_INSTANT_ANWSER_SPECIFIC_DATA, //XXX Not used
-	BING_RESULT_FIELD_DATE_TIME, //XXX Not used
-	//boolean
-	BING_RESULT_FIELD_BREAKING_NEWS, //XXX Not used
 	//64bit integer (represents number of milliseconds since epoch)
 	BING_RESULT_FIELD_DATE,
-	BING_RESULT_FIELD_SNIPPET, //XXX Not used
 	BING_RESULT_FIELD_SOURCE,
-	//bing_news_collection_s
-	BING_RESULT_FIELD_NEWSCOLLECTION, //XXX Not used
-	BING_RESULT_FIELD_TRANSLATED_TERM, //XXX Not used
-	BING_RESULT_FIELD_SOURCE_TITLE, //XXX Not used
-	BING_RESULT_FIELD_RUN_TIME, //XXX Not used
-	BING_RESULT_FIELD_PLAY_URL, //XXX Not used
-	BING_RESULT_FIELD_CLICK_THROUGH_PAGE_URL, //XXX Not used
-	//bing_thumbnail_t
-	BING_RESULT_FIELD_STATIC_THUMBNAIL, //XXX Not used
-	BING_RESULT_FIELD_CACHE_URL, //XXX Not used
-	//bing_deep_link_s
-	BING_RESULT_FIELD_DEEP_LINKS, //XXX Not used
-	//bing_search_tag_s
-	BING_RESULT_FIELD_SEARCH_TAGS, //XXX Not used
 	BING_RESULT_FIELD_ID,
 	BING_RESULT_FIELD_SOURCE_URL,
-	//64bit integer
+	//32bit integer
 	BING_RESULT_FIELD_RUN_TIME_LENGTH,
-	BING_RESULT_FIELD_BING_URL,
-	BING_RESULT_FIELD_TEXT,
-	BING_RESULT_FIELD_RESULT
+	BING_RESULT_FIELD_BING_URL
 };
 
 //Standard operations
@@ -1512,13 +1445,10 @@ void* bing_result_custom_allocation(bing_result_t result, size_t size);
  * 	is for a web result type. If this was passed in, it would fail.
  * 	Names are the XML names that returned by the Bing service. If the
  * 	name already exists then this function fails.
- * @param array A non-zero value if the result should be considered an
- * 	array (meaning it can contain multiple other results). A zero value
- * 	means that it is not an array.
- * @param common A non-zero value if the result is a common value as
+ * @param type A non-zero value if the result is a type value as
  * 	opposed to an individual result. For example, a web request would
  * 	be responded to with a non-common result. But the data types it
- * 	might contain would be common types.
+ * 	might contain would be a type.
  * @param creation_func The function that handles any data passed in to
  * 	a result. This function is required.
  * @param additional_func The function that handles any additional
@@ -1528,8 +1458,7 @@ void* bing_result_custom_allocation(bing_result_t result, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-//XXX Remove array param, rename "common" to "type"
-int bing_result_register_result_creator(const char* name, int array, int common, result_creation_func creation_func, result_additional_result_func additional_func);
+int bing_result_register_result_creator(const char* name, int type, result_creation_func creation_func, result_additional_result_func additional_func);
 
 /**
  * @brief Unregister a result creator.

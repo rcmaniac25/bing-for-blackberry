@@ -98,15 +98,15 @@ void response_news_additional_data(bing_response_t response, data_dictionary_t d
 				bing_mem_free(str);
 
 				//Make sure this is a valid result
-				if(result->type == BING_RESULT_COMMON)
+				if(result->type == BING_RESULT_TYPE)
 				{
-					size = hashtable_get_string(result->data, BING_RESULT_COMMON_TYPE, NULL);
+					size = hashtable_get_string(result->data, BING_RESULT_TYPE_FIELD, NULL);
 					if(size > 0) //Does it contain a common type?
 					{
 						str = bing_mem_malloc(size);
 						if(str)
 						{
-							hashtable_get_string(result->data, BING_RESULT_COMMON_TYPE, str);
+							hashtable_get_string(result->data, BING_RESULT_TYPE_FIELD, str);
 							if(strcmp(str, RES_COM_RELSEARCH_ARRAY_NAME) == 0) //Is it the correct common type?
 							{
 								bing_mem_free(str);
@@ -957,17 +957,6 @@ int bing_response_get_bundle_responses(bing_response_t response, bing_response_t
 				memcpy(responseList, responses, ret * sizeof(bing_response_t));
 			}
 		}
-	}
-	return ret;
-}
-
-int bing_response_get_news_related_searches(bing_response_t response, bing_related_search_t searches)
-{
-	int ret = response_get_string(response, (char*)searches, RESPONSE_NEWS_RELATEDSEARCHES, BING_SOURCETYPE_NEWS);
-	if(ret != -1)
-	{
-		//We need to convert byte count to item count
-		ret /= sizeof(bing_related_search_s);
 	}
 	return ret;
 }

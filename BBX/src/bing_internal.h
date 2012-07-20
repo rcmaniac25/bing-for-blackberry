@@ -138,7 +138,6 @@ typedef struct BING_REQUEST_S
 typedef struct BING_RESULT_S
 {
 	enum BING_SOURCE_TYPE type;
-	BOOL array;
 
 	//These will never be NULL
 	struct BING_RESPONSE_S* parent;
@@ -193,8 +192,7 @@ typedef struct BING_RESPONSE_CREATOR_S
 typedef struct BING_RESULT_CREATOR_S
 {
 	const char* name;
-	BOOL array; //XXX remove
-	BOOL common; //XXX rename to "type"
+	BOOL type;
 	result_creation_func creation;
 	result_additional_result_func additionalResult;
 } bing_result_creator;
@@ -267,6 +265,7 @@ void* parseByType(const char* type, xmlNodePtr node, xmlFreeFunc xmlFree);
 void* parseByName(xmlNodePtr node, xmlFreeFunc xmlFree);
 BOOL parseToHashtableByType(const char* type, xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree);
 BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree);
+long long parseTime(const char* stime);
 
 //Request functions
 const char* request_get_bundle_sourcetype(bing_request* bundle);
@@ -278,7 +277,6 @@ BOOL response_swap_result(bing_response* response, bing_result* result, BOOL int
 BOOL response_swap_response(bing_response* response, bing_response* responseParent);
 
 //Result functions
-BOOL result_is_common(const char* type);
 BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
 void free_result(bing_result* result);
 
