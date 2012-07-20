@@ -29,7 +29,6 @@ __BEGIN_DECLS
  * pointers are Response-dependent and will only effect usage of the response.
  */
 
-#define BING_VERSION 2.2 //XXX This no longer is needed. As "Bing 2.0" has been replaced by the Azure version
 #define BBING_VERSION 2.0
 
 /*
@@ -61,14 +60,8 @@ enum BING_SOURCE_TYPE
 	//A bundled source type (not used for result)
 	BING_SOURCETYPE_BUNDLE,
 
-	//A error result (only used for result)
-	BING_RESULT_ERROR,				//XXX Remove?
-
 	//Standard source types
-	BING_SOURCETYPE_AD,				//XXX Remove
 	BING_SOURCETYPE_IMAGE,
-	BING_SOURCETYPE_INSTANT_ANWSER,	//XXX Remove
-	BING_SOURCETYPE_MOBILE_WEB,		//XXX Remove
 	BING_SOURCETYPE_NEWS,
 	BING_SOURCETYPE_RELATED_SEARCH,
 	BING_SOURCETYPE_SPELL,
@@ -528,7 +521,6 @@ enum BING_REQUEST_FIELD
 #endif
 
 #define BING_DEFAULT_SEARCH_MARKET "en-US"
-#define BING_DEFAULT_API_VERSION VALUE_NAME(BING_VERSION) //XXX This no longer is needed
 
 #define BING_OPTION_SEPERATOR "+"
 
@@ -889,19 +881,21 @@ int bing_response_has_next_results(bing_response_t response);
 enum BING_SOURCE_TYPE bing_response_get_source_type(bing_response_t response);
 
 /**
- * @brief Get the estimated total number of results for a Bing response.
+ * @brief Get the max total number of results for a Bing response.
  *
  * The @c bing_response_get_total() function allows developers to retrieve the
- * estimated total number of results that response can get.
+ * max total number of results that response can get.
  *
- * This is not how any results that a response will have. This is the
- * "5 million hits" total.
+ * This is the maximum number of results that the response can have. The
+ * maximum that Bing supports is 50, but each source type can have
+ * a different max. This is not the total number of results that
+ * the response actually has, this is the total that it could have.
  *
- * @param response The Bing response to get total size of.
+ * @param response The Bing response to get potential size of.
  *
- * @return The estimated Bing response total.
+ * @return The Bing response max total.
  */
-long long bing_response_get_total(bing_response_t response); //XXX Not used anymore, remove
+long long bing_response_get_max_total(bing_response_t response);
 
 /**
  * @brief Get the offset within the results for a Bing response.
@@ -914,7 +908,7 @@ long long bing_response_get_total(bing_response_t response); //XXX Not used anym
  *
  * @return The Bing response offset.
  */
-long long bing_response_get_offset(bing_response_t response); //XXX Not used anymore but could be something to retrieve and parse so custom offsets can be used.
+long long bing_response_get_offset(bing_response_t response);
 
 /**
  * @brief Get the query used to search for this Bing response.
@@ -928,37 +922,7 @@ long long bing_response_get_offset(bing_response_t response); //XXX Not used any
  * @return The size of the Bing response query in bytes, or -1
  * 	if an error occurred.
  */
-int bing_response_get_query(bing_response_t response, char* buffer); //XXX Not used anymore, remove
-
-/**
- * @brief Get the altered query used to search for this Bing response.
- *
- * The @c bing_response_get_altered_query() function allows developers
- * to retrieve the altered search query, if appropriate, to get
- * this Bing response.
- *
- * @param response The Bing response to get the altered query of.
- * @param buffer The buffer to copy the altered query into.
- *
- * @return The size of the Bing response altered query in bytes, or
- * 	-1 if an error occurred.
- */
-int bing_response_get_altered_query(bing_response_t response, char* buffer); //XXX Not used anymore, remove
-
-/**
- * @brief Get the unaltered query used to search for this Bing response.
- *
- * The @c bing_response_get_alterations_override_query() function allows
- * developers to retrieve the original, unaltered search query that
- * can be used to research with that won't be altered.
- *
- * @param response The Bing response to get the altered query of.
- * @param buffer The buffer to copy the unaltered query into.
- *
- * @return The size of the Bing response unaltered query in bytes, or
- * 	-1 if an error occurred.
- */
-int bing_response_get_alterations_override_query(bing_response_t response, char* buffer); //XXX Not used anymore, remove
+int bing_response_get_query(bing_response_t response, char* buffer);
 
 /**
  * @brief Get the results from a Bing response.

@@ -43,7 +43,7 @@
 //Creation
 int result_def_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
 {
-	//Default response is to duplicate the dictionary
+	//Default response is to duplicate the dictionary (we can remove the ID and title, but it doesn't cause any issues other then memory usage)
 	if(!dictionary)
 	{
 		//If NULL, then everything is good, carry on.

@@ -21,6 +21,16 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 	bing_response* res = (bing_response*)response;
 	if(dictionary)
 	{
+		/* TODO:
+		 * -max total (parse ID)
+		 * -offset (parse ID)
+		 * -query (parse ID)
+		 * -updated
+		 * -nextUrl
+		 *
+		 * Need to do some additional work if this is one of the internal composite results
+		 */
+
 		size = hashtable_get_string((hashtable_t*)dictionary, "Total", NULL);
 		if(size > 0)
 		{
@@ -31,7 +41,7 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 
 				ll = atoll((char*)data);
 
-				hashtable_set_data(res->data, RESPONSE_TOTAL_STR, &ll, sizeof(long long));
+				hashtable_set_data(res->data, RESPONSE_MAX_TOTAL_STR, &ll, sizeof(long long));
 
 				bing_mem_free(data);
 			}
@@ -124,10 +134,10 @@ int response_get(bing_response_t response, const char* name, void* data)
 }
 
 //XXX Will need to redo this
-long long bing_response_get_total(bing_response_t response)
+long long bing_response_get_max_total(bing_response_t response)
 {
 	long long ret = -1;
-	response_get(response, RESPONSE_TOTAL_STR, &ret);
+	response_get(response, RESPONSE_MAX_TOTAL_STR, &ret);
 	return ret;
 }
 
@@ -141,16 +151,6 @@ long long bing_response_get_offset(bing_response_t response)
 int bing_response_get_query(bing_response_t response, char* buffer)
 {
 	return response_get(response, RESPONSE_QUERY_STR, buffer);
-}
-
-int bing_response_get_altered_query(bing_response_t response, char* buffer)
-{
-	return response_get(response, RESPONSE_ALTERED_QUERY_STR, buffer);
-}
-
-int bing_response_get_alterations_override_query(bing_response_t response, char* buffer)
-{
-	return response_get(response, RESPONSE_ALTERATIONS_OVER_QUERY_STR, buffer);
 }
 
 int bing_response_get_results(bing_response_t response, bing_result_t* results)

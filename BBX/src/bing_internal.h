@@ -47,11 +47,9 @@ __BEGIN_DECLS
 #define REQUEST_BUNDLE_SUBBUNDLES_STR "bb_req_bundle_sub-bundles"
 #define RESPONSE_BUNDLE_SUBBUNDLES_STR "bb_res_bundle_sub-bundles"
 
-#define RESPONSE_TOTAL_STR "bb_res_total"
+#define RESPONSE_MAX_TOTAL_STR "bb_res_max_total"
 #define RESPONSE_OFFSET_STR "bb_res_offset"
 #define RESPONSE_QUERY_STR "bb_res_query"
-#define RESPONSE_ALTERED_QUERY_STR "bb_res_alt_query"
-#define RESPONSE_ALTERATIONS_OVER_QUERY_STR "bb_res_alt_over_query"
 
 /**
  * The print out function to use for messages.
