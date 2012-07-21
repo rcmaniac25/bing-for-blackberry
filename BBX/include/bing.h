@@ -57,8 +57,8 @@ enum BING_SOURCE_TYPE
 	//A custom source type
 	BING_SOURCETYPE_CUSTOM,
 
-	//A bundled source type (not used for result)
-	BING_SOURCETYPE_BUNDLE,
+	//A composited source type (not used for result)
+	BING_SOURCETYPE_COMPOSITE,
 
 	//Standard source types
 	BING_SOURCETYPE_IMAGE,
@@ -686,10 +686,10 @@ int bing_request_set_string(bing_request_t request, enum BING_REQUEST_FIELD fiel
 int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value);
 
 /**
- * @brief Add a request to a bundle request.
+ * @brief Add a request to a composite request.
  *
- * The @c bing_request_bundle_add_request() functions allows developers to add a different
- * Bing request to add to a bundle request.
+ * The @c bing_request_composite_add_request() functions allows developers to add a different
+ * Bing request to add to a composite request.
  *
  * Added requests don't have to be freed as they will be freed when the parent request
  * is freed.
@@ -701,7 +701,7 @@ int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
  * 	successfully, otherwise zero on error, NULL request, NULL additional
  * 	request, or if the request and request_to_add is the same.
  */
-int bing_request_bundle_add_request(bing_request_t request, bing_request_t request_to_add);
+int bing_request_composite_add_request(bing_request_t request, bing_request_t request_to_add);
 
 /**
  * @brief Free a Bing request from memory.
@@ -951,18 +951,18 @@ void bing_response_free(bing_response_t response);
 //Specific functions
 
 /**
- * @brief Get the responses from a Bing Bundle response.
+ * @brief Get the responses from a Bing composite response.
  *
- * The @c bing_response_get_bundle_responses() function allows developers to
- * get the bundled Bing responses.
+ * The @c bing_response_get_composite_responses() function allows developers to
+ * get the composited Bing responses.
  *
  * @param response The Bing response to get the responses of.
  * @param responses The array of responses to copy into.
  *
  * @return The Bing response "responses" count, or -1 if an error
- * 	occurred or if the response is not a Bundle type.
+ * 	occurred or if the response is not a composite type.
  */
-int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses);
+int bing_response_get_composite_responses(bing_response_t response, bing_response_t* responses);
 
 //Custom functions
 
@@ -1086,10 +1086,10 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  * Bing response within this library.
  *
  * Each response has two names associated with them. A dedicated name and
- * a bundle name. The dedicated name is the name that a response has when
- * it is the only response. If the response is part of a bundle, then the
- * bundle name is used. Each response creator must have their own unique
- * dedicated and bundle names. If any names already exist, the function
+ * a composite name. The dedicated name is the name that a response has when
+ * it is the only response. If the response is part of a composite, then the
+ * composite name is used. Each response creator must have their own unique
+ * dedicated and composite names. If any names already exist, the function
  * will fail.
  *
  * The creation function is provided the internally allocated response,
@@ -1102,13 +1102,13 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  *
  * The dictionaries that are passed in can be NULL.
  *
- * @param dedicatedName The name associated with the response when it is
- * 	not within a bundle. Only unsupported names can be registered. For
+ * @param dedicated_name The name associated with the response when it is
+ * 	not within a composte. Only unsupported names can be registered. For
  * 	example, the name "Bing Web Search" is for a web response type. If
  * 	this was passed in, it would fail. If the name already exists then
  * 	this function fails.
- * @param bundleName The name associated with the response when it is
- * 	within a bundle. Only unsupported names can be registered. For
+ * @param composite_name The name associated with the response when it is
+ * 	within a composite. Only unsupported names can be registered. For
  * 	example, the name "Web" is for a web response type. If this was
  * 	passed in, it would fail. If the name already exists then this
  * 	function fails.
@@ -1118,7 +1118,7 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size);
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_response_register_response_creator(const char* dedicatedName, const char* bundleName, response_creation_func creation_func);
+int bing_response_register_response_creator(const char* dedicated_name, const char* composite_name, response_creation_func creation_func);
 
 /**
  * @brief Unregister a response creator.
@@ -1127,23 +1127,23 @@ int bing_response_register_response_creator(const char* dedicatedName, const cha
  * unregister a set of response creator callbacks.
  *
  * Each response has two names associated with them. A dedicated name and
- * a bundle name. The dedicated name is the name that a response has when
- * it is the only response. If the response is part of a bundle, then the
- * bundle name is used. Each response creator must have their own unique
- * dedicated and bundle names. If any names already exist, the function
+ * a composite name. The dedicated name is the name that a response has when
+ * it is the only response. If the response is part of a composite, then the
+ * composite name is used. Each response creator must have their own unique
+ * dedicated and composite names. If any names already exist, the function
  * will fail.
  *
- * @param dedicatedName The dedicated name associated with the response.
- * 	This is the same as the dedicatedName passed into
+ * @param dedicated_name The dedicated name associated with the response.
+ * 	This is the same as the dedicated_name passed into
  * 	response_register_response_creator.
- * @param bundleName The bundle name associated with the response.
- * 	This is the same as the bundleName passed into
+ * @param composite_name The composite name associated with the response.
+ * 	This is the same as the composite_name passed into
  * 	response_register_response_creator.
  *
  * @return A boolean value which is non-zero for a successful registration,
  * 	otherwise zero on error.
  */
-int bing_response_unregister_response_creator(const char* dedicatedName, const char* bundleName);
+int bing_response_unregister_response_creator(const char* dedicated_name, const char* composite_name);
 
 /*
  * Result functions

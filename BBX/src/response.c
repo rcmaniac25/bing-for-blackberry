@@ -198,7 +198,7 @@ static bing_response_creator_search response_def_creator[]=
 		{{"Bing News Search",	"News",					response_def_create},		BING_SOURCETYPE_NEWS,				0,	&response_def_creator[4]},
 		{{"Bing Related Search","RelatedSearch",		response_def_create},		BING_SOURCETYPE_RELATED_SEARCH,		0,	&response_def_creator[5]},
 		{{"Bing Spell Search",	"SpellingSuggestions",	response_def_create},		BING_SOURCETYPE_SPELL,				0,	&response_def_creator[6]},
-		{{"bundle",				NULL,					response_def_create},		BING_SOURCETYPE_BUNDLE,				0,	NULL},
+		{{RESPONSE_COMPOSITE,	NULL,					response_def_create},		BING_SOURCETYPE_COMPOSITE,			0,	NULL},
 };
 
 //Functions
@@ -457,15 +457,15 @@ int response_add_to_bing(bing_response* res, unsigned int bingID)
 	return ret;
 }
 
-BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
+BOOL response_remove_from_bing(bing_response* res, BOOL composite_free)
 {
 	BOOL ret = FALSE;
 	bing* bing;
 	bing_response** t;
 	unsigned int pos;
 
-	//Don't run for bundled responses (they are not included within Bing)
-	if(!bundle_free)
+	//Don't run for composited responses (they are not included within Bing)
+	if(!composite_free)
 	{
 		//Get the bing response
 		bing = retrieveBing(res->bing);
@@ -536,14 +536,14 @@ BOOL response_remove_from_bing(bing_response* res, BOOL bundle_free)
 	return ret;
 }
 
-BOOL response_add_to_bundle(bing_response* response, bing_response* responseParent)
+BOOL response_add_to_composite(bing_response* response, bing_response* responseParent)
 {
 	BOOL ret = FALSE;
 	list* list_v = NULL;
 	bing_response_t* responseList = NULL;
 
-	//Add response to bundle
-	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
+	//Add response to composite
+	if(hashtable_get_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, &list_v) > 0)
 	{
 		//Get the list
 		responseList = LIST_ELEMENTS(list_v, bing_response_t);
@@ -560,7 +560,7 @@ BOOL response_add_to_bundle(bing_response* response, bing_response* responsePare
 			{
 				//Save the list
 				list_v->cap = 11;
-				if(hashtable_put_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
+				if(hashtable_put_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, list_v, sizeof(list*)) == -1)
 				{
 					//List creation failed, cleanup
 					bing_mem_free(list_v);
@@ -602,15 +602,15 @@ BOOL response_add_to_bundle(bing_response* response, bing_response* responsePare
 	return ret;
 }
 
-BOOL response_remove_from_bundle(bing_response* response, bing_response* responseParent)
+BOOL response_remove_from_composite(bing_response* response, bing_response* responseParent)
 {
 	BOOL ret = FALSE;
 	list* list_v = NULL;
 	bing_response_t* responseList = NULL;
 	unsigned int i;
 
-	//Add response to bundle
-	if(hashtable_get_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
+	//Get response from composite
+	if(hashtable_get_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, &list_v) > 0)
 	{
 		//Get the list
 		responseList = LIST_ELEMENTS(list_v, bing_response_t);
@@ -631,7 +631,7 @@ BOOL response_remove_from_bundle(bing_response* response, bing_response* respons
 					//There are no more elements, we can remove the list
 					bing_mem_free(list_v->listElements);
 					bing_mem_free(list_v);
-					hashtable_remove_item(responseParent->data, RESPONSE_BUNDLE_SUBBUNDLES_STR);
+					hashtable_remove_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR);
 				}
 				ret = TRUE;
 				break;
@@ -681,8 +681,8 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 				}
 				else
 				{
-					//Add response to bundle
-					ret = response_add_to_bundle(res, responseParent);
+					//Add response to composite
+					ret = response_add_to_composite(res, responseParent);
 				}
 				//Check if we succeeded or failed
 				if(ret)
@@ -718,7 +718,7 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 		//Check default options
 		for(cr = response_def_creator; cr != NULL; cr = cr->next)
 		{
-			if(strcmp(type, cr->creator.dedicatedName) == 0 || strcmp(type, cr->creator.bundleName) == 0)
+			if(strcmp(type, cr->creator.dedicatedName) == 0 || strcmp(type, cr->creator.compositeName) == 0)
 			{
 				break;
 			}
@@ -737,7 +737,7 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 
 			for(i = 0; i < bingSystem.bingResponseCreatorCount; i++)
 			{
-				if(strcmp(type, bingSystem.bingResponseCreators[i].dedicatedName) == 0 || strcmp(type, bingSystem.bingResponseCreators[i].bundleName) == 0)
+				if(strcmp(type, bingSystem.bingResponseCreators[i].dedicatedName) == 0 || strcmp(type, bingSystem.bingResponseCreators[i].compositeName) == 0)
 				{
 					creationFunc = bingSystem.bingResponseCreators[i].creation;
 					ret = TRUE; //We only want a response to be created if we find something
@@ -762,7 +762,7 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 	return ret;
 }
 
-void free_response_in(bing_response_t response, BOOL bundle_free)
+void free_response_in(bing_response_t response, BOOL composite_free)
 {
 	bing_response* res;
 	list* list;
@@ -772,7 +772,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		res = (bing_response*)response;
 
 		//Remove response from Bing
-		response_remove_from_bing(res, bundle_free);
+		response_remove_from_bing(res, composite_free);
 
 		//Free "next" URL if one exists
 		bing_mem_free((void*)res->nextUrl);
@@ -789,7 +789,7 @@ void free_response_in(bing_response_t response, BOOL bundle_free)
 		//Free data
 		if(res->data)
 		{
-			if(hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list) > 0)
+			if(hashtable_get_item(res->data, RESPONSE_COMPOSITE_SUBRES_STR, &list) > 0)
 			{
 				for(i = 0; i < list->count; i++)
 				{
@@ -833,24 +833,24 @@ BOOL response_swap_response(bing_response* response, bing_response* responsePare
 	BOOL ret = FALSE;
 	if(response && responseParent && response != responseParent)
 	{
-		//Remove from bundle
-		if(response_remove_from_bundle(response, responseParent))
+		//Remove from composite
+		if(response_remove_from_composite(response, responseParent))
 		{
 			//Add to Bing
 			ret = response_add_to_bing(response, responseParent->bing);
 			if(!ret)
 			{
-				//Error adding to Bing, revert to bundle
-				response_add_to_bundle(response, responseParent);
+				//Error adding to Bing, revert to composite
+				response_add_to_composite(response, responseParent);
 			}
 		}
 		else if(response_remove_from_bing(response, FALSE)) //Remove from Bing
 		{
-			//Add to bundle
-			ret = response_add_to_bundle(response, responseParent);
+			//Add to composite
+			ret = response_add_to_composite(response, responseParent);
 			if(!ret)
 			{
-				//Error adding to bundle, revert to Bing
+				//Error adding to composite, revert to Bing
 				response_add_to_bing(response, responseParent->bing);
 			}
 		}
@@ -904,7 +904,7 @@ long long response_get_int64(bing_response_t response, const char* field, enum B
 	return ret;
 }
 
-int bing_response_get_bundle_responses(bing_response_t response, bing_response_t* responses)
+int bing_response_get_composite_responses(bing_response_t response, bing_response_t* responses)
 {
 	int ret = -1;
 	bing_response* res;
@@ -913,8 +913,8 @@ int bing_response_get_bundle_responses(bing_response_t response, bing_response_t
 	if(response)
 	{
 		res = (bing_response*)response;
-		if(res->type == BING_SOURCETYPE_BUNDLE && //Make sure of the proper type
-				hashtable_get_item(res->data, RESPONSE_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
+		if(res->type == BING_SOURCETYPE_COMPOSITE && //Make sure of the proper type
+				hashtable_get_item(res->data, RESPONSE_COMPOSITE_SUBRES_STR, &list_v) > 0)
 		{
 			ret = list_v->count;
 			if(responses)
@@ -1118,21 +1118,21 @@ void* bing_response_custom_allocation(bing_response_t response, size_t size)
 	return ret;
 }
 
-int bing_response_register_response_creator(const char* dedicatedName, const char* bundleName, response_creation_func creation_func)
+int bing_response_register_response_creator(const char* dedicated_name, const char* composite_name, response_creation_func creation_func)
 {
 	BOOL ret = FALSE;
 	BOOL cont = TRUE;
 	unsigned int i;
 	bing_response_creator* c;
 	bing_response_creator_search* cr;
-	char* nDName, *nBName;
+	char* nDName, *nCName;
 	size_t size;
-	if(dedicatedName && bundleName)
+	if(dedicated_name && composite_name)
 	{
 		//Check if the name is a standard supported name, if so return
 		for(cr = response_def_creator; cr != NULL; cr = cr->next)
 		{
-			if(strcmp(dedicatedName, cr->creator.dedicatedName) == 0 || strcmp(bundleName, cr->creator.bundleName) == 0)
+			if(strcmp(dedicated_name, cr->creator.dedicatedName) == 0 || strcmp(composite_name, cr->creator.compositeName) == 0)
 			{
 				cont = FALSE;
 				break;
@@ -1147,7 +1147,7 @@ int bing_response_register_response_creator(const char* dedicatedName, const cha
 			i = 0;
 			while(i < bingSystem.bingResponseCreatorCount && cont)
 			{
-				if(strcmp(bingSystem.bingResponseCreators[i++].dedicatedName, dedicatedName) == 0 || strcmp(bingSystem.bingResponseCreators[i++].bundleName, bundleName) == 0)
+				if(strcmp(bingSystem.bingResponseCreators[i++].dedicatedName, dedicated_name) == 0 || strcmp(bingSystem.bingResponseCreators[i++].compositeName, composite_name) == 0)
 				{
 					cont = FALSE;
 				}
@@ -1156,22 +1156,22 @@ int bing_response_register_response_creator(const char* dedicatedName, const cha
 			if(cont)
 			{
 				//Reproduce the dedicatedName
-				size = strlen(dedicatedName) + 1;
+				size = strlen(dedicated_name) + 1;
 				nDName = bing_mem_malloc(size);
 
 				if(nDName)
 				{
-					strlcpy(nDName, dedicatedName, size);
+					strlcpy(nDName, dedicated_name, size);
 					nDName[size - 1] = '\0';
 
-					//Reproduce the bundleName
-					size = strlen(bundleName) + 1;
-					nBName = bing_mem_malloc(size);
+					//Reproduce the composite_name
+					size = strlen(composite_name) + 1;
+					nCName = bing_mem_malloc(size);
 
-					if(nBName)
+					if(nCName)
 					{
-						strlcpy(nBName, bundleName, size);
-						nBName[size - 1] = '\0';
+						strlcpy(nCName, composite_name, size);
+						nCName[size - 1] = '\0';
 
 						//Create the new version of the name
 						c = (bing_response_creator*)bing_mem_realloc(bingSystem.bingResponseCreators, sizeof(bing_response_creator) * (bingSystem.bingResponseCreatorCount + 1));
@@ -1181,14 +1181,14 @@ int bing_response_register_response_creator(const char* dedicatedName, const cha
 							bingSystem.bingResponseCreators = c;
 
 							c[bingSystem.bingResponseCreatorCount].dedicatedName = nDName;
-							c[bingSystem.bingResponseCreatorCount].bundleName = nBName;
+							c[bingSystem.bingResponseCreatorCount].compositeName = nCName;
 							c[bingSystem.bingResponseCreatorCount].creation = creation_func;
 
 							ret = TRUE;
 						}
 						else
 						{
-							bing_mem_free(nBName);
+							bing_mem_free(nCName);
 							bing_mem_free(nDName);
 						}
 					}
@@ -1205,14 +1205,14 @@ int bing_response_register_response_creator(const char* dedicatedName, const cha
 	return ret;
 }
 
-int bing_response_unregister_response_creator(const char* dedicatedName, const char* bundleName)
+int bing_response_unregister_response_creator(const char* dedicated_name, const char* composite_name)
 {
 	BOOL ret = FALSE;
 
-	const char* dn, *bn;
+	const char* dn, *cn;
 	unsigned int i;
 	bing_response_creator* c;
-	if(dedicatedName && bundleName && bingSystem.bingResponseCreatorCount > 0) //We don't want to run if there is nothing to run on
+	if(dedicated_name && composite_name && bingSystem.bingResponseCreatorCount > 0) //We don't want to run if there is nothing to run on
 	{
 		pthread_mutex_lock(&bingSystem.mutex);
 
@@ -1220,7 +1220,7 @@ int bing_response_unregister_response_creator(const char* dedicatedName, const c
 		i = 0;
 		while(i < bingSystem.bingResponseCreatorCount)
 		{
-			if(strcmp(bingSystem.bingResponseCreators[i].dedicatedName, dedicatedName) == 0 && strcmp(bingSystem.bingResponseCreators[i].bundleName, bundleName) == 0)
+			if(strcmp(bingSystem.bingResponseCreators[i].dedicatedName, dedicated_name) == 0 && strcmp(bingSystem.bingResponseCreators[i].compositeName, composite_name) == 0)
 			{
 				break;
 			}
@@ -1231,7 +1231,7 @@ int bing_response_unregister_response_creator(const char* dedicatedName, const c
 		{
 			//Get the strings
 			dn = bingSystem.bingResponseCreators[i].dedicatedName;
-			bn = bingSystem.bingResponseCreators[i].bundleName;
+			cn = bingSystem.bingResponseCreators[i].compositeName;
 
 			//If there is only one creator, simply free everything
 			if(bingSystem.bingResponseCreatorCount == 1)
@@ -1266,7 +1266,7 @@ int bing_response_unregister_response_creator(const char* dedicatedName, const c
 			if(ret)
 			{
 				bing_mem_free((void*)dn);
-				bing_mem_free((void*)bn);
+				bing_mem_free((void*)cn);
 			}
 		}
 

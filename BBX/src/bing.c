@@ -58,7 +58,7 @@ int bing_shutdown()
 			while(bingSystem.bingResponseCreatorCount > 0)
 			{
 				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].dedicatedName);
-				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].bundleName);
+				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].compositeName);
 			}
 			while(bingSystem.bingResultCreatorCount > 0)
 			{
@@ -448,7 +448,7 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 26 + 1; //This is the length of the URL format and null char. We don't include '?' because when the size of sourceType is taken, it will include that
 
-	//TODO Modify to handle translation requests (cannot be in bundles, at least this function won't allow it. Can modify search functions to do it)
+	//TODO Modify to handle translation requests (cannot be in composite, at least this function won't allow it. Can modify search functions to do it)
 
 	if(request)
 	{
@@ -469,7 +469,7 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 				//We need to add ? so it is a valid URL
 				if(snprintf(sourceTypeTmp, strlen(sourceType) + 2, "%s?", sourceType) < 0)
 				{
-					free(sourceTypeTmp);
+					bing_mem_free((void*)sourceTypeTmp);
 					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
 				}
 				sourceType = sourceTypeTmp;
@@ -482,7 +482,7 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 		}
 		else
 		{
-			//Get bundle source type
+			//Get composite source type
 			sourceType = request_get_composite_sourcetype((bing_request_t)req);
 
 			//Format for the URL
@@ -492,7 +492,7 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 				//Format it so it is correct for a composite request
 				if(snprintf(sourceTypeTmp, strlen(sourceType) + 26, "Composite?Sources=%%27%s%%27", sourceType) < 0)
 				{
-					free(sourceTypeTmp);
+					bing_mem_free((void*)sourceTypeTmp);
 					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
 				}
 				sourceType = sourceTypeTmp;

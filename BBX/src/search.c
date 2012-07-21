@@ -556,7 +556,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 			//Create response
 			parser->current = NULL;
 			if(response_create_raw(text, (bing_response_t*)&parser->current, parser->bing,
-					(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE) ? parser->response : NULL)) //The general idea is that if there is already a response and it is bundle, it will be the parent. Otherwise add it to Bing
+					(parser->response != NULL && parser->response->type == BING_SOURCETYPE_COMPOSITE) ? parser->response : NULL)) //The general idea is that if there is already a response and it is bundle, it will be the parent. Otherwise add it to Bing
 			{
 				//Run creation functions
 				if(response_def_create_standard_responses(parser->current, (data_dictionary_t)data) &&
@@ -565,18 +565,18 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 					//Should we do any extra processing on the response?
 					if(parser->response)
 					{
-						//Response already exists. If it is a bundle then it is already added, otherwise we need to replace it
-						if(parser->response->type != BING_SOURCETYPE_BUNDLE)
+						//Response already exists. If it is a composite then it is already added, otherwise we need to replace it
+						if(parser->response->type != BING_SOURCETYPE_COMPOSITE)
 						{
 							//Save it temporarily
 							tmp = parser->response;
 
-							if(response_create_raw("bundle", (bing_response_t*)&parser->response, parser->bing, NULL))
+							if(response_create_raw(RESPONSE_COMPOSITE, (bing_response_t*)&parser->response, parser->bing, NULL))
 							{
-								//We need to take the original response and make it a child of the new bundle response
+								//We need to take the original response and make it a child of the new composite response
 								response_swap_response(tmp, parser->response);
 
-								//We also need the new current response to be a child of the new bundle response
+								//We also need the new current response to be a child of the new composite response
 								response_swap_response(parser->current, parser->response);
 							}
 							else
@@ -596,9 +596,9 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 				else
 				{
 					//Darn it, that failed
-					if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
+					if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_COMPOSITE))
 					{
-						//This wasn't a bundled response, just free it (otherwise it will never get freed)
+						//This wasn't a composited response, just free it (otherwise it will never get freed)
 						bing_response_free(parser->current);
 					}
 					parser->parseError = PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL; //XXX Rename
@@ -1510,7 +1510,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 	int curlCode;
 #endif
 
-	//TODO: Need to figure out how to get translation APIs to work when in a composite bundle (will need to do two separate searches)
+	//TODO: Need to figure out how to get translation APIs to work when in a composite (will need to do two separate searches)
 
 	if(check_for_connection() && url)
 	{
@@ -1738,7 +1738,7 @@ int search_async_url_in(unsigned int bingID, const char* url, const void* user_d
 	pthread_attr_t thread_atts;
 	BOOL ret = FALSE;
 
-	//TODO: Need to figure out how to get translation APIs to work when in a composite bundle (will need to do two separate searches)
+	//TODO: Need to figure out how to get translation APIs to work when in a composite (will need to do two separate searches)
 
 	if(check_for_connection() && url)
 	{

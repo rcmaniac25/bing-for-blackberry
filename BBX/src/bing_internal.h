@@ -44,12 +44,14 @@ __BEGIN_DECLS
 #define BOOL_TO_CPP_BOOL(x) (x) != FALSE
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
 
-#define REQUEST_BUNDLE_SUBBUNDLES_STR "bb_req_bundle_sub-bundles"
-#define RESPONSE_BUNDLE_SUBBUNDLES_STR "bb_res_bundle_sub-bundles"
+#define REQUEST_COMPOSITE_SUBREQ_STR "bb_req_composite_sub-requests"
+#define RESPONSE_COMPOSITE_SUBRES_STR "bb_res_composite_sub-responses"
 
 #define RESPONSE_MAX_TOTAL_STR "bb_res_max_total"
 #define RESPONSE_OFFSET_STR "bb_res_offset"
 #define RESPONSE_QUERY_STR "bb_res_query"
+
+#define RESPONSE_COMPOSITE "composite"
 
 #define PARSE_NEXT_LINK "#nextLink"
 
@@ -185,7 +187,7 @@ typedef struct BING_S
 typedef struct BING_RESPONSE_CREATOR_S
 {
 	const char* dedicatedName;
-	const char* bundleName;
+	const char* compositeName;
 	response_creation_func creation;
 } bing_response_creator;
 

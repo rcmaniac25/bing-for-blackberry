@@ -111,12 +111,12 @@ const char* request_composite_get_options(bing_request_t request)
 			len = strlen(ret) + 1;
 
 			//Go through all the composite elements
-			hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
+			hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list);
 			if(list && list->count > 0)
 			{
 				for(i = 0; i < list->count; i++)
 				{
-					inReq = (bing_request*)LIST_ELEMENT(list, i, bing_request_t);
+					inReq = LIST_ELEMENT(list, i, bing_request*);
 
 					//Don't allow composite's within composites
 					if(!inReq->sourceType)
@@ -304,7 +304,7 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 		}
 		else
 		{
-			t = BING_SOURCETYPE_BUNDLE;
+			t = BING_SOURCETYPE_COMPOSITE;
 		}
 	}
 	return t;
@@ -321,7 +321,7 @@ const char* request_get_composite_sourcetype(bing_request_t composite)
 	if(composite && result)
 	{
 		//Get the list
-		hashtable_get_item(((bing_request*)composite)->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
+		hashtable_get_item(((bing_request*)composite)->data, REQUEST_COMPOSITE_SUBREQ_STR, &list);
 		if(list && list->count > 0)
 		{
 			//Go through elements and get data
@@ -432,14 +432,14 @@ int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* reque
 	const char* sourceT;
 	const char* compositeT;
 	request_get_options_func getOFun;
-	if((source_type >= BING_SOURCETYPE_IMAGE && source_type <= BING_SOURCETYPE_WEB) || source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
+	if((source_type >= BING_SOURCETYPE_IMAGE && source_type <= BING_SOURCETYPE_WEB) || source_type == BING_SOURCETYPE_COMPOSITE) //This guarantees that the source_type will be a valid type
 	{
 		tableSize = -1;
 		sourceT = NULL;
 		compositeT = NULL;
 		getOFun = NULL;
 
-		if(source_type == BING_SOURCETYPE_BUNDLE)
+		if(source_type == BING_SOURCETYPE_COMPOSITE)
 		{
 			sourceT = NULL;
 			compositeT = NULL;
@@ -596,7 +596,7 @@ void request_remove_parent_options(bing_request* request)
 	hashtable_remove_item(request->data, REQ_LONGITUDE);
 }
 
-int bing_request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
+int bing_request_composite_add_request(bing_request_t request, bing_request_t request_to_add)
 {
 	BOOL ret = FALSE;
 	bing_request* req;
@@ -608,9 +608,9 @@ int bing_request_bundle_add_request(bing_request_t request, bing_request_t reque
 	{
 		req = (bing_request*)request;
 
-		if(!req->sourceType) //Bundle's source type is null
+		if(!req->sourceType) //Composite's source type is null
 		{
-			if(hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list_v) > 0)
+			if(hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v) > 0)
 			{
 				//Get the list
 				requestList = LIST_ELEMENTS(list_v, bing_request_t);
@@ -622,12 +622,12 @@ int bing_request_bundle_add_request(bing_request_t request, bing_request_t reque
 				if(list_v)
 				{
 					list_v->count = 0;
-					requestList = list_v->listElements = (bing_request_t*)bing_mem_calloc(11, sizeof(bing_request_t));
+					requestList = list_v->listElements = (bing_request_t*)bing_mem_calloc(11, sizeof(bing_request_t)); //XXX Give the 11 a meaning. I think it has to do with number of requests based on type
 					if(list_v->listElements)
 					{
 						//Save the list
 						list_v->cap = 11;
-						if(hashtable_put_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, list_v, sizeof(list*)) == -1)
+						if(hashtable_put_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, list_v, sizeof(list*)) == -1)
 						{
 							//List creation failed, cleanup
 							bing_mem_free(list_v);
@@ -699,8 +699,8 @@ void bing_request_free(bing_request_t request)
 
 		if(req->data)
 		{
-			//Bundle, make sure data is freed
-			if(!req->sourceType && hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list) > 0)
+			//Composite, make sure data is freed
+			if(!req->sourceType && hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list) > 0)
 			{
 				for(i = 0; i < list->count; i++)
 				{
