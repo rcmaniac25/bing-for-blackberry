@@ -9,76 +9,48 @@
 
 #include "bing_internal.h"
 
-//TODO: This is going to need to be updated
-
-#define REQ_VERSION "version"
+#define REQ_MAX_TOTAL "maxTotal"
+#define REQ_OFFSET "offset"
 #define REQ_MARKET "market"
 #define REQ_ADULT "adult"
 #define REQ_OPTIONS "options"
 #define REQ_LATITUDE "latitude"
 #define REQ_LONGITUDE "longitude"
-#define REQ_LANGUAGE "language"
-#define REQ_RADIUS "radius"
 
-#define REQ_AD_PAGENUMBER "pageNumber"
-#define REQ_AD_ADUNITID "adUnitId"
-#define REQ_AD_PROPID "propertyId"
-#define REQ_AD_CHANID "channelId"
-#define REQ_AD_MLCOUNT "mlAdcount"
-#define REQ_AD_SBCOUNT "sbAdCount"
-
-#define REQ_MW_OPTIONS "mobileWebOptions"
+#define REQ_IMAGE_FILTERS "filters"
 
 #define REQ_NEWS_CAT "category"
 #define REQ_NEWS_LOCOVER "locationOverride"
+#define REQ_NEWS_SORTBY "sortby"
 
-#define REQ_PHONE_LOCID "locId"
-
-#define REQ_TRANS_SOURCE "sourceLanguage"
-#define REQ_TRANS_TARGET "targetLanguage"
-
-#define REQ_WEB_OPTIONS "webOptions"
-
-#define REQ_MULTI_COUNT "count"
-#define REQ_MULTI_OFFSET "offset"
-#define REQ_MULTI_FILTERS "filters"
-#define REQ_MULTI_SORTBY "sortby"
-#define REQ_MULTI_FILETYPE "filetype"
+#define REQ_WEB_FILETYPE "filetype"
+#define REQ_WEB_OPTIONS "weboptions"
 
 static bing_field_search request_fields[] =
 {
 		//Universal
-		{{BING_REQUEST_FIELD_VERSION,				FIELD_TYPE_STRING,	REQ_VERSION,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[1]},
-		{{BING_REQUEST_FIELD_MARKET,				FIELD_TYPE_STRING,	REQ_MARKET,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[2]},
-		{{BING_REQUEST_FIELD_ADULT,					FIELD_TYPE_STRING,	REQ_ADULT,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[3]},
-		{{BING_REQUEST_FIELD_OPTIONS,				FIELD_TYPE_STRING,	REQ_OPTIONS,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[4]},
-		{{BING_REQUEST_FIELD_LATITUDE,				FIELD_TYPE_DOUBLE,	REQ_LATITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[5]},
-		{{BING_REQUEST_FIELD_LONGITUDE,				FIELD_TYPE_DOUBLE,	REQ_LONGITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[6]},
-		{{BING_REQUEST_FIELD_LANGUAGE,				FIELD_TYPE_STRING,	REQ_LANGUAGE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[7]},
-		{{BING_REQUEST_FIELD_RADIUS,				FIELD_TYPE_DOUBLE,	REQ_RADIUS,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[8]},
+		{{BING_REQUEST_FIELD_MAX_TOTAL,				FIELD_TYPE_LONG,	REQ_MAX_TOTAL,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[1]},
+		{{BING_REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_OFFSET,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[2]},
+		{{BING_REQUEST_FIELD_MARKET,				FIELD_TYPE_STRING,	REQ_MARKET,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[3]},
+		{{BING_REQUEST_FIELD_ADULT,					FIELD_TYPE_STRING,	REQ_ADULT,			BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[4]},
+		{{BING_REQUEST_FIELD_OPTIONS,				FIELD_TYPE_STRING,	REQ_OPTIONS,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[5]},
+		{{BING_REQUEST_FIELD_LATITUDE,				FIELD_TYPE_DOUBLE,	REQ_LATITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[6]},
+		{{BING_REQUEST_FIELD_LONGITUDE,				FIELD_TYPE_DOUBLE,	REQ_LONGITUDE,		BING_FIELD_SUPPORT_ALL_FIELDS,	{}},					&request_fields[7]},
+
+		//Image
+		{{BING_REQUEST_FIELD_FILTERS,				FIELD_TYPE_STRING,	REQ_IMAGE_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[8]},
 
 		//News
 		{{BING_REQUEST_FIELD_CATEGORY,				FIELD_TYPE_STRING,	REQ_NEWS_CAT,		1,	{BING_SOURCETYPE_NEWS}},							&request_fields[9]},
 		{{BING_REQUEST_FIELD_LOCATION_OVERRIDE,		FIELD_TYPE_STRING,	REQ_NEWS_LOCOVER,	1,	{BING_SOURCETYPE_NEWS}},							&request_fields[10]},
-
-		//Translation
-		{{BING_REQUEST_FIELD_SOURCE_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_SOURCE,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[11]},
-		{{BING_REQUEST_FIELD_TARGET_LANGUAGE,		FIELD_TYPE_STRING,	REQ_TRANS_TARGET,	1,	{BING_SOURCETYPE_TRANSLATION}},						&request_fields[12]},
+		{{BING_REQUEST_FIELD_SORT_BY,				FIELD_TYPE_STRING,	REQ_NEWS_SORTBY,	2,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_VIDEO}},		&request_fields[11]},
 
 		//Web
-		{{BING_REQUEST_FIELD_WEB_OPTIONS,			FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[13]},
-
-		//Multi (less obvious breaks in original source type)
-		{{BING_REQUEST_FIELD_COUNT,					FIELD_TYPE_LONG,	REQ_MULTI_COUNT,	5,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_NEWS,
-				BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																						&request_fields[14]},
-		{{BING_REQUEST_FIELD_OFFSET,				FIELD_TYPE_LONG,	REQ_MULTI_OFFSET,	5,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_NEWS,
-				BING_SOURCETYPE_VIDEO, BING_SOURCETYPE_WEB}},																						&request_fields[15]},
-		{{BING_REQUEST_FIELD_FILTERS,				FIELD_TYPE_STRING,	REQ_MULTI_FILTERS,	2,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO}},	&request_fields[16]},
-		{{BING_REQUEST_FIELD_SORT_BY,				FIELD_TYPE_STRING,	REQ_MULTI_SORTBY,	2,	{BING_SOURCETYPE_NEWS, BING_SOURCETYPE_VIDEO}},		&request_fields[17]},
-		{{BING_REQUEST_FIELD_FILE_TYPE,				FIELD_TYPE_STRING,	REQ_MULTI_FILETYPE,	1,	{BING_SOURCETYPE_WEB}},								NULL}
+		{{BING_REQUEST_FIELD_FILE_TYPE,				FIELD_TYPE_STRING,	REQ_WEB_FILETYPE,	1,	{BING_SOURCETYPE_WEB}},								&request_fields[12]},
+		{{BING_REQUEST_FIELD_WEB_OPTIONS,			FIELD_TYPE_STRING,	REQ_WEB_OPTIONS,	1,	{BING_SOURCETYPE_WEB}},								NULL}
 };
 
-#define DEFAULT_ELEMENT_COUNT 8
+#define DEFAULT_ELEMENT_COUNT 5
 
 #define APPEND(fmt, key) append_data(req->data, (fmt), (key), &data, &cursize, &ret, &retSize);
 
@@ -104,23 +76,21 @@ const char* request_def_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		//TODO: "count" and "offset"
+		APPEND("&$top=%d",				REQ_MAX_TOTAL)
+		APPEND("&$skip=%d",				REQ_OFFSET)
 
-		APPEND("&Version=%s",		REQ_VERSION)	//XXX Not needed
-		APPEND("&Market=%s",		REQ_MARKET)
-		APPEND("&Adult=%s",			REQ_ADULT)
-		APPEND("&Options=%s",		REQ_OPTIONS)
-		APPEND("&Latitude=%f",		REQ_LATITUDE)
-		APPEND("&Longitude=%f",		REQ_LONGITUDE)
-		APPEND("&UILanguage=%s",	REQ_LANGUAGE)	//XXX Not needed
-		APPEND("&Radius=%f",		REQ_RADIUS)		//XXX Not needed
+		APPEND("&Market=%%27%s%%27",	REQ_MARKET)
+		APPEND("&Adult=%%27%s%%27",		REQ_ADULT)
+		APPEND("&Options=%%27%s%%27",	REQ_OPTIONS)
+		APPEND("&Latitude=%f",			REQ_LATITUDE)
+		APPEND("&Longitude=%f",			REQ_LONGITUDE)
 
 		bing_mem_free(data);
 	}
 	return ret;
 }
 
-const char* request_bundle_get_options(bing_request_t request)
+const char* request_composite_get_options(bing_request_t request)
 {
 	bing_request* req;
 	bing_request* inReq;
@@ -140,7 +110,7 @@ const char* request_bundle_get_options(bing_request_t request)
 		{
 			len = strlen(ret) + 1;
 
-			//Go through all the bundled elements
+			//Go through all the composite elements
 			hashtable_get_item(req->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
 			if(list && list->count > 0)
 			{
@@ -148,7 +118,7 @@ const char* request_bundle_get_options(bing_request_t request)
 				{
 					inReq = (bing_request*)LIST_ELEMENT(list, i, bing_request_t);
 
-					//Don't allow bundle's within bundles
+					//Don't allow composite's within composites
 					if(!inReq->sourceType)
 					{
 						continue;
@@ -179,29 +149,6 @@ const char* request_bundle_get_options(bing_request_t request)
 	return ret;
 }
 
-const char* request_ad_get_options(bing_request_t request)
-{
-	bing_request* req;
-	char* ret = (char*)request_def_get_options(request);
-	void* data = NULL;
-	size_t cursize = 0;
-	size_t retSize = strlen(ret) + 1;
-	if(request && ret)
-	{
-		req = (bing_request*)request;
-
-		APPEND("&Ad.PageNumber=%llu",	REQ_AD_PAGENUMBER)
-		APPEND("&Ad.AdUnitId=%llu",		REQ_AD_ADUNITID)
-		APPEND("&Ad.PropertyId=%llu",	REQ_AD_PROPID)
-		APPEND("&Ad.ChannelId=%s",		REQ_AD_CHANID)
-		APPEND("&Ad.MlAdcount=%llu",	REQ_AD_MLCOUNT)
-		APPEND("&Ad.SbAdCount=%llu",	REQ_AD_SBCOUNT)
-
-		bing_mem_free(data);
-	}
-	return ret;
-}
-
 const char* request_image_get_options(bing_request_t request)
 {
 	bing_request* req;
@@ -213,29 +160,7 @@ const char* request_image_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Image.Count=%llu",		REQ_MULTI_COUNT)	//XXX Not needed
-		APPEND("&Image.Offset=%llu",	REQ_MULTI_OFFSET)	//XXX Not needed
-		APPEND("&Image.Filters=%s",		REQ_MULTI_FILTERS)	//XXX Renamed
-
-		bing_mem_free(data);
-	}
-	return ret;
-}
-
-const char* request_mw_get_options(bing_request_t request)
-{
-	bing_request* req;
-	char* ret = (char*)request_def_get_options(request);
-	void* data = NULL;
-	size_t cursize = 0;
-	size_t retSize = strlen(ret) + 1;
-	if(request && ret)
-	{
-		req = (bing_request*)request;
-
-		APPEND("&MobileWeb.Count=%llu",		REQ_MULTI_COUNT)
-		APPEND("&MobileWeb.Offset=%llu",	REQ_MULTI_OFFSET)
-		APPEND("&MobileWeb.Options=%s",		REQ_MW_OPTIONS)
+		APPEND("&ImageFilters=%%27%s%%27",	REQ_IMAGE_FILTERS)
 
 		bing_mem_free(data);
 	}
@@ -253,30 +178,9 @@ const char* request_news_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&News.Count=%llu",			REQ_MULTI_COUNT)	//XXX Not needed
-		APPEND("&News.Offset=%llu",			REQ_MULTI_OFFSET)	//XXX Not needed
-		APPEND("&News.Category=%s",			REQ_NEWS_CAT)		//XXX Renamed
-		APPEND("&News.LocationOverride=%s",	REQ_NEWS_LOCOVER)	//XXX Renamed
-		APPEND("&News.SortBy=%s",			REQ_MULTI_SORTBY)	//XXX Renamed
-
-		bing_mem_free(data);
-	}
-	return ret;
-}
-
-const char* request_transl_get_options(bing_request_t request)
-{
-	bing_request* req;
-	char* ret = (char*)request_def_get_options(request);
-	void* data = NULL;
-	size_t cursize = 0;
-	size_t retSize = strlen(ret) + 1;
-	if(request && ret)
-	{
-		req = (bing_request*)request;
-
-		APPEND("&Translation.SourceLanguage=%s",	REQ_TRANS_SOURCE)
-		APPEND("&Translation.TargetLanguage=%s",	REQ_TRANS_TARGET)
+		APPEND("&NewsCategory=%%27%s%%27",			REQ_NEWS_CAT)
+		APPEND("&NewsLocationOverride=%%27%s%%27",	REQ_NEWS_LOCOVER)
+		APPEND("&NewsSortBy=%%27%s%%27",			REQ_NEWS_SORTBY)
 
 		bing_mem_free(data);
 	}
@@ -294,10 +198,8 @@ const char* request_video_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Video.Count=%llu",		REQ_MULTI_COUNT)	//XXX Not needed
-		APPEND("&Video.Offset=%llu",	REQ_MULTI_OFFSET)	//XXX Not needed
-		APPEND("&Video.Filters=%s",		REQ_MULTI_FILTERS)	//XXX Renamed
-		APPEND("&Video.FileType=%s",	REQ_MULTI_SORTBY)	//XXX Renamed
+		APPEND("&VideoFilters=%%27%s%%27",	REQ_IMAGE_FILTERS)
+		APPEND("&VideoSortBy=%%27%s%%27",	REQ_NEWS_SORTBY)
 
 		bing_mem_free(data);
 	}
@@ -315,10 +217,8 @@ const char* request_web_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&Web.Count=%llu",	REQ_MULTI_COUNT)	//XXX Not needed
-		APPEND("&Web.Offset=%llu",	REQ_MULTI_OFFSET)	//XXX Not needed
-		APPEND("&Web.FileType=%s",	REQ_MULTI_FILETYPE)	//XXX This has changed
-		APPEND("&Web.Options=%s",	REQ_WEB_OPTIONS)	//XXX Look to see what this is again. Might not be needed
+		APPEND("&WebFileType=%%27%s%%27",		REQ_WEB_FILETYPE)
+		APPEND("&WebSearchOptions=%%27%s%%27",	REQ_WEB_OPTIONS)
 
 		bing_mem_free(data);
 	}
@@ -340,7 +240,7 @@ const char* request_custom_get_options(bing_request_t request)
 		ret = request_def_get_options(request);
 		custOptions = req->uGetOptions(request);
 
-		resultOptions = bing_mem_calloc(size = strlen(ret) + strlen(custOptions) + 2, sizeof(char));
+		resultOptions = bing_mem_calloc(size = strlen(ret) + strlen(custOptions) + 1, sizeof(char));
 		if(resultOptions)
 		{
 			//First copy in the default options
@@ -375,16 +275,12 @@ const char* request_custom_get_options(bing_request_t request)
 
 static request_source_type request_source_types[] =
 {
-		//{BING_SOURCETYPE_AD,				"ad",					NULL,				DEFAULT_ELEMENT_COUNT + 6,	request_ad_get_options,		&request_source_types[1]}, //XXX Need to see how this might/is done
-		{BING_SOURCETYPE_IMAGE,				"Image",				"image",			DEFAULT_ELEMENT_COUNT + 3,	request_image_get_options,	&request_source_types[1]},
-		//{BING_SOURCETYPE_INSTANT_ANWSER,	"instantAnswer",		NULL,				DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]}, //XXX ?? What happened to this
-		//{BING_SOURCETYPE_MOBILE_WEB,		"mobileWeb",			NULL,				DEFAULT_ELEMENT_COUNT + 3,	request_mw_get_options,		&request_source_types[4]}, //XXX ?? What happened to this
-		{BING_SOURCETYPE_NEWS,				"News",					"news",				DEFAULT_ELEMENT_COUNT + 5,	request_news_get_options,	&request_source_types[2]},
-		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",		"relatedsearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]}, //XXX Not sure if composite type is correct
+		{BING_SOURCETYPE_IMAGE,				"Image",				"image",			DEFAULT_ELEMENT_COUNT + 1,	request_image_get_options,	&request_source_types[1]},
+		{BING_SOURCETYPE_NEWS,				"News",					"news",				DEFAULT_ELEMENT_COUNT + 3,	request_news_get_options,	&request_source_types[2]},
+		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",		"relatedsearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]},
 		{BING_SOURCETYPE_SPELL,				"SpellingSuggestion",	"spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[4]},
-		//{BING_SOURCETYPE_TRANSLATION,		"translation",			NULL,				DEFAULT_ELEMENT_COUNT + 2,	request_transl_get_options,	&request_source_types[9]}, //XXX Need to modify method of execution (can't use in composite)
-		{BING_SOURCETYPE_VIDEO,				"Video",				"video",			DEFAULT_ELEMENT_COUNT + 4,	request_video_get_options,	&request_source_types[5]},
-		{BING_SOURCETYPE_WEB,				"Web",					"web",				DEFAULT_ELEMENT_COUNT + 4,	request_web_get_options,	NULL}
+		{BING_SOURCETYPE_VIDEO,				"Video",				"video",			DEFAULT_ELEMENT_COUNT + 2,	request_video_get_options,	&request_source_types[5]},
+		{BING_SOURCETYPE_WEB,				"Web",					"web",				DEFAULT_ELEMENT_COUNT + 2,	request_web_get_options,	NULL}
 };
 
 enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
@@ -414,7 +310,7 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 	return t;
 }
 
-const char* request_get_bundle_sourcetype(bing_request* bundle)
+const char* request_get_composite_sourcetype(bing_request_t composite)
 {
 	char buffer[256];
 	char* result = bing_mem_calloc(1, sizeof(char));
@@ -422,19 +318,19 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 	list* list = NULL;
 	unsigned int i;
 	char* src;
-	if(bundle && result)
+	if(composite && result)
 	{
 		//Get the list
-		hashtable_get_item(bundle->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
+		hashtable_get_item(((bing_request*)composite)->data, REQUEST_BUNDLE_SUBBUNDLES_STR, &list);
 		if(list && list->count > 0)
 		{
 			//Go through elements and get data
 			for(i = 0; i < list->count; i++)
 			{
-				src = (char*)((bing_request*)LIST_ELEMENT(list, i, bing_request_t))->sourceType; //TODO: Replace values as the "valid values" are lower case and, such as the case with "spell", can be different then their dedicated value
+				src = (char*)((bing_request*)LIST_ELEMENT(list, i, bing_request_t))->compositeSourceType;
 				if(!src)
 				{
-					//We don't want bundle types within bundle types
+					//We don't want composite types within composite types
 					continue;
 				}
 				//Get the source type in the proper format
@@ -462,7 +358,7 @@ const char* request_get_bundle_sourcetype(bing_request* bundle)
 	return result;
 }
 
-int request_create(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, int tableSize)
+int request_create(const char* source_type, const char* composite_type, BOOL custom, bing_request_t* request, request_get_options_func get_options_func, int tableSize)
 {
 	BOOL ret = FALSE;
 	bing_request* req;
@@ -471,24 +367,57 @@ int request_create(const char* source_type, bing_request_t* request, request_get
 		req = (bing_request*)bing_mem_malloc(sizeof(bing_request));
 		if(req)
 		{
-			req->sourceType = source_type;
-			req->getOptions = get_options_func;
-			req->data = NULL;
-
-			req->data = hashtable_create(tableSize);
-			if(req->data)
+			if(custom)
 			{
-				//Add default values
-				//hashtable_put_item(req->data, REQ_VERSION, BING_DEFAULT_API_VERSION, strlen(BING_DEFAULT_API_VERSION) + 1);
-				hashtable_put_item(req->data, REQ_MARKET, BING_DEFAULT_SEARCH_MARKET, strlen(BING_DEFAULT_SEARCH_MARKET) + 1);
-
-				//Save request
-				request[0] = req;
-				ret = TRUE;
+				if(source_type)
+				{
+					req->sourceType = bing_mem_strdup(source_type);
+					if(!req->sourceType)
+					{
+						//Error, cleanup
+						bing_mem_free((void*)req);
+						req = NULL;
+					}
+				}
+				if(req && composite_type)
+				{
+					req->compositeSourceType = bing_mem_strdup(composite_type);
+					if(!req->compositeSourceType)
+					{
+						//Error, cleanup
+						if(req->sourceType)
+						{
+							bing_mem_free((void*)req->sourceType);
+						}
+						bing_mem_free((void*)req);
+						req = NULL;
+					}
+				}
 			}
 			else
 			{
-				bing_mem_free(req);
+				req->sourceType = source_type;
+				req->compositeSourceType = composite_type;
+			}
+
+			//Only continue if the request still exists
+			if(req)
+			{
+				req->custom = custom;
+				req->getOptions = get_options_func;
+				req->data = NULL;
+
+				req->data = hashtable_create(tableSize);
+				if(req->data)
+				{
+					//Save request
+					*request = req;
+					ret = TRUE;
+				}
+				else
+				{
+					bing_mem_free((void*)req);
+				}
 			}
 		}
 	}
@@ -501,18 +430,21 @@ int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* reque
 	int tableSize;
 	request_source_type* type;
 	const char* sourceT;
+	const char* compositeT;
 	request_get_options_func getOFun;
 	if((source_type >= BING_SOURCETYPE_IMAGE && source_type <= BING_SOURCETYPE_WEB) || source_type == BING_SOURCETYPE_BUNDLE) //This guarantees that the source_type will be a valid type
 	{
 		tableSize = -1;
 		sourceT = NULL;
+		compositeT = NULL;
 		getOFun = NULL;
 
 		if(source_type == BING_SOURCETYPE_BUNDLE)
 		{
 			sourceT = NULL;
+			compositeT = NULL;
 			tableSize = DEFAULT_ELEMENT_COUNT + 1;
-			getOFun = request_bundle_get_options;
+			getOFun = request_get_composite_sourcetype;
 		}
 		else
 		{
@@ -521,13 +453,14 @@ int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* reque
 				if(type->type == source_type)
 				{
 					sourceT = type->source_type;
+					compositeT = type->composite_source_type;
 					tableSize = type->maxElements;
 					getOFun = type->getOptions;
 					break;
 				}
 			}
 		}
-		ret = request_create(sourceT, request, getOFun, tableSize);
+		ret = request_create(sourceT, compositeT, FALSE, request, getOFun, tableSize);
 	}
 	return ret;
 }
@@ -654,16 +587,13 @@ int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
 
 void request_remove_parent_options(bing_request* request)
 {
-	//TODO: "count" and "offset"
-
-	hashtable_remove_item(request->data, REQ_VERSION);	//XXX Not needed
+	hashtable_remove_item(request->data, REQ_MAX_TOTAL);
+	hashtable_remove_item(request->data, REQ_OFFSET);
 	hashtable_remove_item(request->data, REQ_MARKET);
 	hashtable_remove_item(request->data, REQ_ADULT);
 	hashtable_remove_item(request->data, REQ_OPTIONS);
 	hashtable_remove_item(request->data, REQ_LATITUDE);
 	hashtable_remove_item(request->data, REQ_LONGITUDE);
-	hashtable_remove_item(request->data, REQ_LANGUAGE);	//XXX Not needed
-	hashtable_remove_item(request->data, REQ_RADIUS);	//XXX Not needed
 }
 
 int bing_request_bundle_add_request(bing_request_t request, bing_request_t request_to_add)
@@ -760,6 +690,12 @@ void bing_request_free(bing_request_t request)
 	if(request)
 	{
 		req = (bing_request*)request;
+
+		if(req->custom)
+		{
+			bing_mem_free((void*)req->sourceType);
+			bing_mem_free((void*)req->compositeSourceType);
+		}
 
 		if(req->data)
 		{
@@ -871,7 +807,7 @@ int bing_request_create_custom_request(const char* source_type, bing_request_t* 
 		{
 			get_options_func = request_def_get_options;
 		}
-		ret = request_create(source_type, request, get_options_func, -1);
+		ret = request_create(source_type, NULL, TRUE, request, get_options_func, -1);
 		if(ret && uGet)
 		{
 			//The options exist, we need to save the user options

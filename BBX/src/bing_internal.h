@@ -127,6 +127,8 @@ typedef struct hashtable_s hashtable_t;
 typedef struct BING_REQUEST_S
 {
 	const char* sourceType;
+	const char* compositeSourceType;
+	BOOL custom;
 	request_get_options_func uGetOptions;
 	request_finish_get_options_func uFinishGetOptions;
 
@@ -266,7 +268,7 @@ BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table, xmlFreeFunc xml
 long long parseTime(const char* stime);
 
 //Request functions
-const char* request_get_bundle_sourcetype(bing_request* bundle);
+const char* request_get_composite_sourcetype(bing_request_t composite);
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary);
 BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
 BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal);

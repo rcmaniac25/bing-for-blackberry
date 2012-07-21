@@ -483,7 +483,7 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 		else
 		{
 			//Get bundle source type
-			sourceType = request_get_bundle_sourcetype(req);
+			sourceType = request_get_composite_sourcetype((bing_request_t)req);
 
 			//Format for the URL
 			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 26); //Includes format, ?, and null char

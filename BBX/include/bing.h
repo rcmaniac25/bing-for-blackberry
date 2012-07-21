@@ -470,7 +470,6 @@ enum BING_REQUEST_FIELD
 
 	BING_REQUEST_FIELD_UNKNOWN,
 
-	BING_REQUEST_FIELD_VERSION, //XXX Not used
 	BING_REQUEST_FIELD_MARKET,
 	BING_REQUEST_FIELD_ADULT,
 	BING_REQUEST_FIELD_OPTIONS,
@@ -478,37 +477,16 @@ enum BING_REQUEST_FIELD
 	BING_REQUEST_FIELD_LATITUDE,
 	//double
 	BING_REQUEST_FIELD_LONGITUDE,
-	BING_REQUEST_FIELD_LANGUAGE, //XXX Not used
-	//double
-	BING_REQUEST_FIELD_RADIUS, //XXX Not used
 	//64bit integer
-	BING_REQUEST_FIELD_PAGE_NUMBER, //XXX Not used
-	//64bit integer
-	BING_REQUEST_FIELD_AD_UNIT_ID, //XXX Not used
-	//64bit integer
-	BING_REQUEST_FIELD_PROPERTY_ID, //XXX Not used
-	//64bit integer
-	BING_REQUEST_FIELD_CHANNEL_ID, //XXX Not used
-	//64bit integer
-	BING_REQUEST_FIELD_MAINLINE_AD_COUNT, //XXX Not used
-	//64bit integer
-	BING_REQUEST_FIELD_SIDEBAR_AD_COUNT, //XXX Not used
-	//64bit integer
-	BING_REQUEST_FIELD_COUNT,
+	BING_REQUEST_FIELD_MAX_TOTAL,
 	//64bit integer
 	BING_REQUEST_FIELD_OFFSET,
 	BING_REQUEST_FIELD_FILTERS,
-	BING_REQUEST_FIELD_MOBILE_WEB_OPTIONS, //XXX Not used
 	BING_REQUEST_FIELD_CATEGORY,
 	BING_REQUEST_FIELD_LOCATION_OVERRIDE,
 	BING_REQUEST_FIELD_SORT_BY,
 	BING_REQUEST_FIELD_FILE_TYPE,
-	BING_REQUEST_FIELD_LOC_ID, //XXX Not used
-	BING_REQUEST_FIELD_SOURCE_LANGUAGE, //XXX Not used
-	BING_REQUEST_FIELD_TARGET_LANGUAGE, //XXX Not used
-	BING_REQUEST_FIELD_WEB_OPTIONS, //XXX Not used
-	BING_REQUEST_FIELD_TO,
-	BING_REQUEST_FILED_FROM
+	BING_REQUEST_FIELD_WEB_OPTIONS
 };
 
 //Helper functions to make the end result better, from http://stackoverflow.com/questions/195975/how-to-make-a-char-string-from-a-c-macros-value
@@ -594,6 +572,11 @@ enum BING_REQUEST_FIELD
 #define BING_WEB_FILE_TYPE_TEXT "TEXT"
 #define BING_WEB_FILE_TYPE_TXT "TXT"
 #define BING_WEB_FILE_TYPE_XLS "XLS"
+
+//Used for the BING_REQUEST_FIELD_WEB_OPTIONS field when used on a web source type (separated with BING_WEB_OPTIONS_SEPERATOR)
+#define BING_WEB_OPTIONS_SEPERATOR OPTION_SEPERATOR
+#define BING_WEB_OPTIONS_DISABLE_HOST_COLLAPSING "DisableHostCollapsing"
+#define BING_WEB_OPTIONS_DISABLE_QUERY_ALTERATIONS "DisableQueryAlterations"
 
 //Standard functions
 
@@ -846,7 +829,7 @@ int bing_request_custom_set_double(bing_request_t request, const char* field, co
  * @return A boolean value which is non-zero for a successful creation,
  * 	otherwise zero on error.
  */
-int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func); //XXX Modify based on how "source_type" is determined/handled
+int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func);
 
 /*
  * Response functions

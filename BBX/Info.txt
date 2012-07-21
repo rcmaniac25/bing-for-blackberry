@@ -1,12 +1,16 @@
 TODO:
 -Rewrite to Azure
---Design
----Figure out what happens on error
---Make modifications
---Test
---Rename functions/types to match Azure
+--Rename all internal references to bundle, to composite
+--Rename public functions to reference composite instead of bundle
+--Look over URL generation. Make sure it is correct (and think about adding translate support)
+--Test (good queries)
+--Implement error handling for parser
+--Test (good and bad queries)
 --Release
 --Add compression support
+--Determine how to handle error returns (we handle parsing errors, what if invalid parameters are passed to service?)
+--Allow requests to have bundle types (ignored initially do to lack of full error handling. Don't forget to free the bundleSourceType)
+--Make type system extendable
 -Document public function saftey info (thread safe, interrupt safe, etc.)
 -Produce C++ version of library
 --Generic for first version
