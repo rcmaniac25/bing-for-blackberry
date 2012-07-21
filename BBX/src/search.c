@@ -21,8 +21,11 @@
 #define DEFAULT_HASHTABLE_SIZE 8
 #define PARSE_PROPERTY_TYPE ((xmlChar*)"type")
 #define PARSE_PROPERTY_MTYPE ((xmlChar*)"m:type")
+
 #define PARSE_KEY_TITLE "title"
 #define PARSE_KEY_SUBTITLE "subtitle"
+
+#define PARSE_THIS_LINK "#thisLink"
 
 //Defines for cURL
 #define CURL_TRUE 1L
@@ -223,7 +226,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 
 							xmlText = xmlGetProp(node, (xmlChar*)"href");
 							//XXX Special assignment
-							if(!hashtable_put_item(data, "#nextLink", xmlText, strlen((char*)xmlText) + 1))
+							if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
 							{
 								//XXX Error
 							}
@@ -234,7 +237,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 
 							xmlText = xmlGetProp(node, (xmlChar*)"href");
 							//XXX Special assignment
-							if(!hashtable_put_item(data, "#thisLink", xmlText, strlen((char*)xmlText) + 1))
+							if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
 							{
 								//XXX Error
 							}
@@ -499,7 +502,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 
 						xmlText = xmlGetProp(node, (xmlChar*)"href");
 						//XXX Special assignment
-						if(!hashtable_put_item(data, "#nextLink", xmlText, strlen((char*)xmlText) + 1))
+						if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
 						{
 							//XXX Error
 						}
@@ -510,7 +513,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 
 						xmlText = xmlGetProp(node, (xmlChar*)"href");
 						//XXX Special assignment
-						if(!hashtable_put_item(data, "#thisLink", xmlText, strlen((char*)xmlText) + 1))
+						if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
 						{
 							//XXX Error
 						}
@@ -1432,7 +1435,7 @@ CURL* setupCurl(bing* bingI, const char* url, bing_parser* parser)
 	{
 		pthread_mutex_lock(&bingI->mutex);
 
-		if(bingI->appId)
+		if(bingI->accountKey)
 		{
 			ret = curl_easy_init();
 
@@ -1444,7 +1447,7 @@ CURL* setupCurl(bing* bingI, const char* url, bing_parser* parser)
 						curl_easy_setopt(ret, CURLOPT_WRITEDATA, (void*)parser) == CURLE_OK &&		//The "userdata" to be passed into the write function, required
 						curl_easy_setopt(ret, CURLOPT_SSL_VERIFYPEER, CURL_FALSE) == CURLE_OK &&	//We don't have a SSL cert for verification, so skip it
 						curl_easy_setopt(ret, CURLOPT_USERNAME, CURL_EMPTY_STRING) == CURLE_OK &&	//For basic HTTP authentication, this is the "user ID", which is ignored right now
-						curl_easy_setopt(ret, CURLOPT_PASSWORD, bingI->appId) == CURLE_OK)			//For basic HTTP authentication, this is the "account key"
+						curl_easy_setopt(ret, CURLOPT_PASSWORD, bingI->accountKey) == CURLE_OK)		//For basic HTTP authentication, this is the "account key"
 				{
 					//We don't want any progress meters
 					curl_easy_setopt(ret, CURLOPT_NOPROGRESS, CURL_TRUE);

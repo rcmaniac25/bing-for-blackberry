@@ -127,7 +127,7 @@ int findFreeIndex()
 	return -1;
 }
 
-unsigned int bing_create(const char* application_ID)
+unsigned int bing_create(const char* account_key)
 {
 	int ret = 0; //Zero is reserved for bad
 	int loc;
@@ -166,13 +166,13 @@ unsigned int bing_create(const char* application_ID)
 				memset(bingI, 0, sizeof(bing));
 
 				//Copy application ID
-				if(application_ID)
+				if(account_key)
 				{
-					if(bingI->appId)
+					if(bingI->accountKey)
 					{
-						bing_mem_free(bingI->appId);
+						bing_mem_free(bingI->accountKey);
 					}
-					bingI->appId = bing_mem_strdup(application_ID);
+					bingI->accountKey = bing_mem_strdup(account_key);
 					//If an error occurs, it's up to the developer to make sure that the app ID was copied
 				}
 #if defined(BING_DEBUG)
@@ -252,7 +252,7 @@ void bing_free(unsigned int bingID)
 			}
 			bing_mem_free(bingI->responses);
 
-			bing_mem_free(bingI->appId);
+			bing_mem_free(bingI->accountKey);
 
 			pthread_mutex_destroy(&bingI->mutex);
 
@@ -322,7 +322,7 @@ int bing_get_error_return(unsigned int bingID)
 
 #endif
 
-int bing_get_app_ID(unsigned int bingID, char* buffer)
+int bing_get_account_key(unsigned int bingID, char* buffer)
 {
 	bing* bingI = retrieveBing(bingID);
 	int ret = -1;
@@ -331,11 +331,11 @@ int bing_get_app_ID(unsigned int bingID, char* buffer)
 	{
 		pthread_mutex_lock(&bingI->mutex);
 
-		ret = strlen(bingI->appId) + 1;
+		ret = strlen(bingI->accountKey) + 1;
 
 		if(buffer)
 		{
-			strlcpy(buffer, bingI->appId, ret);
+			strlcpy(buffer, bingI->accountKey, ret);
 			buffer[ret - 1] = '\0';
 		}
 
@@ -345,14 +345,14 @@ int bing_get_app_ID(unsigned int bingID, char* buffer)
 	return ret;
 }
 
-int bing_set_app_ID(unsigned int bingID, const char* appId)
+int bing_set_account_key(unsigned int bingID, const char* account_key)
 {
 	bing* bingI;
 	int size;
 	int res = FALSE;
-	char* preApp;
+	char* preKey;
 
-	if(appId && (size = strlen(appId) + 1) > 1)
+	if(account_key && (size = strlen(account_key) + 1) > 1)
 	{
 		bingI= retrieveBing(bingID);
 
@@ -360,21 +360,21 @@ int bing_set_app_ID(unsigned int bingID, const char* appId)
 		{
 			pthread_mutex_lock(&bingI->mutex);
 
-			preApp = bingI->appId;
+			preKey = bingI->accountKey;
 
-			bingI->appId = (char*)bing_mem_malloc(size);
-			if(bingI->appId)
+			bingI->accountKey = (char*)bing_mem_malloc(size);
+			if(bingI->accountKey)
 			{
-				strlcpy(bingI->appId, appId, size);
-				bingI->appId[size - 1] = '\0';
+				strlcpy(bingI->accountKey, account_key, size);
+				bingI->accountKey[size - 1] = '\0';
 
-				bing_mem_free(preApp);
+				bing_mem_free(preKey);
 
 				res = TRUE;
 			}
 			else
 			{
-				bingI->appId = preApp;
+				bingI->accountKey = preKey;
 			}
 
 			pthread_mutex_unlock(&bingI->mutex);

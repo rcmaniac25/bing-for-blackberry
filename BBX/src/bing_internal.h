@@ -51,6 +51,8 @@ __BEGIN_DECLS
 #define RESPONSE_OFFSET_STR "bb_res_offset"
 #define RESPONSE_QUERY_STR "bb_res_query"
 
+#define PARSE_NEXT_LINK "#nextLink"
+
 /**
  * The print out function to use for messages.
  * void printFunc(const char* msg, ...);
@@ -169,7 +171,7 @@ typedef struct BING_S
 {
 	pthread_mutex_t mutex;
 
-	char* appId;
+	char* accountKey;
 #if defined(BING_DEBUG)
 	BOOL errorRet;
 #endif

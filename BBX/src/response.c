@@ -9,57 +9,165 @@
 
 #include "bing_internal.h"
 
+#define RES_ID "id"
+#define RES_UPDTAED "updated"
+
 //Creation/update functions
 
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary)
 {
-	//TODO: Rewrite
 	BOOL ret = TRUE;
 	int size;
 	void* data;
+	char tmpChar;
+	char* tmpString;
+	char* tmpString2;
 	long long ll;
 	bing_response* res = (bing_response*)response;
 	if(dictionary)
 	{
-		/* TODO:
-		 * -max total (parse ID)
-		 * -offset (parse ID)
-		 * -query (parse ID)
-		 * -updated
-		 * -nextUrl
-		 *
-		 * Need to do some additional work if this is one of the internal composite results
-		 */
-
-		size = hashtable_get_string((hashtable_t*)dictionary, "Total", NULL);
+		//Process ID to get total, max, and query
+		size = hashtable_get_string((hashtable_t*)dictionary, RES_ID, NULL);
 		if(size > 0)
 		{
 			data = bing_mem_malloc(size);
 			if(data)
 			{
-				hashtable_get_string((hashtable_t*)dictionary, "Total", (char*)data);
+				hashtable_get_string((hashtable_t*)dictionary, RES_ID, (char*)data);
 
-				ll = atoll((char*)data);
+				//Offset
+				tmpString = strstr((char*)data, "$skip=");
+				if(tmpString)
+				{
+					//Move to the numeric location
+					tmpString += 6;
 
-				hashtable_set_data(res->data, RESPONSE_MAX_TOTAL_STR, &ll, sizeof(long long));
+					//Get the number
+					for(size = 0; *tmpString && (*tmpString >= '0' && *tmpString <= '9'); size++, tmpString++);
+
+					//End the string
+					tmpChar = *tmpString;
+					*tmpString = '\0';
+
+					//Parse the number
+					ll = atoll(tmpString - size);
+
+					//Reset string
+					*tmpString = tmpChar;
+
+					//Save the value
+					hashtable_set_data(res->data, RESPONSE_OFFSET_STR, &ll, sizeof(long long));
+				}
+
+				//Max total
+				tmpString = strstr((char*)data, "$top=");
+				if(tmpString)
+				{
+					//Move to the numeric location
+					tmpString += 5;
+
+					//Get the number
+					for(size = 0; *tmpString && (*tmpString >= '0' && *tmpString <= '9'); size++, tmpString++);
+
+					//End the string
+					tmpChar = *tmpString;
+					*tmpString = '\0';
+
+					//Parse the number
+					ll = atoll(tmpString - size);
+
+					//Reset string
+					*tmpString = tmpChar;
+
+					//Save the value
+					hashtable_set_data(res->data, RESPONSE_MAX_TOTAL_STR, &ll, sizeof(long long));
+				}
+
+				//Query
+				tmpString = strstr((char*)data, "Query='");
+				if(tmpString)
+				{
+					//Move to the query location
+					tmpString += 7;
+
+					//Get the query
+					for(size = 0; *tmpString; size++, tmpString++)
+					{
+						if((*tmpString == '\'') && (*(tmpString + 1) == '\''))
+						{
+							size++;
+							tmpString++;
+						}
+						else if(*tmpString == '\'')
+						{
+							break;
+						}
+					}
+
+					//End the string
+					tmpChar = *tmpString;
+					*tmpString = '\0';
+
+					//Duplicate the string
+					tmpString2 = bing_mem_strdup(tmpString - size);
+
+					//Reset string
+					*tmpString = tmpChar;
+
+					//Save the value
+					if(tmpString2)
+					{
+						//We need to do some extra processing first (we need to get rid of the double single quotes)
+						for(tmpString = tmpString2, size = 0; *tmpString; size++, tmpString++)
+						{
+							*tmpString = tmpString2[size];
+							if(tmpString2[size] == '\'')
+							{
+								size++;
+							}
+							if(*tmpString == '\0')
+							{
+								break;
+							}
+						}
+
+						hashtable_set_data(res->data, RESPONSE_QUERY_STR, tmpString2, strlen(tmpString2) + 1);
+
+						bing_mem_free((void*)tmpString2);
+					}
+				}
 
 				bing_mem_free(data);
 			}
 		}
 
-		size = hashtable_get_string((hashtable_t*)dictionary, "Offset", NULL);
+		//Process updated to get date-time
+		size = hashtable_get_string((hashtable_t*)dictionary, RES_UPDTAED, NULL);
 		if(size > 0)
 		{
 			data = bing_mem_malloc(size);
 			if(data)
 			{
-				hashtable_get_string((hashtable_t*)dictionary, "Offset", (char*)data);
+				hashtable_get_string((hashtable_t*)dictionary, RES_UPDTAED, (char*)data);
 
-				ll = atoll((char*)data);
+				ll = parseTime((char*)data);
 
-				hashtable_set_data(res->data, RESPONSE_OFFSET_STR, &ll, sizeof(long long));
+				hashtable_set_data(res->data, RES_UPDTAED, &ll, sizeof(long long));
 
 				bing_mem_free(data);
+			}
+		}
+
+		//Process to get URL for next "page" of results
+		size = hashtable_get_string((hashtable_t*)dictionary, PARSE_NEXT_LINK, NULL);
+		if(size > 0)
+		{
+			data = bing_mem_malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, PARSE_NEXT_LINK, (char*)data);
+
+				res->nextUrl = (char*)data;
 			}
 		}
 	}
@@ -133,7 +241,6 @@ int response_get(bing_response_t response, const char* name, void* data)
 	return ret;
 }
 
-//XXX Will need to redo this
 long long bing_response_get_max_total(bing_response_t response)
 {
 	long long ret = -1;
@@ -145,6 +252,13 @@ long long bing_response_get_offset(bing_response_t response)
 {
 	long long ret = -1;
 	response_get(response, RESPONSE_OFFSET_STR, &ret);
+	return ret;
+}
+
+long long bing_response_get_updated(bing_response_t response)
+{
+	long long ret = -1;
+	response_get(response, RES_UPDTAED, &ret);
 	return ret;
 }
 

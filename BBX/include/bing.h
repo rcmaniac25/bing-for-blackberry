@@ -185,14 +185,14 @@ int bing_shutdown();
  * The @c bing_create() function allows developers to allocate a Bing service object to
  * perform search operations using Microsoft's Bing services.
  *
- * @param application_ID The application ID which allows a developer to access
+ * @param account_key The account key which allows a developer to access
  * 	Microsoft Bing services. If this string is not NULL, it is copied for use by
  * 	the service. So the developer can free the memory when he is done.
  *
  * @return A unique Bing service ID that is used to perform searches. If this value is
  * 	zero then an error has occurred and no service has been allocated.
  */
-unsigned int bing_create(const char* application_ID);
+unsigned int bing_create(const char* account_key);
 
 /**
  * @brief Free a Bing service.
@@ -272,36 +272,35 @@ int bing_get_last_error_code(); //XXX Will need to be updated once search is fin
 /**
  * @brief Get a Bing service's application ID.
  *
- * The @c bing_get_app_ID() function allows developers to get the service's current
- * application ID.
+ * The @c bing_get_account_key() function allows developers to get the service's current
+ * account key.
  *
- * @param bing The unique Bing ID for each application ID.
- * @param buffer The buffer to copy the application ID to. If this is NULL, then
- * 	the application ID length (plus NULL char) is returned.
+ * @param bing The unique Bing ID for each account key.
+ * @param buffer The buffer to copy the account key to. If this is NULL, then
+ * 	the account key length (plus NULL char) is returned.
  *
- * @return The length of the application ID, or -1 if an error occurred.
+ * @return The length of the account key, or -1 if an error occurred.
  */
-int bing_get_app_ID(unsigned int bing, char* buffer); //XXX Rename when done (account key)
+int bing_get_account_key(unsigned int bing, char* buffer);
 
 /**
  * @brief Set a Bing service's application ID.
  *
- * The @c bing_set_app_ID() function allows developers to set the service's
- * application ID. Allowing for different IDs to be used for different
- * searches.
+ * The @c bing_set_account_key() function allows developers to set the service's
+ * account key. Allowing for different keys to be used for different searches.
  *
  * @param bing The unique Bing ID for each application ID.
- * @param appId The application ID to set. Only if this is not NULL and
- * 	has a non-zero length (not including NULL char) will the app ID be
+ * @param account_key The account key to set. Only if this is not NULL and
+ * 	has a non-zero length (not including NULL char) will the account key be
  * 	copied to the Bing service. If an error occurs with copying then the
- * 	original app ID remains unchanged. The ID is copied so the developer
+ * 	original account key remains unchanged. The key is copied so the developer
  * 	can free the data when the function returns.
  *
  * @return A boolean value specifying if the function completed successfully.
  * 	If this is a non-zero value then the operation completed. Otherwise it
  * 	failed.
  */
-int bing_set_app_ID(unsigned int bing, const char* appId); //XXX Rename when done (account key)
+int bing_set_account_key(unsigned int bing, const char* account_key);
 
 /**
  * @brief Perform a synchronous search.
@@ -909,6 +908,18 @@ long long bing_response_get_max_total(bing_response_t response);
  * @return The Bing response offset.
  */
 long long bing_response_get_offset(bing_response_t response);
+
+/**
+ * @brief Get the last time updated for a Bing response.
+ *
+ * The @c bing_response_get_updated() function allows developers to retrieve the
+ * last time the search was updated. This returns the milliseconds since Epoch.
+ *
+ * @param response The Bing response to get update time of.
+ *
+ * @return The Bing response update time in milliseconds since Epoch.
+ */
+long long bing_response_get_updated(bing_response_t response);
 
 /**
  * @brief Get the query used to search for this Bing response.

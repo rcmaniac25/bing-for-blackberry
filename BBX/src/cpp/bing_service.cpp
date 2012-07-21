@@ -21,13 +21,13 @@ bing_service::bing_service(const bing_service& bingService)
 	ID = 0;
 
 	//Copy the App ID
-	len = bing_get_app_ID(bingService.ID, NULL);
+	len = bing_get_account_key(bingService.ID, NULL);
 	if(len > 0)
 	{
 		IDstr = (char*)bing_mem_malloc(len);
 		if(IDstr)
 		{
-			bing_get_app_ID(bingService.ID, IDstr);
+			bing_get_account_key(bingService.ID, IDstr);
 
 			ID = bing_create(IDstr);
 
@@ -47,9 +47,9 @@ bing_service::bing_service(const bing_service& bingService)
 #endif
 }
 
-bing_service::bing_service(const char* application_ID)
+bing_service::bing_service(const char* account_key)
 {
-	ID = bing_create(application_ID);
+	ID = bing_create(account_key);
 }
 
 bing_service::~bing_service()
@@ -72,14 +72,14 @@ bool bing_service::error_return() const
 
 #endif
 
-int bing_service::get_app_ID(char* buffer) const
+int bing_service::get_account_key(char* buffer) const
 {
-	return bing_get_app_ID(ID, buffer);
+	return bing_get_account_key(ID, buffer);
 }
 
-bool bing_service::set_app_ID(const char* appId)
+bool bing_service::set_account_key(const char* account_key)
 {
-	return BOOL_TO_CPP_BOOL(bing_set_app_ID(ID, appId));
+	return BOOL_TO_CPP_BOOL(bing_set_account_key(ID, account_key));
 }
 
 unsigned int bing_service::unique_bing_id() const
