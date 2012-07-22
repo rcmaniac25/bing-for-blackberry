@@ -141,21 +141,15 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 			}
 		}
 
-		//Process updated to get date-time
-		size = hashtable_get_string((hashtable_t*)dictionary, RES_UPDTAED, NULL);
-		if(size > 0)
+		//Process updated to get datetime
+		size = (int)hashtable_get_item((hashtable_t*)dictionary, RES_UPDTAED, NULL);
+		if(size == sizeof(long long))
 		{
-			data = bing_mem_malloc(size);
-			if(data)
-			{
-				hashtable_get_string((hashtable_t*)dictionary, RES_UPDTAED, (char*)data);
+			//Get the datetime
+			hashtable_get_item((hashtable_t*)dictionary, RES_UPDTAED, &ll);
 
-				ll = parseTime((char*)data);
-
-				hashtable_set_data(res->data, RES_UPDTAED, &ll, sizeof(long long));
-
-				bing_mem_free(data);
-			}
+			//Save the datetime
+			hashtable_set_data(res->data, RES_UPDTAED, &ll, sizeof(long long));
 		}
 
 		//Process to get URL for next "page" of results

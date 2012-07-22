@@ -1,7 +1,7 @@
 TODO:
 -Rewrite to Azure
 --Test (good queries)
---Implement error handling for parser
+--Implement error handling for parser (includes figureing out how xmlSAXHandler should be setup. I can use my own erro functions, but get a segfault for some reason)
 --Test (good and bad queries)
 --Release
 --Add compression support

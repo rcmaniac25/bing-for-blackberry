@@ -14,6 +14,7 @@
 #include <bps/netstatus.h>
 
 #include <libxml/parser.h>
+#include <libxml/SAX2.h>
 
 #include <curl/curl.h>
 
@@ -60,35 +61,17 @@ enum PARSER_ERROR
 	PE_GETXMLDATA_CTX_CREATE_FAIL
 };
 
-/* XXX
 typedef struct PARSER_STACK_S
 {
 	void* value;
-	BOOL keepValue;
-	bing_result* addToResult;
-	bing_response* addToResponse;
 	struct PARSER_STACK_S* prev;
 } pstack;
-*/
-
-typedef struct PARSER_STACK2_S
-{
-	void* value;
-	struct PARSER_STACK2_S* prev;
-} pstack2;
 
 typedef struct BING_PARSER_S
 {
 	//Freed on error
 	bing_response* response;
 	bing_response* current;
-	/* XXX
-	pstack* lastResult; //XXX Remove
-	pstack* lastResultElement; //XXX Remove
-	const char* query; //XXX Remove
-	const char* alteredQuery; //XXX Remove
-	const char* alterationOverrideQuery; //XXX Remove
-	*/
 
 	//State info
 	unsigned int bing;
@@ -104,27 +87,6 @@ typedef struct BING_PARSER_S
 #endif
 } bing_parser;
 
-const char* getQualifiedName(const xmlChar* localname, const xmlChar* prefix) //XXX Actually, might not be needed
-{
-	size_t size;
-	char* qualifiedName;
-	if(prefix)
-	{
-		qualifiedName = bing_mem_malloc(size = strlen((char*)localname) + strlen((char*)prefix) + 2);
-		if(qualifiedName)
-		{
-			snprintf(qualifiedName, size, "%s:%s", prefix, localname);
-			qualifiedName[size - 1] = '\0';
-		}
-	}
-	else
-	{
-		//There is nothing that requires changing
-		qualifiedName = bing_mem_strdup((char*)localname);
-	}
-	return qualifiedName;
-}
-
 bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, xmlFreeFunc xmlFree)
 {
 	//Not really the greatest names, could probably change
@@ -133,8 +95,8 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	xmlNodePtr node;
 	const xmlChar* xmlText;
 	char* text;
-	pstack2* additionalProcessing = NULL;
-	pstack2* tStack;
+	pstack* additionalProcessing = NULL;
+	pstack* tStack;
 	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
 	int size;
 	BOOL keep;
@@ -311,7 +273,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 				if(isComplex((char*)xmlText))
 				{
 					//Push a new value onto the stack (order doesn't matter)
-					tStack = bing_mem_malloc(sizeof(pstack2));
+					tStack = bing_mem_malloc(sizeof(pstack));
 					if(!tStack)
 					{
 						//XXX Error
@@ -711,606 +673,30 @@ void serrorCallback(void* userData, xmlErrorPtr error)
 	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
-/* XXX Old
-
-//Processors
-
-//*sigh* C doesn't have an equivalent function of endWith unless it's a character.
-BOOL endsWith(const char* str1, const char* str2)
-{
-	//See if we can find str2
-
-	//First we need the length of the string (we can ignore the null char)
-	int len = str2 ? strlen(str2) : 0;
-
-	//If we can find the last instance of the string, we can check length and compare
-	const char* sub = NULL;
-	if(len > 0)
-	{
-		sub = strrchr(str1, str2[0]);
-		if(sub)
-		{
-			//We do this by first checking length, if it is the same length then it could be it..
-			if(strlen(sub) == len)
-			{
-				//strcmp will tell us if it matches, if it doesn't match the string would be too short to run anyway so just return
-				return strcmp(sub, str2) == 0;
-			}
-		}
-	}
-
-	//Didn't find anything
-	return FALSE;
-}
-
-void cleanStacks(bing_parser* parser)
-{
-	pstack* st;
-
-	//Free result stack (we don't want to free the actual results)
-	while(parser->lastResult)
-	{
-		st = parser->lastResult;
-		parser->lastResult = st->prev;
-
-		bing_mem_free(st); //Object
-	}
-
-	//Free the element
-	while(parser->lastResultElement)
-	{
-		st = parser->lastResultElement;
-		parser->lastResultElement = st->prev;
-
-		bing_mem_free(st->value); //Name
-		bing_mem_free(st); //Object
-	}
-}
-
-
-hashtable_t* createHashtableFromAtts(int att_count, const xmlChar** atts)
-{
-	hashtable_t* table = NULL;
-	int i;
-	const char* localName;
-	const char* value;
-	const char* end;
-	char* tmp;
-	size_t size;
-	if(atts && att_count > 0)
-	{
-		//We don't need a element for each string, we just need it for the data itself
-		table = hashtable_create(att_count);
-		if(table)
-		{
-			//Fill table (attributes are in quintuplets: localname/prefix/URI/value/end)
-			for(i = 0; i < att_count; i++)
-			{
-				//Get the attribute components
-				localName = (char*)atts[i * 5];		//The name of the attribute
-				value = (char*)atts[(i * 5) + 3];	//Pointer to the attribute value (start)
-				end = (char*)atts[(i * 5) + 4];		//Pointer to the attribute value (end)
-
-				//Get the value ONLY (we need to do this because if we just copy the data, we will get a non-NULL terminated string and if we add one extra char, we will still get a non-NULL terminated string.)
-				tmp = bing_mem_malloc(size = (end - value) + 1);
-				if(tmp)
-				{
-					strlcpy(tmp, value, size);
-
-					hashtable_put_item(table, localName, tmp, size);
-
-					bing_mem_free(tmp);
-				}
-			}
-		}
-	}
-	return table;
-}
-
-void addResultToStack(bing_parser* parser, bing_result* result, const char* name, BOOL internal)
-{
-	pstack* pt = bing_mem_malloc(sizeof(pstack));
-	if(pt)
-	{
-		memset(pt, 0, sizeof(pstack));
-
-		//Add to last result
-		pt->prev = parser->lastResult;
-		parser->lastResult = pt;
-		pt->keepValue = TRUE;
-		pt->value = result;
-
-		pt = bing_mem_malloc(sizeof(pstack));
-		if(pt)
-		{
-			//Add to last result element
-			pt->prev = parser->lastResultElement;
-			parser->lastResultElement = pt;
-			pt->keepValue = TRUE;
-			pt->value = bing_mem_strdup(name);
-			if(!pt->value)
-			{
-				//Darn, so close again
-				parser->parseError = PE_ADD_RESULT_STACK_STRDUB_FAIL;
-
-				response_remove_result(parser->current, result, internal, TRUE);
-			}
-		}
-		else
-		{
-			//That's not good (darn, so close. We where able to allocate the first stack but not the second)
-			parser->parseError = PE_ADD_RESULT_STACK_NAME_PSTACK_NOALLOC;
-
-			response_remove_result(parser->current, result, internal, TRUE);
-		}
-	}
-	else
-	{
-		//That's not good
-		parser->parseError = PE_ADD_RESULT_STACK_RESULT_PSTACK_NOALLOC;
-
-		response_remove_result(parser->current, result, internal, TRUE);
-	}
-}
-
-//The real "meat and potatoes" of the parser. Many if blocks for safety and to increase flexibility (and hopefully readability...)
-
-//XXX Rewrite
-void startElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI, int nb_namespaces, const xmlChar** namespaces, int nb_attributes, int nb_defaulted, const xmlChar** attributes)
-{
-	bing_result_t result = NULL;
-	hashtable_t* table;
-	int size;
-	char* data;
-	bing_parser* parser = (bing_parser*)ctx;
-	const char* qualifiedName;
-
-	if(checkForError(parser) &&
-			strcmp((char*)localname, "SearchResponse") != 0) //We don't want the document element
-	{
-		//We need to create the qualified name (as that is what we use for type checks)
-		qualifiedName = getQualifiedName(localname, prefix);
-
-		if(qualifiedName) //We need a qualified name
-		{
-			if(!endsWith(qualifiedName, ":Results")) //We don't want result arrays (we don't want to combine this with the qualified name check so that we don't unfree the qualified name if needed)
-			{
-				//It's a result type
-				if(endsWith(qualifiedName, "Result"))
-				{
-					if(parser->current)
-					{
-						if(!result_is_common(qualifiedName) && //First check if the result is "common" which excludes it from this usage (especially since custom results could end in "Result" and be common)
-								result_create_raw(qualifiedName, &result, parser->current)) //Try to actually create the result (and adds it to the response)
-						{
-							//Create the dictionary (if this fails then, o well. Maybe no hashtable is returned because there where no attributes).
-							table = createHashtableFromAtts(nb_attributes, attributes);
-
-							//Result created successfully, time to save state
-							if(((bing_result*)result)->creation(qualifiedName, result, (data_dictionary_t)table))
-							{
-								addResultToStack(parser, (bing_result*)result, qualifiedName, RESULT_CREATE_DEFAULT_INTERNAL);
-							}
-							else
-							{
-								//Wasn't created correctly, free (this isn't a parser error. The creator ran into an error [or something]).
-								response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
-							}
-							hashtable_free(table);
-						}
-					}
-				}
-				else if(strcmp(qualifiedName, "Query") == 0) //It's the query info
-				{
-					table = createHashtableFromAtts(nb_attributes, attributes);
-
-					if(table)
-					{
-						size = hashtable_get_string(table, "SearchTerms", NULL);
-						if(size > 0)
-						{
-							bing_mem_free((void*)parser->query);
-							parser->query = bing_mem_malloc(size);
-							hashtable_get_string(table, "SearchTerms", (char*)parser->query);
-						}
-						size = hashtable_get_string(table, "AlteredQuery", NULL);
-						if(size > 0)
-						{
-							bing_mem_free((void*)parser->alteredQuery);
-							parser->alteredQuery = bing_mem_malloc(size);
-							hashtable_get_string(table, "AlteredQuery", (char*)parser->alteredQuery);
-						}
-						size = hashtable_get_string(table, "AlterationOverrideQuery", NULL);
-						if(size > 0)
-						{
-							bing_mem_free((void*)parser->alterationOverrideQuery);
-							parser->alterationOverrideQuery = bing_mem_malloc(size);
-							hashtable_get_string(table, "AlterationOverrideQuery", (char*)parser->alterationOverrideQuery);
-						}
-					}
-					else
-					{
-						//If the table is NULL then we have an issue as we need that table for query
-						parser->parseError = PE_START_ELE_QUERY_HASHTABLE_CREATE_FAIL;
-					}
-
-					hashtable_free(table);
-				}
-#if defined(BING_DEBUG)
-				else if(strcmp(qualifiedName, "Error") == 0) //Oops, error
-				{
-					table = createHashtableFromAtts(nb_attributes, attributes);
-
-					//Can we create an actual error result?
-					if(table && parser->current && parser->errorRet)
-					{
-						if(result_create_raw("Error", &result, parser->current))
-						{
-							//Run the creation function
-							if(((bing_result*)result)->creation("Error", result, (data_dictionary_t)table))
-							{
-								//Print out the results (do them one at a time to prevent memory leaks that can occur if realloc is used without a backup pointer)b
-
-								data = bing_mem_malloc(sizeof(long long));
-								bing_result_get_64bit_int(result, BING_RESULT_FIELD_CODE, (long long*)data);
-								BING_MSG_PRINTOUT("Error Code = %lld\n", *((long long*)data));
-								bing_mem_free(data);
-
-								data = bing_mem_malloc(bing_result_get_string(result, BING_RESULT_FIELD_MESSAGE, NULL));
-								bing_result_get_string(result, BING_RESULT_FIELD_MESSAGE, data);
-								BING_MSG_PRINTOUT("Error Message = %s\n", data);
-								bing_mem_free(data);
-
-								data = bing_mem_malloc(bing_result_get_string(result, BING_RESULT_FIELD_PARAMETER, NULL));
-								bing_result_get_string(result, BING_RESULT_FIELD_PARAMETER, data);
-								BING_MSG_PRINTOUT("Error Parameter = %s\n", data);
-								bing_mem_free(data);
-							}
-							else
-							{
-								response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
-							}
-						}
-					}
-					hashtable_free(table);
-				}
-#endif
-				else
-				{
-					if(result_is_common(qualifiedName)) //Is this a common data type (as opposed to a response)
-					{
-						table = createHashtableFromAtts(nb_attributes, attributes);
-
-						if(result_create_raw(qualifiedName, &result, parser->current))
-						{
-							//Run the creation function
-							if(((bing_result*)result)->creation(qualifiedName, result, (data_dictionary_t)table))
-							{
-								//Make the result a internal result (if this doesn't work, then it means that it's already internal)
-								response_swap_result(parser->current, result, RESULT_CREATE_DEFAULT_INTERNAL);
-
-								//If an array, we want to store it so we can get internal values
-								if(((bing_result*)result)->array)
-								{
-									addResultToStack(parser, (bing_result*)result, qualifiedName, TRUE);
-
-									//Determine where it should be added to
-
-									//We can let endElement handle saving it
-									if(parser->lastResult)
-									{
-										if(parser->lastResult->prev)
-										{
-											parser->lastResult->addToResult = (bing_result*)parser->lastResult->prev->value;
-										}
-										else
-										{
-											parser->lastResult->addToResponse = parser->current;
-										}
-									}
-								}
-								else
-								{
-									data = bing_mem_malloc(sizeof(int));
-									if(data)
-									{
-										*((int*)data) = FALSE;
-
-										//Determine where it should be added to
-										if(parser->lastResult)
-										{
-											//This is getting added to a result
-											((bing_result*)parser->lastResult->value)->additionalResult(qualifiedName, (bing_result_t)parser->lastResult->value, result, ((int*)data));
-										}
-										else
-										{
-											hashtable_free(table);
-
-											//This is getting added to a response
-											table = hashtable_create(1);
-											if(table)
-											{
-												if(hashtable_put_item(table, strchr(qualifiedName, ':') + 1, &result, sizeof(bing_result_t)) != -1)
-												{
-													((bing_response*)parser->current)->additionalData((bing_response_t)parser->current, (data_dictionary_t)table);
-												}
-											}
-										}
-									}
-
-									//Free the result (if we can)
-									if(!data || !(*((int*)data)))
-									{
-										//Try to free it from the internal result list
-										if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, TRUE, TRUE))
-										{
-											//Try to free it from the normal result list
-											if(!response_remove_result(((bing_result*)result)->parent, (bing_result*)result, FALSE, TRUE))
-											{
-												//Just free it, no idea why it wasn't in either list
-												free_result((bing_result*)result);
-											}
-										}
-									}
-									bing_mem_free(data);
-								}
-							}
-							else
-							{
-								//Error, remove
-								response_remove_result(parser->current, (bing_result*)result, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
-							}
-						}
-
-						hashtable_free(table);
-					}
-					else //It's a response
-					{
-						parser->current = NULL;
-						if(response_create_raw(qualifiedName, (bing_response_t*)&parser->current, parser->bing,
-								(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE) ? parser->response : NULL)) //The general idea is that if there is already a response and it is bundle, it will be the parent. Otherwise add it to Bing
-						{
-							table = createHashtableFromAtts(nb_attributes, attributes);
-
-							if(response_def_create_standard_responses(parser->current, (data_dictionary_t)table) &&
-									parser->current->creation(qualifiedName, (bing_response_t)parser->current, (data_dictionary_t)table))
-							{
-								//Set remaining values
-								if(parser->query)
-								{
-									hashtable_set_data(parser->current->data, RESPONSE_QUERY_STR, parser->query, sizeof(parser->query) + 1);
-								}
-								if(parser->alteredQuery)
-								{
-									hashtable_set_data(parser->current->data, RESPONSE_ALTERED_QUERY_STR, parser->alteredQuery, sizeof(parser->alteredQuery) + 1);
-								}
-								if(parser->alterationOverrideQuery)
-								{
-									hashtable_set_data(parser->current->data, RESPONSE_ALTERATIONS_OVER_QUERY_STR, parser->alterationOverrideQuery, sizeof(parser->alterationOverrideQuery) + 1);
-								}
-
-								//Should we do any extra processing on the response?
-								if(parser->response)
-								{
-									//Response already exists. If it is a bundle then it is already added, otherwise we need to replace it
-									if(parser->response->type != BING_SOURCETYPE_BUNDLE)
-									{
-										//Save this temporarily
-										data = (char*)parser->response;
-
-										if(response_create_raw("bundle", (bing_response_t*)&parser->response, parser->bing, NULL))
-										{
-											//We need to take the original response and make it a child of the new bundle response
-											response_swap_response((bing_response*)data, parser->response);
-
-											//We also need the new current response to be a child of the new bundle response
-											response_swap_response(parser->current, parser->response);
-										}
-										else
-										{
-											//Darn it, that failed
-											bing_response_free(parser->current);
-											parser->parseError = PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL; //See parser error below for info why this is an actual error
-										}
-									}
-								}
-								else if(parser->current)
-								{
-									//Response doesn't exist, make current
-									parser->response = parser->current;
-								}
-							}
-							else
-							{
-								//Darn it, that failed
-								if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_BUNDLE))
-								{
-									//This wasn't a bundled response, just free it (otherwise it will never get freed)
-									bing_response_free(parser->current);
-								}
-								parser->parseError = PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL; //See parser error below for info why this is an actual error
-							}
-
-							hashtable_free(table);
-						}
-						else
-						{
-							//Unlike "results" where missing one is unfortunate, the "response" type helps maintain the tree hierarchy and skipping one would mess up everything (possibly)
-							parser->parseError = PE_START_ELE_RESPONSE_CREATE_FAIL;
-						}
-					}
-				}
-			}
-
-			bing_mem_free((void*)qualifiedName);
-		}
-		else
-		{
-			//No qualified name, error
-			parser->parseError = PE_START_ELE_NO_QNAME;
-		}
-	}
-}
-
-//XXX Rewrite
-void endElementNs(void* ctx, const xmlChar* localname, const xmlChar* prefix, const xmlChar* URI)
-{
-	pstack* st;
-	bing_parser* parser = (bing_parser*)ctx;
-	hashtable_t* table;
-	const char* qualifiedName;
-
-	if(checkForError(parser) && parser->lastResultElement)
-	{
-		//We need to create the qualified name (as that is what we use for type checks)
-		qualifiedName = getQualifiedName(localname, prefix);
-
-		if(qualifiedName) //We need a qualified name
-		{
-			if(!endsWith(qualifiedName, ":Results") && //We don't want result arrays
-					strcmp((char*)parser->lastResultElement->value, qualifiedName) == 0)
-			{
-				//Free result
-				st = parser->lastResult;
-				parser->lastResult = st->prev;
-
-				if(st->keepValue) //Well we where told to keep the result, but it might be special...
-				{
-					//The result might supposed to be added to another result/response.
-
-					st->keepValue = FALSE; //Just for the sake of it, we are going to say we don't want to keep the result...
-
-					if(st->addToResult)
-					{
-						st->addToResult->additionalResult((char*)parser->lastResultElement->value, (bing_result_t)st->addToResult, (bing_result_t)st->value, &st->keepValue); //Because the addition function might want get rid of it
-					}
-					else if(st->addToResponse)
-					{
-						//Response is a little harder to do as it takes a dictionary (hashtable). We need to create the hashtable and store the result within it before passing it to the return
-						table = hashtable_create(1);
-						if(table)
-						{
-							if(hashtable_put_item(table, strchr(qualifiedName, ':') + 1, &st->value, sizeof(bing_result_t)) != -1)
-							{
-								st->addToResponse->additionalData((bing_response_t)st->addToResponse, (data_dictionary_t)table);
-							}
-							hashtable_free(table);
-						}
-					}
-					else
-					{
-						//Nothing to add the result to, we might as well keep the value (it will get freed with it's parent  [hopefully])
-						st->keepValue = TRUE;
-					}
-				}
-				//Free the result if desired
-				if(!st->keepValue)
-				{
-					//Try to free it from the normal result list
-					if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, FALSE, TRUE))
-					{
-						//Try to free it from the internal result list
-						if(!response_remove_result(((bing_result*)st->value)->parent, (bing_result*)st->value, TRUE, TRUE))
-						{
-							//Just free it, no idea why it wasn't in either list
-							free_result((bing_result*)st->value);
-						}
-					}
-				}
-				bing_mem_free(st); //Object
-
-				//Free the element
-				st = parser->lastResultElement;
-				parser->lastResultElement = st->prev;
-
-				bing_mem_free(st->value); //Name
-				bing_mem_free(st); //Object
-			}
-
-			bing_mem_free((void*)qualifiedName);
-		}
-		else
-		{
-			//No qualified name, error
-			parser->parseError = PE_END_ELE_NO_QNAME;
-		}
-	}
-}
-*/
-
 BOOL checkForError(bing_parser* parser)
 {
 	if(parser->parseError != PE_NO_ERROR)
 	{
 		//Error, cleanup everything
 
-		//First clean the stacks
-		//cleanStacks(parser); //XXX Not needed
-
 		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
 		bing_response_free(parser->current);
-
-		/* XXX Not needed
-		//Finally, free any strings
-		bing_mem_free((void*)parser->query);
-		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
-		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
-		*/
 
 		//Mark everything as NULL to prevent errors later
 		parser->response = NULL;
 		parser->current = NULL;
-		/* XXX Not needed
-		parser->lastResult = NULL;
-		parser->lastResultElement = NULL;
-		parser->query = NULL;
-		parser->alteredQuery = NULL;
-		parser->alterationOverrideQuery = NULL;
-		*/
 
 		return FALSE; //Don't continue
 	}
 	return TRUE; //No error, continue
 }
 
-static const xmlSAXHandler parserHandler=
-{
-		NULL,			//internalSubset
-		NULL,			//isStandalone
-		NULL,			//hasInternalSubset
-		NULL,			//hasExternalSubset
-		NULL,			//resolveEntity
-		NULL,			//getEntity
-		NULL,			//entityDecl
-		NULL,			//notationDecl
-		NULL,			//attributeDecl
-		NULL,			//elementDecl
-		NULL,			//unparsedEntityDecl
-		NULL,			//setDocumentLocator
-		NULL,			//startDocument
-		NULL,			//endDocument
-		NULL,			//startElement
-		NULL,			//endElement
-		NULL,			//reference
-		NULL,			//characters
-		NULL,			//ignorableWhitespace
-		NULL,			//processingInstruction
-		NULL,			//comment
-		NULL,			//warning
-		errorCallback,	//error
-		NULL,			//fatalError
-		NULL,			//getParameterEntity
-		NULL,			//cdataBlock
-		NULL,			//externalSubset
-		XML_SAX2_MAGIC,	//initialized
-		NULL,			//_private
-		NULL,			//startElementNs
-		NULL,			//endElementNs
-		serrorCallback	//serror
-};
+static xmlSAXHandler parserHandler;
 
 void search_setup()
 {
+	xmlSAXHandler* handler;
+
 	LIBXML_TEST_VERSION
 
 	if(atomic_add_value(&searchCount, 1) == 0)
@@ -1323,6 +709,12 @@ void search_setup()
 
 		//Setup cURL
 		curl_global_init_mem(CURL_GLOBAL_ALL, bing_mem_malloc, bing_mem_free, bing_mem_realloc, bing_mem_strdup, bing_mem_calloc); //THIS IS NOT THREAD SAFE!!
+
+		//Setup parser
+		xmlSAXVersion(&parserHandler, 2);
+		//parserHandler.error = errorCallback;
+		//parserHandler.fatalError = errorCallback;
+		//parserHandler.serror = serrorCallback;
 	}
 }
 
@@ -1353,16 +745,6 @@ void search_cleanup(bing_parser* parser)
 
 		//Close thread (if used)
 		parser->thread = NULL; //pthread_exit (called implicitly at end of execution) frees the thread
-
-		/*
-		//Cleanup stacks
-		cleanStacks(parser);
-
-		//Cleanup strings
-		bing_mem_free((void*)parser->query);
-		bing_mem_free((void*)parser->alteredQuery); //XXX Remove
-		bing_mem_free((void*)parser->alterationOverrideQuery); //XXX Remove
-		*/
 
 		//Free the bing parser
 		bing_mem_free(parser);
@@ -1410,7 +792,7 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	else
 	{
 		//Create parser
-		parser->ctx = xmlCreatePushParserCtxt((xmlSAXHandlerPtr)&parserHandler, parser, ptr, atcsize, NULL);
+		parser->ctx = xmlCreatePushParserCtxt(/*(xmlSAXHandlerPtr)&parserHandler*/NULL, parser, ptr, atcsize, NULL);
 		parser->parseError = PE_NO_ERROR;
 		if(!parser->ctx)
 		{
@@ -1509,6 +891,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 #if defined(BING_DEBUG)
 	int curlCode;
 #endif
+	xmlFreeFunc xmlFreeF;
 
 	//TODO: Need to figure out how to get translation APIs to work when in a composite (will need to do two separate searches)
 
@@ -1525,6 +908,9 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 			{
 				if(check_for_connection())
 				{
+					//Get memory function
+					xmlGcMemGet(&xmlFreeF, NULL, NULL, NULL, NULL);
+
 					//Invoke cURL
 					if((
 #if defined(BING_DEBUG)
@@ -1538,7 +924,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 						xmlParseChunk(parser->ctx, NULL, 0, TRUE);
 
 						//Parse document
-						parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFree);
+						parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
 
 						//We check for an error, if none exists then we get the response
 						if(checkForError(parser))
@@ -1593,8 +979,6 @@ bing_response_t bing_search_sync(unsigned int bingID, const char* query, const b
 
 	if(check_for_connection())
 	{
-		search_setup();
-
 		//Get the URL
 		url = bing_request_url(query, request);
 		if(url)
@@ -1637,9 +1021,13 @@ void* async_search(void* ctx)
 	bing_response* response = NULL;
 	const void* userData = NULL;
 	bing_parser* parser = (bing_parser*)ctx;
+	xmlFreeFunc xmlFreeF;
 
 	if(check_for_connection())
 	{
+		//Get memory function
+		xmlGcMemGet(&xmlFreeF, NULL, NULL, NULL, NULL);
+
 		//Invoke cURL
 		if((
 #if defined(BING_DEBUG)
@@ -1653,7 +1041,7 @@ void* async_search(void* ctx)
 			xmlParseChunk(parser->ctx, NULL, 0, TRUE);
 
 			//Parse document
-			parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFree);
+			parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
 
 			//We check for an error
 #if defined(BING_DEBUG)
@@ -1796,8 +1184,6 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 
 	if(check_for_connection())
 	{
-		search_setup();
-
 		//Get the URL
 		url = bing_request_url(query, request);
 		if(url)
