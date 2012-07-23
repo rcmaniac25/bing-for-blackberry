@@ -682,7 +682,7 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 				if(ret)
 				{
 					//Save response
-					response[0] = res;
+					*response = res;
 				}
 				else
 				{

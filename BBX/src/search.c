@@ -20,8 +20,8 @@
 
 //Defines for parsing
 #define DEFAULT_HASHTABLE_SIZE 8
-#define PARSE_PROPERTY_TYPE ((xmlChar*)"type")
-#define PARSE_PROPERTY_MTYPE ((xmlChar*)"m:type")
+#define PARSE_PROPERTY_TYPE "type"
+#define PARSE_PROPERTY_MTYPE "m:type"
 
 #define PARSE_KEY_TITLE "title"
 #define PARSE_KEY_SUBTITLE "subtitle"
@@ -87,6 +87,80 @@ typedef struct BING_PARSER_S
 #endif
 } bing_parser;
 
+//Helper functions to handle namespaces
+BOOL nsXmlHasProp(xmlNodePtr node, const char* name)
+{
+	const char* xmlName = strchr(name, ':');
+	char* tname;
+	BOOL ret = FALSE;
+	if(xmlName)
+	{
+		xmlName = bing_mem_strdup(name);
+
+		tname = strchr(xmlName, ':');
+		*(tname++) = '\0';
+
+		//Has namespace
+		ret = xmlHasNsProp(node, (xmlChar*)tname, (xmlChar*)xmlName) != NULL;
+
+		bing_mem_free((void*)xmlName);
+	}
+	else
+	{
+		//No namespace, handle like normal
+		ret = xmlHasNsProp(node, (xmlChar*)name, NULL) != NULL;
+	}
+	return ret;
+}
+
+const xmlChar* nsXmlGetProp(xmlNodePtr node, const char* name)
+{
+	const char* xmlName = strchr(name, ':');
+	char* tname;
+	xmlChar* ret = NULL;
+	if(xmlName)
+	{
+		xmlName = bing_mem_strdup(name);
+
+		tname = strchr(xmlName, ':');
+		*(tname++) = '\0';
+
+		//Has namespace
+		ret = xmlGetNsProp(node, (xmlChar*)tname, (xmlChar*)xmlName);
+
+		bing_mem_free((void*)xmlName);
+	}
+	else
+	{
+		//No namespace, handle like normal
+		ret = xmlGetNsProp(node, (xmlChar*)name, NULL);
+	}
+	return ret;
+}
+
+const char* xmlGetQualifiedName(xmlNodePtr node)
+{
+	size_t size;
+	char* qualifiedName;
+	if(node->ns && node->ns->prefix)
+	{
+		//A prefix exists, produce the qualified name
+		qualifiedName = bing_mem_malloc(size = strlen((char*)node->name) + strlen((char*)node->ns->prefix) + 2);
+		if(qualifiedName)
+		{
+			snprintf(qualifiedName, size, "%s:%s", node->ns->prefix, node->name);
+			qualifiedName[size - 1] = '\0';
+		}
+	}
+	else
+	{
+		//There is nothing that requires changing
+		qualifiedName = bing_mem_strdup((char*)node->name);
+	}
+	return qualifiedName;
+}
+
+//Parse functions
 bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, xmlFreeFunc xmlFree)
 {
 	//Not really the greatest names, could probably change
@@ -95,6 +169,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	xmlNodePtr node;
 	const xmlChar* xmlText;
 	char* text;
+	const char* nodeName;
 	pstack* additionalProcessing = NULL;
 	pstack* tStack;
 	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
@@ -107,66 +182,51 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		//Go through all the nodes to get data
 		for(node = resultNode->children; node != NULL; node = node->next)
 		{
-			//We want to stop on content, we process that later
-			if(strcmp((char*)node->name, "content") == 0)
+			nodeName = xmlGetQualifiedName(node);
+			if(nodeName)
 			{
-				break;
-			}
-
-			//If we have a node with a type property, it makes it easy for us
-			if(xmlHasProp(node, PARSE_PROPERTY_TYPE))
-			{
-				xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
-				if(xmlText)
+				//We want to stop on content, we process that later
+				if(strcmp(nodeName, "content") == 0)
 				{
-					//Parse the data
-					if(parseToHashtableByType((char*)xmlText, node, data, xmlFree))
+					break;
+				}
+
+				//If we have a node with a type property, it makes it easy for us
+				if(nsXmlHasProp(node, PARSE_PROPERTY_TYPE))
+				{
+					xmlText = nsXmlGetProp(node, PARSE_PROPERTY_TYPE);
+					if(xmlText)
 					{
-						//Check to see if this is a composite response
-						if(strcmp((char*)node->name, PARSE_KEY_TITLE) == 0)
+						//Parse the data
+						if(parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 						{
-							size = hashtable_get_string(data, PARSE_KEY_TITLE, NULL);
-							if(size > 0)
+							//Check to see if this is a composite response
+							if(strcmp(nodeName, PARSE_KEY_TITLE) == 0)
 							{
-								text = bing_mem_malloc(size);
-								if(text)
+								size = hashtable_get_string(data, PARSE_KEY_TITLE, NULL);
+								if(size > 0)
 								{
-									hashtable_get_string(data, PARSE_KEY_TITLE, text);
-									text[size - 1] = '\0';
-									if(strcmp(text, "ExpandableSearchResult") == 0)
+									text = bing_mem_malloc(size);
+									if(text)
 									{
-										//This is a composite response
-										hashtable_free(data);
-										return NULL;
+										hashtable_get_string(data, PARSE_KEY_TITLE, text);
+										text[size - 1] = '\0';
+										if(strcmp(text, "ExpandableSearchResult") == 0)
+										{
+											//This is a composite response
+											hashtable_free(data);
+											return NULL;
+										}
+										bing_mem_free(text);
 									}
-									bing_mem_free(text);
-								}
-								else
-								{
-									//XXX Error
+									else
+									{
+										//XXX Error
+									}
 								}
 							}
 						}
-					}
-					else
-					{
-						//XXX Error
-					}
-					xmlFree((void*)xmlText);
-				}
-				else
-				{
-					//XXX Error
-				}
-			}
-			else
-			{
-				if(xmlHasProp(node, PARSE_PROPERTY_MTYPE))
-				{
-					xmlText = xmlGetProp(node, PARSE_PROPERTY_MTYPE);
-					if(xmlText)
-					{
-						if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
+						else
 						{
 							//XXX Error
 						}
@@ -177,48 +237,73 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 						//XXX Error
 					}
 				}
-				else if(strcmp((char*)node->name, "link") == 0)
+				else
 				{
-					xmlText = xmlGetProp(node, (xmlChar*)"rel");
-					if(xmlText)
+					if(nsXmlHasProp(node, PARSE_PROPERTY_MTYPE))
 					{
-						if(strcmp((char*)xmlText, "next") == 0)
+						xmlText = nsXmlGetProp(node, PARSE_PROPERTY_MTYPE);
+						if(xmlText)
 						{
-							xmlFree((void*)xmlText);
-
-							xmlText = xmlGetProp(node, (xmlChar*)"href");
-							//XXX Special assignment
-							if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+							if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 							{
 								//XXX Error
 							}
-						}
-						else if(strcmp((char*)xmlText, "self") == 0)
-						{
 							xmlFree((void*)xmlText);
-
-							xmlText = xmlGetProp(node, (xmlChar*)"href");
-							//XXX Special assignment
-							if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
-							{
-								//XXX Error
-							}
 						}
 						else
 						{
-							//TODO (never encountered, unsure if there is something else)
+							//XXX Error
 						}
-						xmlFree((void*)xmlText);
+					}
+					else if(strcmp(nodeName, "link") == 0)
+					{
+						xmlText = nsXmlGetProp(node, "rel");
+						if(xmlText)
+						{
+							if(strcmp((char*)xmlText, "next") == 0)
+							{
+								xmlFree((void*)xmlText);
+
+								xmlText = nsXmlGetProp(node, "href");
+								//XXX Special assignment
+								if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+								{
+									//XXX Error
+								}
+							}
+							else if(strcmp((char*)xmlText, "self") == 0)
+							{
+								xmlFree((void*)xmlText);
+
+								xmlText = nsXmlGetProp(node, "href");
+								//XXX Special assignment
+								if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
+								{
+									//XXX Error
+								}
+							}
+							else
+							{
+								//TODO (never encountered, unsure if there is something else)
+							}
+							xmlFree((void*)xmlText);
+						}
+						else
+						{
+							//XXX Error
+						}
 					}
 					else
 					{
-						//XXX Error
+						parseToHashtableByName(node, data, xmlFree);
 					}
 				}
-				else
-				{
-					parseToHashtableByName(node, data, xmlFree);
-				}
+
+				bing_mem_free((void*)nodeName);
+			}
+			else
+			{
+				//XXX Error
 			}
 		}
 
@@ -230,9 +315,9 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		}
 
 		//If content is not the expected type, ignore it.
-		if(xmlHasProp(node, PARSE_PROPERTY_TYPE))
+		if(nsXmlHasProp(node, PARSE_PROPERTY_TYPE))
 		{
-			xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
+			xmlText = nsXmlGetProp(node, PARSE_PROPERTY_TYPE);
 			if(xmlText)
 			{
 				if(strcmp((char*)xmlText, "application/xml") != 0)
@@ -253,21 +338,21 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	for(node = resultNode->children; node != NULL; node = node->next)
 	{
 		//Determine if we have a node with a type (pointers will be embedded in lib so no need to free them)
-		xmlText = PARSE_PROPERTY_TYPE;
-		if(!xmlHasProp(node, xmlText))
+		text = PARSE_PROPERTY_TYPE;
+		if(!nsXmlHasProp(node, text))
 		{
-			xmlText = PARSE_PROPERTY_MTYPE;
-			if(!xmlHasProp(node, xmlText))
+			text = PARSE_PROPERTY_MTYPE;
+			if(!nsXmlHasProp(node, text))
 			{
-				xmlText = NULL;
+				text = NULL;
 			}
 		}
 
 		//Process the node
-		if(xmlText)
+		if(text)
 		{
 			//... as stated before, pointers will be embedded in lib so no need to free them.
-			xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
+			xmlText = nsXmlGetProp(node, text);
 			if(xmlText)
 			{
 				if(isComplex((char*)xmlText))
@@ -304,7 +389,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	//Create (this will also retrieve the name used by both the creation function and the the creation callbacks)
 	if(type)
 	{
-		xmlText = xmlGetProp(resultNode, PARSE_PROPERTY_MTYPE);
+		xmlText = nsXmlGetProp(resultNode, PARSE_PROPERTY_MTYPE);
 		if(xmlText)
 		{
 			if(result_create_raw((char*)xmlText, (bing_result_t*)&res, parent))
@@ -361,11 +446,21 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		//Only run if there is a result to run on (we still do the loop so we can free the stack)
 		if(res)
 		{
+			node = (xmlNodePtr)additionalProcessing->value;
 			tres = parseResult(node, TRUE, parent, xmlFree);
 			if(tres)
 			{
 				keep = FALSE;
-				res->additionalResult((char*)node->name, res, tres, &keep);
+				nodeName = xmlGetQualifiedName(node);
+				if(nodeName)
+				{
+					res->additionalResult(nodeName, res, tres, &keep);
+					bing_mem_free((void*)nodeName);
+				}
+				else
+				{
+					//XXX Error
+				}
 				if(!keep)
 				{
 					//The result shouldn't be kept
@@ -420,6 +515,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 	xmlNodePtr node2;
 	const xmlChar* xmlText;
 	char* text;
+	const char* nodeName;
 	hashtable_t* data = hashtable_create(DEFAULT_HASHTABLE_SIZE);
 	size_t size;
 	BOOL subResComp;
@@ -427,62 +523,25 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 	//Get general data
 	for(node = responseNode->children; node != NULL; node = node->next)
 	{
-		//We want to stop on content, we process that later
-		if(strcmp((char*)node->name, "entry") == 0)
+		nodeName = xmlGetQualifiedName(node);
+		if(nodeName)
 		{
-			break;
-		}
+			//We want to stop on content, we process that later
+			if(strcmp(nodeName, "entry") == 0)
+			{
+				break;
+			}
 
-		//If we have a node with a type property, it makes it easy for us
-		if(xmlHasProp(node, PARSE_PROPERTY_TYPE))
-		{
-			xmlText = xmlGetProp(node, PARSE_PROPERTY_TYPE);
-			if(xmlText)
+			//If we have a node with a type property, it makes it easy for us
+			if(nsXmlHasProp(node, PARSE_PROPERTY_TYPE))
 			{
-				//Parse the data
-				if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
-				{
-					//XXX Error
-				}
-				xmlFree((void*)xmlText);
-			}
-			else
-			{
-				//XXX Error
-			}
-		}
-		else
-		{
-			if(strcmp((char*)node->name, "link") == 0)
-			{
-				xmlText = xmlGetProp(node, (xmlChar*)"rel");
+				xmlText = nsXmlGetProp(node, PARSE_PROPERTY_TYPE);
 				if(xmlText)
 				{
-					if(strcmp((char*)xmlText, "next") == 0)
+					//Parse the data
+					if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 					{
-						xmlFree((void*)xmlText);
-
-						xmlText = xmlGetProp(node, (xmlChar*)"href");
-						//XXX Special assignment
-						if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
-						{
-							//XXX Error
-						}
-					}
-					else if(strcmp((char*)xmlText, "self") == 0)
-					{
-						xmlFree((void*)xmlText);
-
-						xmlText = xmlGetProp(node, (xmlChar*)"href");
-						//XXX Special assignment
-						if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
-						{
-							//XXX Error
-						}
-					}
-					else
-					{
-						//TODO (never encountered, unsure if there is something else)
+						//XXX Error
 					}
 					xmlFree((void*)xmlText);
 				}
@@ -493,8 +552,55 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 			}
 			else
 			{
-				parseToHashtableByName(node, data, xmlFree);
+				if(strcmp(nodeName, "link") == 0)
+				{
+					xmlText = nsXmlGetProp(node, "rel");
+					if(xmlText)
+					{
+						if(strcmp((char*)xmlText, "next") == 0)
+						{
+							xmlFree((void*)xmlText);
+
+							xmlText = nsXmlGetProp(node, "href");
+							//XXX Special assignment
+							if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+							{
+								//XXX Error
+							}
+						}
+						else if(strcmp((char*)xmlText, "self") == 0)
+						{
+							xmlFree((void*)xmlText);
+
+							xmlText = nsXmlGetProp(node, "href");
+							//XXX Special assignment
+							if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
+							{
+								//XXX Error
+							}
+						}
+						else
+						{
+							//TODO (never encountered, unsure if there is something else)
+						}
+						xmlFree((void*)xmlText);
+					}
+					else
+					{
+						//XXX Error
+					}
+				}
+				else
+				{
+					parseToHashtableByName(node, data, xmlFree);
+				}
 			}
+
+			bing_mem_free((void*)nodeName);
+		}
+		else
+		{
+			//XXX Error
 		}
 	}
 
@@ -581,8 +687,17 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 		for(; node != NULL; node = node->next)
 		{
 			//TODO Check for error, stop if error
-			if(strcmp((char*)node->name, "entry") == 0)
+
+			nodeName = xmlGetQualifiedName(node);
+			if(!nodeName)
 			{
+				//XXX Error
+			}
+
+			if(strcmp(nodeName, "entry") == 0)
+			{
+				bing_mem_free((void*)nodeName);
+
 				//Result automatically added to response
 				if(!parseResult(node, FALSE, parser->current, xmlFree))
 				{
@@ -590,9 +705,17 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 					subResComp = FALSE;
 					for(node2 = node->children; node2 != NULL; node2 = node2->next)
 					{
-						//Check the "title"
-						if(strcmp((char*)node2->name, PARSE_KEY_TITLE) == 0)
+						nodeName = xmlGetQualifiedName(node2);
+						if(!nodeName)
 						{
+							//XXX Error
+						}
+
+						//Check the "title"
+						if(strcmp(nodeName, PARSE_KEY_TITLE) == 0)
+						{
+							bing_mem_free((void*)nodeName);
+
 							//Get the inner text
 							xmlText = xmlNodeGetContent(node);
 							if(xmlText)
@@ -606,39 +729,51 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							}
 							break;
 						}
+
+						bing_mem_free((void*)nodeName);
 					}
 					if(subResComp)
 					{
 						for(node2 = node->children; node2 != NULL; node2 = node2->next)
 						{
-							//Find the "link" node
-							if(strcmp((char*)node2->name, "link") == 0)
+							nodeName = xmlGetQualifiedName(node2);
+							if(nodeName)
 							{
-								//Get the "type" property of the link (if it's a composite, it will have a "type" property. Check anyway)
-								if(xmlHasProp(node2, PARSE_PROPERTY_TYPE))
+								//Find the "link" node
+								if(strcmp(nodeName, "link") == 0)
 								{
-									xmlText = xmlGetProp(node2, PARSE_PROPERTY_TYPE);
-									if(xmlText)
+									//Get the "type" property of the link (if it's a composite, it will have a "type" property. Check anyway)
+									if(nsXmlHasProp(node2, PARSE_PROPERTY_TYPE))
 									{
-										if(strcmp((char*)xmlText, "application/atom+xml;type=feed") == 0)
+										xmlText = nsXmlGetProp(node2, PARSE_PROPERTY_TYPE);
+										if(xmlText)
 										{
-											//Yep, this is a composite node (node2->children->children gets us straight to the internal response [as opposed to the "container" of the response])
-											if(!parseResponse(node2->children->children, TRUE, parser, xmlFree))
+											if(strcmp((char*)xmlText, "application/atom+xml;type=feed") == 0)
+											{
+												//Yep, this is a composite node (node2->children->children gets us straight to the internal response [as opposed to the "container" of the response])
+												if(!parseResponse(node2->children->children, TRUE, parser, xmlFree))
+												{
+													//XXX Error
+												}
+											}
+											else
 											{
 												//XXX Error
 											}
+											xmlFree((void*)xmlText);
 										}
 										else
 										{
 											//XXX Error
 										}
-										xmlFree((void*)xmlText);
-									}
-									else
-									{
-										//XXX Error
 									}
 								}
+
+								bing_mem_free((void*)nodeName);
+							}
+							else
+							{
+								//XXX Error
 							}
 						}
 					}
@@ -650,6 +785,8 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 			}
 			else
 			{
+				bing_mem_free((void*)nodeName);
+
 				//TODO (never encountered, unsure what to do)
 			}
 		}

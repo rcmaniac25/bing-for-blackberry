@@ -152,42 +152,52 @@ void* parseByType(const char* type, xmlNodePtr node, xmlFreeFunc xmlFree)
 enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node)
 {
 	const char* name;
+	enum FIELD_TYPE ret = FIELD_TYPE_UNKNOWN;
 	if(node && node->type == XML_ELEMENT_NODE)
 	{
-		name = (char*)node->name;
+		name = xmlGetQualifiedName(node);
+		if(name)
+		{
+			//We don't have many options right now, so just do this manually
+			if(strcmp(name, "id") == 0)
+			{
+				ret = FIELD_TYPE_STRING;
+			}
+			else if(strcmp(name, "updated") == 0)
+			{
+				ret = FIELD_TYPE_LONG;
+			}
 
-		//We don't have many options right now, so just do this manually
-		if(strcmp(name, "id") == 0)
-		{
-			return FIELD_TYPE_STRING;
-		}
-		else if(strcmp(name, "updated") == 0)
-		{
-			return FIELD_TYPE_LONG;
+			bing_mem_free((void*)name);
 		}
 	}
-	return FIELD_TYPE_UNKNOWN;
+	return ret;
 }
 
 void* parseByName(xmlNodePtr node, xmlFreeFunc xmlFree)
 {
 	//We could parse by type, but if we end up with another type that returns a long, we would end up attempting to parse it as a date, which won't go well.
 	const char* name;
+	void* ret = NULL;
 	if(node && node->type == XML_ELEMENT_NODE)
 	{
-		name = (char*)node->name;
+		name = xmlGetQualifiedName(node);
+		if(name)
+		{
+			//We don't have many options right now, so just do this manually
+			if(strcmp(name, "id") == 0)
+			{
+				ret = parseByType("text", node, xmlFree);
+			}
+			else if(strcmp(name, "updated") == 0)
+			{
+				ret = parseByType("dateTime", node, xmlFree);
+			}
 
-		//We don't have many options right now, so just do this manually
-		if(strcmp(name, "id") == 0)
-		{
-			return parseByType("text", node, xmlFree);
-		}
-		else if(strcmp(name, "updated") == 0)
-		{
-			return parseByType("dateTime", node, xmlFree);
+			bing_mem_free((void*)name);
 		}
 	}
-	return NULL;
+	return ret;
 }
 
 BOOL isComplex(const char* name)
@@ -200,22 +210,25 @@ BOOL isComplex(const char* name)
 	return FALSE;
 }
 
-//Parse to a table (would really like to only have one function with the minor type change difference, but that would require templates [keeping this in C] or a massive macro [not pretty])
-
-BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree)
+//Take the parsed data and store it in the table under the node's qualified name
+BOOL handleParsedData(xmlNodePtr node, void* parsedData, enum FIELD_TYPE type, hashtable_t* table)
 {
-	//table.Add(node.Name, ParseByType(stype, node));
-	void* parsedData;
 	size_t size;
 	BOOL res = FALSE;
+	const char* name;
 
-	//Get type
-	enum FIELD_TYPE type = getParsedTypeByType(stype);
 	if(type != FIELD_TYPE_UNKNOWN)
 	{
-		//Get data
-		parsedData = parseByType(stype, node, xmlFree);
-		if(parsedData)
+#if __SIZEOF_LONG_LONG__ != 8
+#error Long Long size not equal to 8
+#endif
+
+//If the data is the size of a pointer, we will take it since the parsed int/long value of zero will be a NULL pointer anyway
+#if __SIZEOF_POINTER__ == 8
+		if(parsedData || type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG)
+#else
+		if(parsedData || type == FIELD_TYPE_INT)
+#endif
 		{
 			//Determine size
 			switch(type)
@@ -243,9 +256,6 @@ BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* tab
 					size = 0;
 					break;
 			}
-#if __SIZEOF_LONG_LONG__ != 8
-#error Long Long size not equal to 8
-#endif
 			if(size > 0)
 			{
 				//Add to table
@@ -259,7 +269,12 @@ BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* tab
 				{
 					parsedData = &parsedData;
 				}
-				res = hashtable_put_item(table, (char*)node->name, parsedData, size) != -1;
+				name = xmlGetQualifiedName(node);
+				if(name)
+				{
+					res = hashtable_put_item(table, name, parsedData, size) != -1;
+					bing_mem_free((void*)name);
+				}
 			}
 #if __SIZEOF_POINTER__ == 8
 			//If data is not an int or long long, we need to free it
@@ -276,76 +291,26 @@ BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* tab
 	return res;
 }
 
+//Parse to a table
+
+BOOL parseToHashtableByType(const char* stype, xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree)
+{
+	//table.Add(node.Name, ParseByType(stype, node));
+	enum FIELD_TYPE type = getParsedTypeByType(stype);
+	if(type != FIELD_TYPE_UNKNOWN)
+	{
+		return handleParsedData(node, parseByType(stype, node, xmlFree), type, table);
+	}
+	return FALSE;
+}
+
 BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree)
 {
 	//table.Add(node.Name, ParseByName(node));
-	void* parsedData;
-	size_t size;
-	BOOL res = FALSE;
-
-	//Get type
 	enum FIELD_TYPE type = getParsedTypeByName(node);
 	if(type != FIELD_TYPE_UNKNOWN)
 	{
-		//Get data
-		parsedData = parseByName(node, xmlFree);
-		if(parsedData)
-		{
-			//Determine size
-			switch(type)
-			{
-				case FIELD_TYPE_STRING:
-					size = strlen((char*)parsedData) + 1;
-					break;
-				case FIELD_TYPE_LONG:
-					size = sizeof(long long);
-					break;
-				case FIELD_TYPE_INT:
-					size = sizeof(int);
-					break;
-				case FIELD_TYPE_DOUBLE:
-					size = sizeof(double);
-					break;
-				case FIELD_TYPE_BOOLEAN:
-					size = sizeof(BOOL);
-					break;
-				case FIELD_TYPE_ARRAY:
-					size = *((size_t*)parsedData);
-					parsedData = parsedData + sizeof(size_t); //Move the data position
-					break;
-				default:
-					size = 0;
-					break;
-			}
-#if __SIZEOF_LONG_LONG__ != 8
-#error Long Long size not equal to 8
-#endif
-			if(size > 0)
-			{
-				//Add to table
-#if __SIZEOF_POINTER__ == 8
-				//If type is int or long long, the value is stored in the pointer itself instead of a memory position the pointer points to. We need to get a pointer so hashtable can copy it
-				if(type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG)
-#else
-				//If type is int, the value is stored in the pointer itself instead of a memory position the pointer points to. We need to get a pointer so hashtable can copy it
-				if(type == FIELD_TYPE_INT)
-#endif
-				{
-					parsedData = &parsedData;
-				}
-				res = hashtable_put_item(table, (char*)node->name, parsedData, size) != -1;
-			}
-#if __SIZEOF_POINTER__ == 8
-			//If data is not an int or long long, we need to free it
-			if(!(type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG))
-#else
-			//If data is not an int, we need to free it
-			if(type != FIELD_TYPE_INT)
-#endif
-			{
-				bing_mem_free(parsedData);
-			}
-		}
+		return handleParsedData(node, parseByName(node, xmlFree), type, table);
 	}
-	return res;
+	return FALSE;
 }
