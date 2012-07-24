@@ -87,12 +87,46 @@ typedef struct BING_PARSER_S
 #endif
 } bing_parser;
 
+xmlAttrPtr nsXmlHasPropFind(xmlNodePtr node, const char* prefix, const char* name)
+{
+	//Based off libxml's xmlGetPropNodeInternal
+
+	xmlAttrPtr prop;
+
+	if(name && node->properties)
+	{
+		prop = node->properties;
+		do
+		{
+			if(strcmp(name, (char*)prop->name) == 0)
+			{
+				if(prefix)
+				{
+					if((prop->ns != NULL) && strcmp(prefix, (char*)(prop->ns->prefix)) == 0)
+					{
+						return prop;
+					}
+				}
+				else
+				{
+					if((prop->ns == NULL) || (prop->ns->prefix == NULL))
+					{
+						return prop;
+					}
+				}
+			}
+			prop = prop->next;
+		} while(prop);
+	}
+	return NULL;
+}
+
 //Helper functions to handle namespaces
-BOOL nsXmlHasProp(xmlNodePtr node, const char* name)
+xmlAttrPtr nsXmlHasProp(xmlNodePtr node, const char* name)
 {
 	const char* xmlName = strchr(name, ':');
 	char* tname;
-	BOOL ret = FALSE;
+	xmlAttrPtr ret = NULL;
 	if(xmlName)
 	{
 		xmlName = bing_mem_strdup(name);
@@ -101,41 +135,26 @@ BOOL nsXmlHasProp(xmlNodePtr node, const char* name)
 		*(tname++) = '\0';
 
 		//Has namespace
-		ret = xmlHasNsProp(node, (xmlChar*)tname, (xmlChar*)xmlName) != NULL;
+		ret = nsXmlHasPropFind(node, xmlName, tname);
 
 		bing_mem_free((void*)xmlName);
 	}
 	else
 	{
 		//No namespace, handle like normal
-		ret = xmlHasNsProp(node, (xmlChar*)name, NULL) != NULL;
+		ret = nsXmlHasPropFind(node, NULL, name);
 	}
 	return ret;
 }
 
 const xmlChar* nsXmlGetProp(xmlNodePtr node, const char* name)
 {
-	const char* xmlName = strchr(name, ':');
-	char* tname;
-	xmlChar* ret = NULL;
-	if(xmlName)
+	xmlAttrPtr prop = nsXmlHasProp(node, name);
+	if(prop)
 	{
-		xmlName = bing_mem_strdup(name);
-
-		tname = strchr(xmlName, ':');
-		*(tname++) = '\0';
-
-		//Has namespace
-		ret = xmlGetNsProp(node, (xmlChar*)tname, (xmlChar*)xmlName);
-
-		bing_mem_free((void*)xmlName);
+		return xmlNodeGetContent((xmlNodePtr)prop);
 	}
-	else
-	{
-		//No namespace, handle like normal
-		ret = xmlGetNsProp(node, (xmlChar*)name, NULL);
-	}
-	return ret;
+	return NULL;
 }
 
 const char* xmlGetQualifiedName(xmlNodePtr node)
@@ -463,22 +482,10 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 				}
 				if(!keep)
 				{
-					//The result shouldn't be kept
-					if(type)
+					//Free from internal
+					if(response_remove_result(parent, tres, TRUE, TRUE))
 					{
-						//Free from internal
-						if(response_remove_result(parent, tres, TRUE, TRUE))
-						{
-							tres = NULL;
-						}
-					}
-					else
-					{
-						//Free from public
-						if(response_remove_result(parent, tres, FALSE, TRUE))
-						{
-							tres = NULL;
-						}
+						tres = NULL;
 					}
 					if(tres)
 					{

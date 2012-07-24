@@ -52,30 +52,6 @@ int result_def_create(const char* name, bing_result_t result, data_dictionary_t 
 	return hashtable_copy(((bing_result*)result)->data, (hashtable_t*)dictionary);
 }
 
-int result_video_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
-{
-	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
-	if(ret)
-	{
-		ret = replace_string_with_int(((bing_result*)result)->data, RES_VIDEO_RUN_TIME_LENGTH);
-	}
-	return ret;
-}
-
-int result_image_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
-{
-	hashtable_t* table;
-	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
-	if(ret)
-	{
-		table = ((bing_result*)result)->data;
-		ret = replace_string_with_int(table, RES_IMAGE_HEIGHT);
-		ret &= replace_string_with_int(table, RES_IMAGE_WIDTH);
-		ret &= replace_string_with_longlong(table, RES_IMAGE_FILESIZE);
-	}
-	return ret;
-}
-
 int result_news_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
 {
 	char* str;
@@ -119,26 +95,12 @@ int result_def_common_create(const char* name, bing_result_t result, data_dictio
 		table = ((bing_result*)result)->data;
 		if(strcmp(name, RES_TYPE_THUMBNAIL) == 0)
 		{
-			str = RES_TYPE_THUMBNAIL_NAME;
+			str = RES_TYPE_THUMBNAIL;
 		}
 		if(str)
 		{
 			hashtable_set_data(table, BING_RESULT_TYPE_FIELD, str, strlen(str) + 1);
 		}
-	}
-	return ret;
-}
-
-int result_common_thumbnail_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
-{
-	hashtable_t* table;
-	BOOL ret = (BOOL)result_def_common_create(name, result, dictionary);
-	if(ret)
-	{
-		table = ((bing_result*)result)->data;
-		ret = replace_string_with_int(table, RES_IMAGE_HEIGHT);
-		ret &= replace_string_with_int(table, RES_IMAGE_WIDTH);
-		ret &= replace_string_with_longlong(table, RES_IMAGE_FILESIZE);
 	}
 	return ret;
 }
@@ -265,15 +227,15 @@ typedef struct BING_RESULT_CREATOR_SEARCH_S
 static bing_result_creator_search result_def_creator[]=
 {
 		//Results
-		{{"WebResult",				FALSE,	result_def_create,				result_def_additional_result},			BING_SOURCETYPE_WEB,				5,	&result_def_creator[1]},
-		{{"VideoResult",			FALSE,	result_video_create,			result_image_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[2]},
-		{{"ImageResult",			FALSE,	result_image_create,			result_image_video_additional_result},	BING_SOURCETYPE_IMAGE,				10,	&result_def_creator[3]},
-		{{"NewsResult",				FALSE,	result_news_create,				result_def_additional_result},			BING_SOURCETYPE_NEWS,				6,	&result_def_creator[4]},
-		{{"RelatedSearchResult",	FALSE,	result_def_create,				result_def_additional_result},			BING_SOURCETYPE_RELATED_SEARCH,		3,	&result_def_creator[5]},
-		{{"SpellResult",			FALSE,	result_def_create,				result_def_additional_result},			BING_SOURCETYPE_SPELL,				2,	&result_def_creator[6]},
+		{{"WebResult",				FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_WEB,				5,	&result_def_creator[1]},
+		{{"VideoResult",			FALSE,	result_def_create,			result_image_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[2]},
+		{{"ImageResult",			FALSE,	result_def_create,			result_image_video_additional_result},	BING_SOURCETYPE_IMAGE,				10,	&result_def_creator[3]},
+		{{"NewsResult",				FALSE,	result_news_create,			result_def_additional_result},			BING_SOURCETYPE_NEWS,				6,	&result_def_creator[4]},
+		{{"RelatedSearchResult",	FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_RELATED_SEARCH,		3,	&result_def_creator[5]},
+		{{"SpellResult",			FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_SPELL,				2,	&result_def_creator[6]},
 
 		//Type
-		{{RES_TYPE_THUMBNAIL,		TRUE,	result_common_thumbnail_create,	result_def_additional_result},			BING_RESULT_TYPE,					5,	NULL},
+		{{RES_TYPE_THUMBNAIL,		TRUE,	result_def_common_create,	result_def_additional_result},			BING_RESULT_TYPE,					5,	NULL},
 };
 
 static bing_field_search result_fields[] =
