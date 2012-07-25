@@ -63,9 +63,9 @@ void hashtable_free(hashtable_t* table)
 	}
 }
 
-int hashtable_key_exists(hashtable_t* table, const char* key)
+BOOL hashtable_key_exists(hashtable_t* table, const char* key)
 {
-	int ret = -1;
+	BOOL ret = FALSE;
 	if(table && key)
 	{
 		ret = xmlHashLookup(((ht*)table)->table, (xmlChar*)key) != NULL;

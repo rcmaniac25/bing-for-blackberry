@@ -639,8 +639,6 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 {
 	BOOL ret = FALSE;
 	bing_response* res;
-	list* list_v = NULL;
-	bing_response_t* responseList = NULL;
 	if(response &&
 			(!(responseParent && responseParent->bing == 0) || bing > 0)) //We only want a response to be created if it is destined to be a either a parent or child response, not a child of a child response.
 	{
@@ -931,7 +929,7 @@ int bing_response_custom_is_field_supported(bing_response_t response, const char
 	if(response && field)
 	{
 		res = (bing_response*)response;
-		ret = hashtable_key_exists(res->data, field) != -1;
+		ret = hashtable_key_exists(res->data, field);
 	}
 	return ret;
 }

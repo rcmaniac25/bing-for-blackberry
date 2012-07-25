@@ -1415,6 +1415,12 @@ int bing_result_register_result_creator(const char* name, int type, result_creat
  */
 int bing_result_unregister_result_creator(const char* name);
 
+/*
+ * Type functions
+ */
+
+//TODO
+
 __END_DECLS
 
 #endif /* BING_H_ */

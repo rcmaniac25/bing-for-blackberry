@@ -36,7 +36,6 @@
 
 //Type names
 #define RES_TYPE_THUMBNAIL "Bing.Thumbnail"
-#define RES_TYPE_THUMBNAIL_NAME "d:Thumbnail"
 
 //Creation/update functions
 
@@ -211,7 +210,7 @@ void loadThumbnail(hashtable_t* resultData, hashtable_t* new_resultData, bing_re
 void result_image_video_additional_result(const char* name, bing_result_t result, bing_result_t new_result, int* keepResult)
 {
 	//keepResult is set to FALSE by default. Let it be freed,
-	result_additional_result_helper(result, new_result, RES_TYPE_THUMBNAIL, RES_TYPE_THUMBNAIL_NAME, loadThumbnail);
+	result_additional_result_helper(result, new_result, RES_TYPE_THUMBNAIL, (void*)name, loadThumbnail);
 }
 
 //Search structure
@@ -301,7 +300,7 @@ int bing_result_is_field_supported(bing_result_t result, enum BING_RESULT_FIELD 
 		key = find_field(result_fields, field, FIELD_TYPE_UNKNOWN, res->type, FALSE);
 
 		//Determine if the key is within the result
-		ret = hashtable_key_exists(res->data, key) != -1;
+		ret = hashtable_key_exists(res->data, key);
 	}
 	return ret;
 }
@@ -480,7 +479,7 @@ int bing_result_custom_is_field_supported(bing_result_t result, const char* fiel
 	if(result && field)
 	{
 		res = (bing_result*)result;
-		ret = hashtable_key_exists(res->data, field) != -1;
+		ret = hashtable_key_exists(res->data, field);
 	}
 	return ret;
 }

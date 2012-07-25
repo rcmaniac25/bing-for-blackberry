@@ -477,7 +477,7 @@ int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FI
 		key = find_field(request_fields, field, FIELD_TYPE_UNKNOWN, bing_request_get_source_type(request), FALSE);
 
 		//Determine if the key is within the result
-		ret = hashtable_key_exists(req->data, key) != -1;
+		ret = hashtable_key_exists(req->data, key);
 	}
 	return ret;
 }
@@ -722,7 +722,7 @@ int bing_request_custom_is_field_supported(bing_request_t request, const char* f
 	BOOL ret = FALSE;
 	if(request && field)
 	{
-		ret = hashtable_key_exists(((bing_request*)request)->data, field) != -1;
+		ret = hashtable_key_exists(((bing_request*)request)->data, field);
 	}
 	return ret;
 }

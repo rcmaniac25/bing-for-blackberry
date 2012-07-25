@@ -33,7 +33,6 @@
 #define CURL_FALSE 0L
 #define CURL_EMPTY_STRING ""
 
-//XXX New error codes once updated
 enum PARSER_ERROR
 {
 	PE_NO_ERROR,
@@ -42,20 +41,46 @@ enum PARSER_ERROR
 	PE_ERROR_CALLBACK,
 	PE_SERROR_CALLBACK,
 
-	//addResultToStack
-	PE_ADD_RESULT_STACK_STRDUB_FAIL,
-	PE_ADD_RESULT_STACK_NAME_PSTACK_NOALLOC,
-	PE_ADD_RESULT_STACK_RESULT_PSTACK_NOALLOC,
+	//parseResult
+	PE_PRESULT_NODE_TYPE_TITLE_OFM,
+	PE_PRESULT_NODE_TYPE_PBT_FAIL,
+	PE_PRESULT_NODE_TYPE_MISSING,
+	PE_PRESULT_NODE_MTYPE_PBT_FAIL,
+	PE_PRESULT_NODE_MTYPE_MISSING,
+	PE_PRESULT_NODE_NEXT_SAVE_FAIL,
+	PE_PRESULT_NODE_SELF_SAVE_FAIL,
+	PE_PRESULT_NODE_LINK_UNK_REL_PROP,
+	PE_PRESULT_NODE_LINK_NO_REL_PROP,
+	PE_PRESULT_NODE_PBN_FAIL,
+	PE_PRESULT_NODE_NO_QNAME,
+	PE_PRESULT_CONTENT_STACK_FAIL,
+	PE_PRESULT_CONTENT_PBT_FAIL,
+	PE_PRESULT_CONTENT_PBN_FAIL,
+	PE_PRESULT_CREATE_TYPE_IN_SWITCH_FAIL,
+	PE_PRESULT_CREATE_NO_TYPE_PROP,
+	PE_PRESULT_ADDPROC_NO_QNAME,
+	PE_PRESULT_ADDPROC_PARSERESULT_TYPE_FAIL,
 
-	//startElementNs
-	PE_START_ELE_QUERY_HASHTABLE_CREATE_FAIL,
-	PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL,
-	PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL,
-	PE_START_ELE_RESPONSE_CREATE_FAIL,
-	PE_START_ELE_NO_QNAME,
-
-	//endElementNs
-	PE_END_ELE_NO_QNAME,
+	//parseResponse
+	PE_PRESPONSE_NODE_TYPE_PBT_FAIL,
+	PE_PRESPONSE_NODE_TYPE_MISSING,
+	PE_PRESPONSE_NODE_NEXT_SAVE_FAIL,
+	PE_PRESPONSE_NODE_SELF_SAVE_FAIL,
+	PE_PRESPONSE_NODE_LINK_UNK_REL_PROP,
+	PE_PRESPONSE_NODE_LINK_NO_REL_PROP,
+	PE_PRESPONSE_NODE_PBN_FAIL,
+	PE_PRESPONSE_NODE_NO_QNAME,
+	PE_PRESPONSE_CREATE_BUNDLE_FAIL,
+	PE_PRESPONSE_CREATE_CREATION_CALLBACK_FAIL,
+	PE_PRESPONSE_CREATE_FAIL,
+	PE_PRESPONSE_ENTRY_CHECK_NO_QNAME,
+	PE_PRESPONSE_ENTRY_COMPOSITE_FAIL,
+	PE_PRESPONSE_ENTRY_COMPOSITE_NOT_VALID,
+	PE_PRESPONSE_ENTRY_TYPE_MISSING,
+	PE_PRESPONSE_ENTRY_PROCESS_NO_QNAME,
+	PE_PRESPONSE_ENTRY_COMPOSITE_NOT_COMPOSITE,
+	PE_PRESPONSE_ENTRY_NOT_ENTRY,
+	PE_PRESPONSE_ENTRY_NO_QNAME,
 
 	//getxmldata
 	PE_GETXMLDATA_CTX_CREATE_FAIL
@@ -179,8 +204,26 @@ const char* xmlGetQualifiedName(xmlNodePtr node)
 	return qualifiedName;
 }
 
+BOOL canContinue(bing_parser* parser)
+{
+	if(parser->parseError != PE_NO_ERROR)
+	{
+		//Error, cleanup everything
+
+		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
+		bing_response_free(parser->current);
+
+		//Mark everything as NULL to prevent errors later
+		parser->response = NULL;
+		parser->current = NULL;
+
+		return FALSE; //Don't continue
+	}
+	return TRUE; //No error, continue
+}
+
 //Parse functions
-bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, xmlFreeFunc xmlFree)
+bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent, bing_parser* parser, xmlFreeFunc xmlFree)
 {
 	//Not really the greatest names, could probably change
 	bing_result* res = NULL;
@@ -199,7 +242,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	if(!type)
 	{
 		//Go through all the nodes to get data
-		for(node = resultNode->children; node != NULL; node = node->next)
+		for(node = resultNode->children; node != NULL && canContinue(parser); node = node->next)
 		{
 			nodeName = xmlGetQualifiedName(node);
 			if(nodeName)
@@ -240,20 +283,23 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 									}
 									else
 									{
-										//XXX Error
+										//Out of memory to get title
+										parser->parseError = PE_PRESULT_NODE_TYPE_TITLE_OFM;
 									}
 								}
 							}
 						}
 						else
 						{
-							//XXX Error
+							//Failed to parse by type
+							parser->parseError = PE_PRESULT_NODE_TYPE_PBT_FAIL;
 						}
 						xmlFree((void*)xmlText);
 					}
 					else
 					{
-						//XXX Error
+						//The property type exists, but we couldn't get the value
+						parser->parseError = PE_PRESULT_NODE_TYPE_MISSING;
 					}
 				}
 				else
@@ -265,13 +311,15 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 						{
 							if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 							{
-								//XXX Error
+								//Failed to parse by type
+								parser->parseError = PE_PRESULT_NODE_MTYPE_PBT_FAIL;
 							}
 							xmlFree((void*)xmlText);
 						}
 						else
 						{
-							//XXX Error
+							//The property m:type exists, but we couldn't get the value
+							parser->parseError = PE_PRESULT_NODE_MTYPE_MISSING;
 						}
 					}
 					else if(strcmp(nodeName, "link") == 0)
@@ -284,10 +332,10 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 								xmlFree((void*)xmlText);
 
 								xmlText = nsXmlGetProp(node, "href");
-								//XXX Special assignment
-								if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+								if(hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
 								{
-									//XXX Error
+									//Failed to save "next" link
+									parser->parseError = PE_PRESULT_NODE_NEXT_SAVE_FAIL;
 								}
 							}
 							else if(strcmp((char*)xmlText, "self") == 0)
@@ -295,26 +343,32 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 								xmlFree((void*)xmlText);
 
 								xmlText = nsXmlGetProp(node, "href");
-								//XXX Special assignment
-								if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
+								if(hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
 								{
-									//XXX Error
+									//Failed to save "this" link
+									parser->parseError = PE_PRESULT_NODE_SELF_SAVE_FAIL;
 								}
 							}
 							else
 							{
-								//TODO (never encountered, unsure if there is something else)
+								//Unknown relative property
+								parser->parseError = PE_PRESULT_NODE_LINK_UNK_REL_PROP;
 							}
 							xmlFree((void*)xmlText);
 						}
 						else
 						{
-							//XXX Error
+							//Couldn't get the relative property from the link node
+							parser->parseError = PE_PRESULT_NODE_LINK_NO_REL_PROP;
 						}
 					}
 					else
 					{
-						parseToHashtableByName(node, data, xmlFree);
+						if(!parseToHashtableByName(node, data, xmlFree))
+						{
+							//Failed to parse by name
+							parser->parseError = PE_PRESULT_NODE_PBN_FAIL;
+						}
 					}
 				}
 
@@ -322,12 +376,13 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			}
 			else
 			{
-				//XXX Error
+				//Could not produce the QName
+				parser->parseError = PE_PRESULT_NODE_NO_QNAME;
 			}
 		}
 
 		//If this is an empty result, ignore it
-		if (!node)
+		if (!node || !canContinue(parser))
 		{
 			hashtable_free(data);
 			return NULL;
@@ -354,7 +409,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	}
 
 	//Parse content
-	for(node = resultNode->children; node != NULL; node = node->next)
+	for(node = resultNode->children; node != NULL && canContinue(parser); node = node->next)
 	{
 		//Determine if we have a node with a type (pointers will be embedded in lib so no need to free them)
 		text = PARSE_PROPERTY_TYPE;
@@ -378,19 +433,24 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 				{
 					//Push a new value onto the stack (order doesn't matter)
 					tStack = bing_mem_malloc(sizeof(pstack));
-					if(!tStack)
+					if(tStack)
 					{
-						//XXX Error
+						tStack->prev = additionalProcessing;
+						tStack->value = node;
+						additionalProcessing = tStack;
 					}
-					tStack->prev = additionalProcessing;
-					tStack->value = node;
-					additionalProcessing = tStack;
+					else
+					{
+						//Failed to create stack
+						parser->parseError = PE_PRESULT_CONTENT_STACK_FAIL;
+					}
 				}
 				else
 				{
 					if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 					{
-						//XXX Error
+						//Failed to parse by type
+						parser->parseError = PE_PRESULT_CONTENT_PBT_FAIL;
 					}
 				}
 				xmlFree((void*)xmlText);
@@ -400,60 +460,67 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		{
 			if(!parseToHashtableByName(node, data, xmlFree))
 			{
-				//XXX Error
+				//Failed to parse by name
+				parser->parseError = PE_PRESULT_CONTENT_PBN_FAIL;
 			}
 		}
 	}
 
-	//Create (this will also retrieve the name used by both the creation function and the the creation callbacks)
-	if(type)
+	if(canContinue(parser))
 	{
-		xmlText = nsXmlGetProp(resultNode, PARSE_PROPERTY_MTYPE);
-		if(xmlText)
+		//Create (this will also retrieve the name used by both the creation function and the the creation callbacks)
+		if(type)
 		{
-			if(result_create_raw((char*)xmlText, (bing_result_t*)&res, parent))
+			xmlText = nsXmlGetProp(resultNode, PARSE_PROPERTY_MTYPE);
+			if(xmlText)
 			{
-				//Make this an internal result
-				response_swap_result(parent, res, RESULT_CREATE_DEFAULT_INTERNAL);
-
-				//Run creation callback
-				if(!res->creation((char*)xmlText, res, (data_dictionary_t)data))
+				if(result_create_raw((char*)xmlText, (bing_result_t*)&res, parent))
 				{
-					//XXX Error
+					//Make this an internal result
+					if(response_swap_result(parent, res, RESULT_CREATE_DEFAULT_INTERNAL))
+					{
+						//Run creation callback
+						if(!res->creation((char*)xmlText, (bing_result_t)res, (data_dictionary_t)data))
+						{
+							//Wasn't created correctly, free (this isn't a parser error. The creator ran into an error [or something]).
+							response_remove_result(parser->current, res, !RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
+							res = NULL; //Make sure that additional processing doesn't actually run
+						}
+					}
+					else
+					{
+						//Could not swap results, don't want the result showing up public
+						parser->parseError = PE_PRESULT_CREATE_TYPE_IN_SWITCH_FAIL;
+					}
 				}
+				xmlFree((void*)xmlText);
 			}
 			else
 			{
-				//XXX Error
+				//There is no type property, we don't know what we are creating
+				parser->parseError = PE_PRESULT_CREATE_NO_TYPE_PROP;
 			}
-			xmlFree((void*)xmlText);
 		}
 		else
 		{
-			//XXX Error
-		}
-	}
-	else
-	{
-		size = hashtable_get_item(data, PARSE_KEY_TITLE, NULL);
-		if(size > 0)
-		{
-			text = bing_mem_malloc(size);
-			if(text)
+			size = hashtable_get_item(data, PARSE_KEY_TITLE, NULL);
+			if(size > 0)
 			{
-				hashtable_get_item(data, PARSE_KEY_TITLE, text);
-				if(result_create_raw(text, (bing_result_t*)&res, parent))
+				text = bing_mem_malloc(size);
+				if(text)
 				{
-					if(!res->creation(text, res, (data_dictionary_t)data))
+					hashtable_get_item(data, PARSE_KEY_TITLE, text);
+					if(result_create_raw(text, (bing_result_t*)&res, parent))
 					{
-						//XXX Error
+						if(!res->creation(text, (bing_result_t)res, (data_dictionary_t)data))
+						{
+							//Wasn't created correctly, free (this isn't a parser error. The creator ran into an error [or something]).
+							response_remove_result(parser->current, res, RESULT_CREATE_DEFAULT_INTERNAL, TRUE);
+							res = NULL; //Make sure that additional processing doesn't actually run
+						}
 					}
+					bing_mem_free((void*)text);
 				}
-				else
-				{
-					//XXX Error
-				}
-				bing_mem_free((void*)text);
 			}
 		}
 	}
@@ -461,12 +528,11 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 	//Additional content processing
 	while(additionalProcessing)
 	{
-		//TODO Check for error, don't execute processing on error (let loop continue)
-		//Only run if there is a result to run on (we still do the loop so we can free the stack)
-		if(res)
+		//Only run if there is a result to run on (we still do the loop so we can free the stack) and there is no error
+		if(res && canContinue(parser))
 		{
 			node = (xmlNodePtr)additionalProcessing->value;
-			tres = parseResult(node, TRUE, parent, xmlFree);
+			tres = parseResult(node, TRUE, parent, parser, xmlFree);
 			if(tres)
 			{
 				keep = FALSE;
@@ -478,7 +544,8 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 				}
 				else
 				{
-					//XXX Error
+					//Could not produce the QName
+					parser->parseError = PE_PRESULT_ADDPROC_NO_QNAME;
 				}
 				if(!keep)
 				{
@@ -496,7 +563,8 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 			}
 			else
 			{
-				//TODO (never encountered, unsure if this would be an error or not)
+				//parseResult failed
+				parser->parseError = PE_PRESULT_ADDPROC_PARSERESULT_TYPE_FAIL;
 			}
 		}
 
@@ -528,7 +596,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 	BOOL subResComp;
 
 	//Get general data
-	for(node = responseNode->children; node != NULL; node = node->next)
+	for(node = responseNode->children; node != NULL && canContinue(parser); node = node->next)
 	{
 		nodeName = xmlGetQualifiedName(node);
 		if(nodeName)
@@ -548,13 +616,15 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 					//Parse the data
 					if(!parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 					{
-						//XXX Error
+						//Failed to parse by type
+						parser->parseError = PE_PRESPONSE_NODE_TYPE_PBT_FAIL;
 					}
 					xmlFree((void*)xmlText);
 				}
 				else
 				{
-					//XXX Error
+					//The property type exists, but we couldn't get the value
+					parser->parseError = PE_PRESPONSE_NODE_TYPE_MISSING;
 				}
 			}
 			else
@@ -569,10 +639,10 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							xmlFree((void*)xmlText);
 
 							xmlText = nsXmlGetProp(node, "href");
-							//XXX Special assignment
-							if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+							if(hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
 							{
-								//XXX Error
+								//Failed to save "next" link
+								parser->parseError = PE_PRESPONSE_NODE_NEXT_SAVE_FAIL;
 							}
 						}
 						else if(strcmp((char*)xmlText, "self") == 0)
@@ -580,26 +650,32 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							xmlFree((void*)xmlText);
 
 							xmlText = nsXmlGetProp(node, "href");
-							//XXX Special assignment
-							if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
+							if(hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
 							{
-								//XXX Error
+								//Failed to save "this" link
+								parser->parseError = PE_PRESPONSE_NODE_SELF_SAVE_FAIL;
 							}
 						}
 						else
 						{
-							//TODO (never encountered, unsure if there is something else)
+							//Unknown relative property
+							parser->parseError = PE_PRESPONSE_NODE_LINK_UNK_REL_PROP;
 						}
 						xmlFree((void*)xmlText);
 					}
 					else
 					{
-						//XXX Error
+						//Couldn't get the relative property from the link node
+						parser->parseError = PE_PRESPONSE_NODE_LINK_NO_REL_PROP;
 					}
 				}
 				else
 				{
-					parseToHashtableByName(node, data, xmlFree);
+					if(!parseToHashtableByName(node, data, xmlFree))
+					{
+						//Failed to parse by name
+						parser->parseError = PE_PRESPONSE_NODE_PBN_FAIL;
+					}
 				}
 			}
 
@@ -607,12 +683,13 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 		}
 		else
 		{
-			//XXX Error
+			//Could not produce the QName
+			parser->parseError = PE_PRESPONSE_NODE_NO_QNAME;
 		}
 	}
 
 	//If this is an empty response, ignore it
-	if (!node)
+	if (!node || !canContinue(parser))
 	{
 		hashtable_free(data);
 		return NULL;
@@ -658,7 +735,8 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							{
 								//Darn it, that failed
 								bing_response_free(parser->current);
-								parser->parseError = PE_START_ELE_RESPONSE_BUNDLE_CREATE_FAIL; //XXX Rename
+								parser->current = NULL;
+								parser->parseError = PE_PRESPONSE_CREATE_BUNDLE_FAIL;
 							}
 						}
 					}
@@ -675,13 +753,15 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 					{
 						//This wasn't a composited response, just free it (otherwise it will never get freed)
 						bing_response_free(parser->current);
+						parser->current = NULL;
 					}
-					parser->parseError = PE_START_ELE_RESPONSE_CREATION_CALLBACK_FAIL; //XXX Rename
+					parser->parseError = PE_PRESPONSE_CREATE_CREATION_CALLBACK_FAIL;
 				}
 			}
 			else
 			{
-				parser->parseError = PE_START_ELE_RESPONSE_CREATE_FAIL; //XXX Rename
+				//Could not create response
+				parser->parseError = PE_PRESPONSE_CREATE_FAIL;
 			}
 
 			bing_mem_free((void*)text);
@@ -691,110 +771,121 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 	if(parser->current)
 	{
 		//Parse entries
-		for(; node != NULL; node = node->next)
+		for(; node != NULL && canContinue(parser); node = node->next)
 		{
-			//TODO Check for error, stop if error
-
 			nodeName = xmlGetQualifiedName(node);
-			if(!nodeName)
+			if(nodeName)
 			{
-				//XXX Error
-			}
-
-			if(strcmp(nodeName, "entry") == 0)
-			{
-				bing_mem_free((void*)nodeName);
-
-				//Result automatically added to response
-				if(!parseResult(node, FALSE, parser->current, xmlFree))
+				if(strcmp(nodeName, "entry") == 0)
 				{
-					//Check if composite (we find out first before processing because if it isn't, we have no way to... react. We also want to check a "link" node which requires additional checking)
-					subResComp = FALSE;
-					for(node2 = node->children; node2 != NULL; node2 = node2->next)
+					bing_mem_free((void*)nodeName);
+
+					//Result automatically added to response
+					if(!parseResult(node, FALSE, parser->current, parser, xmlFree))
 					{
-						nodeName = xmlGetQualifiedName(node2);
-						if(!nodeName)
-						{
-							//XXX Error
-						}
-
-						//Check the "title"
-						if(strcmp(nodeName, PARSE_KEY_TITLE) == 0)
-						{
-							bing_mem_free((void*)nodeName);
-
-							//Get the inner text
-							xmlText = xmlNodeGetContent(node);
-							if(xmlText)
-							{
-								if(strcmp((char*)xmlText, "ExpandableSearchResult") == 0)
-								{
-									//Yep, it's a composite
-									subResComp = TRUE;
-								}
-								xmlFree((char*)xmlText);
-							}
-							break;
-						}
-
-						bing_mem_free((void*)nodeName);
-					}
-					if(subResComp)
-					{
-						for(node2 = node->children; node2 != NULL; node2 = node2->next)
+						//Check if composite (we find out first before processing because if it isn't, we have no way to... react. We also want to check a "link" node which requires additional checking)
+						subResComp = FALSE;
+						for(node2 = node->children; node2 != NULL && canContinue(parser); node2 = node2->next)
 						{
 							nodeName = xmlGetQualifiedName(node2);
 							if(nodeName)
 							{
-								//Find the "link" node
-								if(strcmp(nodeName, "link") == 0)
+								//Check the "title"
+								if(strcmp(nodeName, PARSE_KEY_TITLE) == 0)
 								{
-									//Get the "type" property of the link (if it's a composite, it will have a "type" property. Check anyway)
-									if(nsXmlHasProp(node2, PARSE_PROPERTY_TYPE))
+									bing_mem_free((void*)nodeName);
+
+									//Get the inner text
+									xmlText = xmlNodeGetContent(node);
+									if(xmlText)
 									{
-										xmlText = nsXmlGetProp(node2, PARSE_PROPERTY_TYPE);
-										if(xmlText)
+										if(strcmp((char*)xmlText, "ExpandableSearchResult") == 0)
 										{
-											if(strcmp((char*)xmlText, "application/atom+xml;type=feed") == 0)
-											{
-												//Yep, this is a composite node (node2->children->children gets us straight to the internal response [as opposed to the "container" of the response])
-												if(!parseResponse(node2->children->children, TRUE, parser, xmlFree))
-												{
-													//XXX Error
-												}
-											}
-											else
-											{
-												//XXX Error
-											}
-											xmlFree((void*)xmlText);
+											//Yep, it's a composite
+											subResComp = TRUE;
 										}
-										else
-										{
-											//XXX Error
-										}
+										xmlFree((char*)xmlText);
 									}
+									break;
 								}
 
 								bing_mem_free((void*)nodeName);
 							}
 							else
 							{
-								//XXX Error
+								//Could not create QName to determine type
+								parser->parseError = PE_PRESPONSE_ENTRY_CHECK_NO_QNAME;
+								subResComp = FALSE;
 							}
 						}
+						if(subResComp)
+						{
+							for(node2 = node->children; node2 != NULL && canContinue(parser); node2 = node2->next)
+							{
+								nodeName = xmlGetQualifiedName(node2);
+								if(nodeName)
+								{
+									//Find the "link" node
+									if(strcmp(nodeName, "link") == 0)
+									{
+										//Get the "type" property of the link (if it's a composite, it will have a "type" property. Check anyway)
+										if(nsXmlHasProp(node2, PARSE_PROPERTY_TYPE))
+										{
+											xmlText = nsXmlGetProp(node2, PARSE_PROPERTY_TYPE);
+											if(xmlText)
+											{
+												if(strcmp((char*)xmlText, "application/atom+xml;type=feed") == 0)
+												{
+													//Yep, this is a composite node (node2->children->children gets us straight to the internal response [as opposed to the "container" of the response])
+													if(!parseResponse(node2->children->children, TRUE, parser, xmlFree))
+													{
+														//Could not parse response for composite
+														parser->parseError = PE_PRESPONSE_ENTRY_COMPOSITE_FAIL;
+													}
+												}
+												else
+												{
+													//The specified composite is not of the correct type
+													parser->parseError = PE_PRESPONSE_ENTRY_COMPOSITE_NOT_VALID;
+												}
+												xmlFree((void*)xmlText);
+											}
+											else
+											{
+												//Type is supposed to exist, type doesn't exist
+												parser->parseError = PE_PRESPONSE_ENTRY_TYPE_MISSING;
+											}
+										}
+									}
+
+									bing_mem_free((void*)nodeName);
+								}
+								else
+								{
+									//Could not create QName to process
+									parser->parseError = PE_PRESPONSE_ENTRY_PROCESS_NO_QNAME;
+								}
+							}
+						}
+						else if(parser->parseError == PE_NO_ERROR)
+						{
+							//What we found, and thought was a composite, isn't a composite
+							parser->parseError = PE_PRESPONSE_ENTRY_COMPOSITE_NOT_COMPOSITE;
+						}
 					}
-					else
-					{
-						//TODO (never encountered, unsure what to do)
-					}
+				}
+				else
+				{
+					bing_mem_free((void*)nodeName);
+
+					//One of the child nodes is not an entry node
+					parser->parseError = PE_PRESPONSE_ENTRY_NOT_ENTRY;
 				}
 			}
 			else
 			{
-				bing_mem_free((void*)nodeName);
-
-				//TODO (never encountered, unsure what to do)
+				//Could not create a QName to verify entry
+				parser->parseError = PE_PRESPONSE_ENTRY_NO_QNAME;
 			}
 		}
 	}
@@ -817,25 +908,7 @@ void serrorCallback(void* userData, xmlErrorPtr error)
 	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
-BOOL checkForError(bing_parser* parser)
-{
-	if(parser->parseError != PE_NO_ERROR)
-	{
-		//Error, cleanup everything
-
-		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
-		bing_response_free(parser->current);
-
-		//Mark everything as NULL to prevent errors later
-		parser->response = NULL;
-		parser->current = NULL;
-
-		return FALSE; //Don't continue
-	}
-	return TRUE; //No error, continue
-}
-
-static xmlSAXHandler parserHandler;
+static xmlSAXHandler parserHandler; //XXX
 
 void search_setup()
 {
@@ -1071,7 +1144,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 						parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
 
 						//We check for an error, if none exists then we get the response
-						if(checkForError(parser))
+						if(canContinue(parser))
 						{
 							ret = parser->response;
 						}
@@ -1191,7 +1264,7 @@ void* async_search(void* ctx)
 #if defined(BING_DEBUG)
 			if(!
 #endif
-				checkForError(parser)
+				canContinue(parser)
 #if defined(BING_DEBUG)
 			)
 			{
