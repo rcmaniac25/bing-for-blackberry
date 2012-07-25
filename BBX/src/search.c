@@ -332,7 +332,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 								xmlFree((void*)xmlText);
 
 								xmlText = nsXmlGetProp(node, "href");
-								if(hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
+								if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
 								{
 									//Failed to save "next" link
 									parser->parseError = PE_PRESULT_NODE_NEXT_SAVE_FAIL;
@@ -343,7 +343,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 								xmlFree((void*)xmlText);
 
 								xmlText = nsXmlGetProp(node, "href");
-								if(hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
+								if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
 								{
 									//Failed to save "this" link
 									parser->parseError = PE_PRESULT_NODE_SELF_SAVE_FAIL;
@@ -639,7 +639,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							xmlFree((void*)xmlText);
 
 							xmlText = nsXmlGetProp(node, "href");
-							if(hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
+							if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
 							{
 								//Failed to save "next" link
 								parser->parseError = PE_PRESPONSE_NODE_NEXT_SAVE_FAIL;
@@ -650,7 +650,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							xmlFree((void*)xmlText);
 
 							xmlText = nsXmlGetProp(node, "href");
-							if(hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1) == -1)
+							if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
 							{
 								//Failed to save "this" link
 								parser->parseError = PE_PRESPONSE_NODE_SELF_SAVE_FAIL;

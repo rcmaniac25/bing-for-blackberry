@@ -627,7 +627,7 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 					{
 						//Save the list
 						list_v->cap = 11;
-						if(hashtable_put_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, list_v, sizeof(list*)) == -1)
+						if(!hashtable_put_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, list_v, sizeof(list*)))
 						{
 							//List creation failed, cleanup
 							bing_mem_free(list_v);

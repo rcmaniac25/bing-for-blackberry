@@ -272,7 +272,7 @@ BOOL handleParsedData(xmlNodePtr node, void* parsedData, enum FIELD_TYPE type, h
 				name = xmlGetQualifiedName(node);
 				if(name)
 				{
-					res = hashtable_put_item(table, name, parsedData, size) != -1;
+					res = hashtable_put_item(table, name, parsedData, size);
 					bing_mem_free((void*)name);
 				}
 			}

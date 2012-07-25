@@ -554,7 +554,7 @@ BOOL response_add_to_composite(bing_response* response, bing_response* responseP
 			{
 				//Save the list
 				list_v->cap = 11;
-				if(hashtable_put_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, list_v, sizeof(list*)) == -1)
+				if(!hashtable_put_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, list_v, sizeof(list*)))
 				{
 					//List creation failed, cleanup
 					bing_mem_free(list_v);

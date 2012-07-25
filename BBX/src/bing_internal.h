@@ -248,10 +248,10 @@ void hashtable_free(hashtable_t* table);
 BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable);
 BOOL hashtable_compact(hashtable_t* table);
 BOOL hashtable_key_exists(hashtable_t* table, const char* key);
-int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
+BOOL hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
 size_t hashtable_get_item(hashtable_t* table, const char* name, void* data);
-int hashtable_remove_item(hashtable_t* table, const char* key);
-int hashtable_get_keys(hashtable_t* table, char** keys);
+BOOL hashtable_remove_item(hashtable_t* table, const char* key);
+int hashtable_get_keys(hashtable_t* table, char** keys); //Returns the number of keys
 //-Helper dictionary functions
 BOOL hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size);
 int hashtable_get_string(hashtable_t* table, const char* field, char* value);
