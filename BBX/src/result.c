@@ -51,38 +51,6 @@ int result_def_create(const char* name, bing_result_t result, data_dictionary_t 
 	return hashtable_copy(((bing_result*)result)->data, (hashtable_t*)dictionary);
 }
 
-int result_news_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
-{
-	char* str;
-	int strLen;
-	long long time;
-	hashtable_t* table;
-	BOOL ret = (BOOL)result_def_create(name, result, dictionary);
-	if(ret)
-	{
-		table = ((bing_result*)result)->data;
-
-		strLen = hashtable_get_string(table, RES_NEWS_DATE, NULL);
-		if(strLen > 0)
-		{
-			str = bing_mem_malloc(strLen);
-			if(str)
-			{
-				hashtable_get_string(table, RES_NEWS_DATE, str);
-				time = parseTime(NULL);
-				ret = hashtable_set_data(table, RES_NEWS_DATE, &time, sizeof(long long));
-				bing_mem_free(str);
-			}
-			else
-			{
-				ret = FALSE;
-			}
-		}
-		return ret;
-	}
-	return ret;
-}
-
 int result_def_common_create(const char* name, bing_result_t result, data_dictionary_t dictionary)
 {
 	hashtable_t* table;
@@ -229,7 +197,7 @@ static bing_result_creator_search result_def_creator[]=
 		{{"WebResult",				FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_WEB,				5,	&result_def_creator[1]},
 		{{"VideoResult",			FALSE,	result_def_create,			result_image_video_additional_result},	BING_SOURCETYPE_VIDEO, 				6,	&result_def_creator[2]},
 		{{"ImageResult",			FALSE,	result_def_create,			result_image_video_additional_result},	BING_SOURCETYPE_IMAGE,				10,	&result_def_creator[3]},
-		{{"NewsResult",				FALSE,	result_news_create,			result_def_additional_result},			BING_SOURCETYPE_NEWS,				6,	&result_def_creator[4]},
+		{{"NewsResult",				FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_NEWS,				6,	&result_def_creator[4]},
 		{{"RelatedSearchResult",	FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_RELATED_SEARCH,		3,	&result_def_creator[5]},
 		{{"SpellResult",			FALSE,	result_def_create,			result_def_additional_result},			BING_SOURCETYPE_SPELL,				2,	&result_def_creator[6]},
 

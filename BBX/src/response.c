@@ -11,6 +11,7 @@
 
 #define RES_ID "id"
 #define RES_UPDTAED "updated"
+#define RES_TITLE "title"
 
 //Creation/update functions
 
@@ -26,7 +27,7 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 	bing_response* res = (bing_response*)response;
 	if(dictionary)
 	{
-		//Process ID to get total, max, and query
+		//Process ID to get total, and max
 		size = hashtable_get_string((hashtable_t*)dictionary, RES_ID, NULL);
 		if(size > 0)
 		{
@@ -83,61 +84,26 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 					hashtable_set_data(res->data, RESPONSE_MAX_TOTAL_STR, &ll, sizeof(long long));
 				}
 
-				//Query
-				tmpString = strstr((char*)data, "Query='");
-				if(tmpString)
+				bing_mem_free(data);
+			}
+		}
+
+		//Process query
+		size = hashtable_get_string((hashtable_t*)dictionary, RES_TITLE, NULL);
+		if(size > 0)
+		{
+			data = bing_mem_malloc(size);
+			if(data)
+			{
+				hashtable_get_string((hashtable_t*)dictionary, RES_TITLE, (char*)data);
+
+				//We don't want to save the data if it is a composite response
+				if(strcmp((char*)data, "ExpandableSearchResult") != 0)
 				{
-					//Move to the query location
-					tmpString += 7;
-
-					//Get the query
-					for(size = 0; *tmpString; size++, tmpString++)
-					{
-						if((*tmpString == '\'') && (*(tmpString + 1) == '\''))
-						{
-							size++;
-							tmpString++;
-						}
-						else if(*tmpString == '\'')
-						{
-							break;
-						}
-					}
-
-					//End the string
-					tmpChar = *tmpString;
-					*tmpString = '\0';
-
-					//Duplicate the string
-					tmpString2 = bing_mem_strdup(tmpString - size);
-
-					//Reset string
-					*tmpString = tmpChar;
-
-					//Save the value
-					if(tmpString2)
-					{
-						//We need to do some extra processing first (we need to get rid of the double single quotes)
-						for(tmpString = tmpString2, size = 0; *tmpString; size++, tmpString++)
-						{
-							*tmpString = tmpString2[size];
-							if(tmpString2[size] == '\'')
-							{
-								size++;
-							}
-							if(*tmpString == '\0')
-							{
-								break;
-							}
-						}
-
-						hashtable_set_data(res->data, RESPONSE_QUERY_STR, tmpString2, strlen(tmpString2) + 1);
-
-						bing_mem_free((void*)tmpString2);
-					}
+					hashtable_set_data(res->data, RESPONSE_QUERY_STR, data, strlen((char*)data) + 1);
 				}
 
-				bing_mem_free(data);
+				bing_mem_free((void*)data);
 			}
 		}
 

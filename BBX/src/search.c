@@ -250,6 +250,7 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 				//We want to stop on content, we process that later
 				if(strcmp(nodeName, "content") == 0)
 				{
+					bing_mem_free((void*)nodeName);
 					break;
 				}
 
@@ -276,10 +277,13 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 										if(strcmp(text, "ExpandableSearchResult") == 0)
 										{
 											//This is a composite response
+											bing_mem_free((void*)text);
+											xmlFree((void*)xmlText);
+											bing_mem_free((void*)nodeName);
 											hashtable_free(data);
 											return NULL;
 										}
-										bing_mem_free(text);
+										bing_mem_free((void*)text);
 									}
 									else
 									{
@@ -604,6 +608,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 			//We want to stop on content, we process that later
 			if(strcmp(nodeName, "entry") == 0)
 			{
+				bing_mem_free((void*)nodeName);
 				break;
 			}
 

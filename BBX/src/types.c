@@ -211,11 +211,12 @@ BOOL isComplex(const char* name)
 }
 
 //Take the parsed data and store it in the table under the node's qualified name
-BOOL handleParsedData(xmlNodePtr node, void* parsedData, enum FIELD_TYPE type, hashtable_t* table)
+BOOL handleParsedData(xmlNodePtr node, const void* parsedData, enum FIELD_TYPE type, hashtable_t* table)
 {
 	size_t size;
 	BOOL res = FALSE;
 	const char* name;
+	const void* ptr;
 
 	if(type != FIELD_TYPE_UNKNOWN)
 	{
@@ -267,12 +268,16 @@ BOOL handleParsedData(xmlNodePtr node, void* parsedData, enum FIELD_TYPE type, h
 				if(type == FIELD_TYPE_INT)
 #endif
 				{
-					parsedData = &parsedData;
+					ptr = &parsedData;
+				}
+				else
+				{
+					ptr = parsedData;
 				}
 				name = xmlGetQualifiedName(node);
 				if(name)
 				{
-					res = hashtable_put_item(table, name, parsedData, size);
+					res = hashtable_put_item(table, name, ptr, size);
 					bing_mem_free((void*)name);
 				}
 			}
@@ -284,7 +289,7 @@ BOOL handleParsedData(xmlNodePtr node, void* parsedData, enum FIELD_TYPE type, h
 			if(type != FIELD_TYPE_INT)
 #endif
 			{
-				bing_mem_free(parsedData);
+				bing_mem_free((void*)parsedData);
 			}
 		}
 	}
