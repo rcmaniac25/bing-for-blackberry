@@ -26,6 +26,7 @@
 
 __BEGIN_DECLS
 
+//Defines for processing and setup
 #if !defined(BOOL)
 #define BOOL int
 
@@ -41,9 +42,11 @@ __BEGIN_DECLS
 #define DEFAULT_ERROR_RET TRUE
 #define RESULT_CREATE_DEFAULT_INTERNAL FALSE
 
+//Helper macros
 #define BOOL_TO_CPP_BOOL(x) (x) != FALSE
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
 
+//Internal keys
 #define REQUEST_COMPOSITE_SUBREQ_STR "bb_req_composite_sub-requests"
 #define RESPONSE_COMPOSITE_SUBRES_STR "bb_res_composite_sub-responses"
 
@@ -51,9 +54,14 @@ __BEGIN_DECLS
 #define RESPONSE_OFFSET_STR "bb_res_offset"
 #define RESPONSE_QUERY_STR "bb_res_query"
 
+//Composite define
 #define RESPONSE_COMPOSITE "composite"
 
-#define PARSE_NEXT_LINK "#nextLink"
+//Parsing defines
+#define PARSE_LINK_NEXT_KEY "#nextLink"
+#define PARSE_NAME_TITLE "title"
+
+#define PARSE_COMPOSITE_IDENT "ExpandableSearchResult"
 
 /**
  * The print out function to use for messages.
@@ -282,11 +290,6 @@ BOOL response_swap_response(bing_response* response, bing_response* responsePare
 //Result functions
 BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
 void free_result(bing_result* result);
-
-//Helper functions (primarily for creating/updating results/responses)
-BOOL replace_string_with_longlong(hashtable_t* table, const char* field);
-BOOL replace_string_with_int(hashtable_t* table, const char* field);
-BOOL replace_string_with_double(hashtable_t* table, const char* field);
 
 //Memory functions
 void* allocateMemory(size_t size, bing_response* response);

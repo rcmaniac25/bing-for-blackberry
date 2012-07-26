@@ -19,14 +19,20 @@
 #include <curl/curl.h>
 
 //Defines for parsing
-#define DEFAULT_HASHTABLE_SIZE 8
+#define DEFAULT_HASHTABLE_SIZE 6
 #define PARSE_PROPERTY_TYPE "type"
 #define PARSE_PROPERTY_MTYPE "m:type"
 
-#define PARSE_KEY_TITLE "title"
-#define PARSE_KEY_SUBTITLE "subtitle"
+#define PARSE_NAME_SUBTITLE "subtitle"
+#define PARSE_NAME_ENTRY "entry"
 
-#define PARSE_THIS_LINK "#thisLink"
+//Defines for parsing links
+#define PARSE_LINK_NAME "link"
+#define PARSE_LINK_PROPERTY_REL "rel"
+#define PARSE_LINK_PROPERTY_NEXT "next"
+#define PARSE_LINK_PROPERTY_SELF "self"
+#define PARSE_LINK_PROPERTY_HREF "href"
+#define PARSE_LINK_THIS_KEY "#thisLink"
 
 //Defines for cURL
 #define CURL_TRUE 1L
@@ -264,17 +270,17 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 						if(parseToHashtableByType((char*)xmlText, node, data, xmlFree))
 						{
 							//Check to see if this is a composite response
-							if(strcmp(nodeName, PARSE_KEY_TITLE) == 0)
+							if(strcmp(nodeName, PARSE_NAME_TITLE) == 0)
 							{
-								size = hashtable_get_string(data, PARSE_KEY_TITLE, NULL);
+								size = hashtable_get_string(data, PARSE_NAME_TITLE, NULL);
 								if(size > 0)
 								{
 									text = bing_mem_malloc(size);
 									if(text)
 									{
-										hashtable_get_string(data, PARSE_KEY_TITLE, text);
+										hashtable_get_string(data, PARSE_NAME_TITLE, text);
 										text[size - 1] = '\0';
-										if(strcmp(text, "ExpandableSearchResult") == 0)
+										if(strcmp(text, PARSE_COMPOSITE_IDENT) == 0)
 										{
 											//This is a composite response
 											bing_mem_free((void*)text);
@@ -326,28 +332,28 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 							parser->parseError = PE_PRESULT_NODE_MTYPE_MISSING;
 						}
 					}
-					else if(strcmp(nodeName, "link") == 0)
+					else if(strcmp(nodeName, PARSE_LINK_NAME) == 0)
 					{
-						xmlText = nsXmlGetProp(node, "rel");
+						xmlText = nsXmlGetProp(node, PARSE_LINK_PROPERTY_REL);
 						if(xmlText)
 						{
-							if(strcmp((char*)xmlText, "next") == 0)
+							if(strcmp((char*)xmlText, PARSE_LINK_PROPERTY_NEXT) == 0)
 							{
 								xmlFree((void*)xmlText);
 
-								xmlText = nsXmlGetProp(node, "href");
-								if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+								xmlText = nsXmlGetProp(node, PARSE_LINK_PROPERTY_HREF);
+								if(!hashtable_put_item(data, PARSE_LINK_NEXT_KEY, xmlText, strlen((char*)xmlText) + 1))
 								{
 									//Failed to save "next" link
 									parser->parseError = PE_PRESULT_NODE_NEXT_SAVE_FAIL;
 								}
 							}
-							else if(strcmp((char*)xmlText, "self") == 0)
+							else if(strcmp((char*)xmlText, PARSE_LINK_PROPERTY_SELF) == 0)
 							{
 								xmlFree((void*)xmlText);
 
-								xmlText = nsXmlGetProp(node, "href");
-								if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
+								xmlText = nsXmlGetProp(node, PARSE_LINK_PROPERTY_HREF);
+								if(!hashtable_put_item(data, PARSE_LINK_THIS_KEY, xmlText, strlen((char*)xmlText) + 1))
 								{
 									//Failed to save "this" link
 									parser->parseError = PE_PRESULT_NODE_SELF_SAVE_FAIL;
@@ -507,13 +513,13 @@ bing_result* parseResult(xmlNodePtr resultNode, BOOL type, bing_response* parent
 		}
 		else
 		{
-			size = hashtable_get_item(data, PARSE_KEY_TITLE, NULL);
+			size = hashtable_get_item(data, PARSE_NAME_TITLE, NULL);
 			if(size > 0)
 			{
 				text = bing_mem_malloc(size);
 				if(text)
 				{
-					hashtable_get_item(data, PARSE_KEY_TITLE, text);
+					hashtable_get_item(data, PARSE_NAME_TITLE, text);
 					if(result_create_raw(text, (bing_result_t*)&res, parent))
 					{
 						if(!res->creation(text, (bing_result_t)res, (data_dictionary_t)data))
@@ -606,7 +612,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 		if(nodeName)
 		{
 			//We want to stop on content, we process that later
-			if(strcmp(nodeName, "entry") == 0)
+			if(strcmp(nodeName, PARSE_NAME_ENTRY) == 0)
 			{
 				bing_mem_free((void*)nodeName);
 				break;
@@ -634,28 +640,28 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 			}
 			else
 			{
-				if(strcmp(nodeName, "link") == 0)
+				if(strcmp(nodeName, PARSE_LINK_NAME) == 0)
 				{
-					xmlText = nsXmlGetProp(node, "rel");
+					xmlText = nsXmlGetProp(node, PARSE_LINK_PROPERTY_REL);
 					if(xmlText)
 					{
-						if(strcmp((char*)xmlText, "next") == 0)
+						if(strcmp((char*)xmlText, PARSE_LINK_PROPERTY_NEXT) == 0)
 						{
 							xmlFree((void*)xmlText);
 
-							xmlText = nsXmlGetProp(node, "href");
-							if(!hashtable_put_item(data, PARSE_NEXT_LINK, xmlText, strlen((char*)xmlText) + 1))
+							xmlText = nsXmlGetProp(node, PARSE_LINK_PROPERTY_HREF);
+							if(!hashtable_put_item(data, PARSE_LINK_NEXT_KEY, xmlText, strlen((char*)xmlText) + 1))
 							{
 								//Failed to save "next" link
 								parser->parseError = PE_PRESPONSE_NODE_NEXT_SAVE_FAIL;
 							}
 						}
-						else if(strcmp((char*)xmlText, "self") == 0)
+						else if(strcmp((char*)xmlText, PARSE_LINK_PROPERTY_SELF) == 0)
 						{
 							xmlFree((void*)xmlText);
 
-							xmlText = nsXmlGetProp(node, "href");
-							if(!hashtable_put_item(data, PARSE_THIS_LINK, xmlText, strlen((char*)xmlText) + 1))
+							xmlText = nsXmlGetProp(node, PARSE_LINK_PROPERTY_HREF);
+							if(!hashtable_put_item(data, PARSE_LINK_THIS_KEY, xmlText, strlen((char*)xmlText) + 1))
 							{
 								//Failed to save "this" link
 								parser->parseError = PE_PRESPONSE_NODE_SELF_SAVE_FAIL;
@@ -702,13 +708,13 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 
 	//Get the name in preparation for response creation
 	text = NULL;
-	size = hashtable_get_item(data, (composite ? PARSE_KEY_TITLE : PARSE_KEY_SUBTITLE), NULL);
+	size = hashtable_get_item(data, (composite ? PARSE_NAME_TITLE : PARSE_NAME_SUBTITLE), NULL);
 	if(size > 0)
 	{
 		text = bing_mem_malloc(size);
 		if(text)
 		{
-			hashtable_get_item(data, (composite ? PARSE_KEY_TITLE : PARSE_KEY_SUBTITLE), text);
+			hashtable_get_item(data, (composite ? PARSE_NAME_TITLE : PARSE_NAME_SUBTITLE), text);
 
 			//Create response
 			parser->current = NULL;
@@ -781,7 +787,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 			nodeName = xmlGetQualifiedName(node);
 			if(nodeName)
 			{
-				if(strcmp(nodeName, "entry") == 0)
+				if(strcmp(nodeName, PARSE_NAME_ENTRY) == 0)
 				{
 					bing_mem_free((void*)nodeName);
 
@@ -796,7 +802,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 							if(nodeName)
 							{
 								//Check the "title"
-								if(strcmp(nodeName, PARSE_KEY_TITLE) == 0)
+								if(strcmp(nodeName, PARSE_NAME_TITLE) == 0)
 								{
 									bing_mem_free((void*)nodeName);
 
@@ -804,7 +810,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 									xmlText = xmlNodeGetContent(node);
 									if(xmlText)
 									{
-										if(strcmp((char*)xmlText, "ExpandableSearchResult") == 0)
+										if(strcmp((char*)xmlText, PARSE_COMPOSITE_IDENT) == 0)
 										{
 											//Yep, it's a composite
 											subResComp = TRUE;
@@ -831,7 +837,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 								if(nodeName)
 								{
 									//Find the "link" node
-									if(strcmp(nodeName, "link") == 0)
+									if(strcmp(nodeName, PARSE_LINK_NAME) == 0)
 									{
 										//Get the "type" property of the link (if it's a composite, it will have a "type" property. Check anyway)
 										if(nsXmlHasProp(node2, PARSE_PROPERTY_TYPE))

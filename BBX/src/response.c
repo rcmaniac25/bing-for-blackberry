@@ -9,9 +9,9 @@
 
 #include "bing_internal.h"
 
-#define RES_ID "id"
-#define RES_UPDTAED "updated"
-#define RES_TITLE "title"
+//Basic defines for certain keys
+#define RES_ID_KEY "id"
+#define RES_UPDTAED_KEY "updated"
 
 //Creation/update functions
 
@@ -28,13 +28,13 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 	if(dictionary)
 	{
 		//Process ID to get total, and max
-		size = hashtable_get_string((hashtable_t*)dictionary, RES_ID, NULL);
+		size = hashtable_get_string((hashtable_t*)dictionary, RES_ID_KEY, NULL);
 		if(size > 0)
 		{
 			data = bing_mem_malloc(size);
 			if(data)
 			{
-				hashtable_get_string((hashtable_t*)dictionary, RES_ID, (char*)data);
+				hashtable_get_string((hashtable_t*)dictionary, RES_ID_KEY, (char*)data);
 
 				//Offset
 				tmpString = strstr((char*)data, "$skip=");
@@ -89,16 +89,16 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 		}
 
 		//Process query
-		size = hashtable_get_string((hashtable_t*)dictionary, RES_TITLE, NULL);
+		size = hashtable_get_string((hashtable_t*)dictionary, PARSE_NAME_TITLE, NULL);
 		if(size > 0)
 		{
 			data = bing_mem_malloc(size);
 			if(data)
 			{
-				hashtable_get_string((hashtable_t*)dictionary, RES_TITLE, (char*)data);
+				hashtable_get_string((hashtable_t*)dictionary, PARSE_NAME_TITLE, (char*)data);
 
 				//We don't want to save the data if it is a composite response
-				if(strcmp((char*)data, "ExpandableSearchResult") != 0)
+				if(strcmp((char*)data, PARSE_COMPOSITE_IDENT) != 0)
 				{
 					hashtable_set_data(res->data, RESPONSE_QUERY_STR, data, strlen((char*)data) + 1);
 				}
@@ -108,24 +108,24 @@ BOOL response_def_create_standard_responses(bing_response_t response, data_dicti
 		}
 
 		//Process updated to get datetime
-		size = (int)hashtable_get_item((hashtable_t*)dictionary, RES_UPDTAED, NULL);
+		size = (int)hashtable_get_item((hashtable_t*)dictionary, RES_UPDTAED_KEY, NULL);
 		if(size == sizeof(long long))
 		{
 			//Get the datetime
-			hashtable_get_item((hashtable_t*)dictionary, RES_UPDTAED, &ll);
+			hashtable_get_item((hashtable_t*)dictionary, RES_UPDTAED_KEY, &ll);
 
 			//Save the datetime
-			hashtable_set_data(res->data, RES_UPDTAED, &ll, sizeof(long long));
+			hashtable_set_data(res->data, RES_UPDTAED_KEY, &ll, sizeof(long long));
 		}
 
 		//Process to get URL for next "page" of results
-		size = hashtable_get_string((hashtable_t*)dictionary, PARSE_NEXT_LINK, NULL);
+		size = hashtable_get_string((hashtable_t*)dictionary, PARSE_LINK_NEXT_KEY, NULL);
 		if(size > 0)
 		{
 			data = bing_mem_malloc(size);
 			if(data)
 			{
-				hashtable_get_string((hashtable_t*)dictionary, PARSE_NEXT_LINK, (char*)data);
+				hashtable_get_string((hashtable_t*)dictionary, PARSE_LINK_NEXT_KEY, (char*)data);
 
 				res->nextUrl = (char*)data;
 			}
@@ -218,7 +218,7 @@ long long bing_response_get_offset(bing_response_t response)
 long long bing_response_get_updated(bing_response_t response)
 {
 	long long ret = -1;
-	response_get(response, RES_UPDTAED, &ret);
+	response_get(response, RES_UPDTAED_KEY, &ret);
 	return ret;
 }
 
