@@ -142,6 +142,9 @@ typedef struct BING_REQUEST_S
 	request_get_options_func uGetOptions;
 	request_finish_get_options_func uFinishGetOptions;
 
+	//This is a counter that allows us to determine if it has been added to a composite, while still allowing it to be added to multiple composite types
+	int compositeUse;
+
 	//These will never be NULL
 	request_get_options_func getOptions;
 	hashtable_t* data;

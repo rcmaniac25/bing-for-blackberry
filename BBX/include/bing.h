@@ -703,6 +703,21 @@ int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
  */
 int bing_request_composite_add_request(bing_request_t request, bing_request_t request_to_add);
 
+//TODO: Add ability to get composite requests, remove composite requests, is part of composite
+
+/**
+ * @brief Get the number of internal requests within a composite request.
+ *
+ * The @c bing_request_composite_count() functions allows developers to get the number
+ * of requests within a composite request.
+ *
+ * @param request The Bing request to get the count of internal requests from.
+ *
+ * @return A positive integer indicating the number of internal requests or
+ * 	-1 if the Bing request is not a composite type.
+ */
+int bing_request_composite_count(bing_request_t request);
+
 /**
  * @brief Free a Bing request from memory.
  *
@@ -718,7 +733,7 @@ void bing_request_free(bing_request_t request);
 //Custom functions
 
 /**
- * @brief Check if the Bing request type is supported.
+ * @brief Check if the Bing request field is supported.
  *
  * The @c bing_request_is_field_supported() functions allows developers to determine
  * if a field is supported.
@@ -731,6 +746,21 @@ void bing_request_free(bing_request_t request);
  * 	or NULL field string.
  */
 int bing_request_custom_is_field_supported(bing_request_t request, const char* field);
+
+/**
+ * @brief Check if the Bing request exists.
+ *
+ * The @c bing_request_custom_does_field_exist() functions allows developers to determine
+ * if a field is set on a request.
+ *
+ * @param request The Bing request to check for a field.
+ * @param field The field string to check for.
+ *
+ * @return A boolean value which is non-zero if the field exists
+ * 	within the specified Bing request, otherwise zero on error, NULL request,
+ * 	or NULL field string.
+ */
+int bing_request_custom_does_field_exist(bing_request_t request, const char* field);
 
 /**
  * @brief Get a custom value from a Bing request.
@@ -946,7 +976,7 @@ int bing_response_get_results(bing_response_t response, bing_result_t* results);
  *
  * @return Nothing is returned.
  */
-void bing_response_free(bing_response_t response);
+void bing_response_free(bing_response_t response); //TODO: Modify to return a boolean which indicates if freed or not
 
 //Specific functions
 
@@ -963,6 +993,8 @@ void bing_response_free(bing_response_t response);
  * 	occurred or if the response is not a composite type.
  */
 int bing_response_get_composite_responses(bing_response_t response, bing_response_t* responses);
+
+//TODO: Add function to determine if a response is a child of another response
 
 //Custom functions
 

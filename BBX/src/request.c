@@ -26,6 +26,7 @@
 #define REQ_WEB_FILETYPE "filetype"
 #define REQ_WEB_OPTIONS "weboptions"
 
+//If a field is marked as BING_FIELD_SUPPORT_ALL_FIELDS, it will be removed when added to a composite request and/or blocked on that request afterwards
 static bing_field_search request_fields[] =
 {
 		//Universal
@@ -406,6 +407,7 @@ int request_create(const char* source_type, const char* composite_type, BOOL cus
 				req->custom = custom;
 				req->getOptions = get_options_func;
 				req->data = NULL;
+				req->compositeUse = 0;
 
 				req->data = hashtable_create(tableSize);
 				if(req->data)
@@ -587,13 +589,16 @@ int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
 
 void request_remove_parent_options(bing_request* request)
 {
-	hashtable_remove_item(request->data, REQ_MAX_TOTAL);
-	hashtable_remove_item(request->data, REQ_OFFSET);
-	hashtable_remove_item(request->data, REQ_MARKET);
-	hashtable_remove_item(request->data, REQ_ADULT);
-	hashtable_remove_item(request->data, REQ_OPTIONS);
-	hashtable_remove_item(request->data, REQ_LATITUDE);
-	hashtable_remove_item(request->data, REQ_LONGITUDE);
+	bing_field_search* searchField;
+
+	//Simply go through the fields and remove the "global" ones. We can do this here since we are using the generic search field
+	for(searchField = request_fields; searchField != NULL; searchField = searchField->next)
+	{
+		if(searchField->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS)
+		{
+			hashtable_remove_item(request->data, searchField->field.name);
+		}
+	}
 }
 
 int bing_request_composite_add_request(bing_request_t request, bing_request_t request_to_add)
@@ -604,11 +609,13 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 	bing_request_t* requestList = NULL;
 	unsigned int i;
 
-	if(request && request_to_add && request != request_to_add)
+	if(request && request_to_add && //Make sure requests exist
+			request != request_to_add && //Make sure we aren't trying to add a request to itself
+			!((bing_request*)request_to_add)->sourceType) //Make sure we aren't trying to add a composite to another composite
 	{
 		req = (bing_request*)request;
 
-		if(!req->sourceType) //Composite's source type is null
+		if(!req->sourceType) //Composite source type is null
 		{
 			if(hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v) > 0)
 			{
@@ -644,34 +651,37 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 			}
 			if(list_v)
 			{
-				if(list_v->count >= list_v->cap)
+				//See if the request already exists in the list
+				for(i = 0; i < list_v->count; i++)
 				{
-					//Resize list
-					requestList = (bing_request_t*)bing_mem_realloc(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
-					if(requestList)
+					if(requestList[i] == request_to_add)
 					{
-						list_v->cap *= 2;
-						list_v->listElements = requestList;
-					}
-					else
-					{
-						requestList = NULL;
+						break;
 					}
 				}
-				if(requestList)
+				//If i != list->count then the item has been found
+				if(i == list_v->count)
 				{
-					//See if the request already exists in the list
-					for(i = 0; i < list_v->count; i++)
+					if(list_v->count >= list_v->cap)
 					{
-						if(requestList[i] == request_to_add)
+						//Resize list
+						requestList = (bing_request_t*)bing_mem_realloc(requestList, sizeof(bing_request_t) * (list_v->cap * 2));
+						if(requestList)
 						{
-							break;
+							list_v->cap *= 2;
+							list_v->listElements = requestList;
+						}
+						else
+						{
+							requestList = NULL;
 						}
 					}
-					//If i != list->count then the item has been found
-					if(i == list_v->count)
+
+					if(requestList)
 					{
+						//Add to list
 						request_remove_parent_options((bing_request*)request_to_add);
+						((bing_request*)request_to_add)->compositeUse++;
 						requestList[list_v->count++] = request_to_add;
 						ret = TRUE;
 					}
@@ -680,6 +690,27 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 		}
 	}
 	return ret;
+}
+
+int bing_request_composite_count(bing_request_t request)
+{
+	bing_request* req;
+	list* list_v;
+
+	if(request)
+	{
+		req = (bing_request*)request;
+		if(!req->sourceType) //Composite source type is null
+		{
+			//If we have a request list, return the count. Otherwise return 0
+			if(hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v) > 0)
+			{
+				return list_v->count;
+			}
+			return 0;
+		}
+	}
+	return -1;
 }
 
 void bing_request_free(bing_request_t request)
@@ -719,12 +750,42 @@ void bing_request_free(bing_request_t request)
 
 int bing_request_custom_is_field_supported(bing_request_t request, const char* field)
 {
+	//TODO
+	return FALSE;
+}
+
+int bing_request_custom_does_field_exist(bing_request_t request, const char* field)
+{
 	BOOL ret = FALSE;
 	if(request && field)
 	{
 		ret = hashtable_key_exists(((bing_request*)request)->data, field);
 	}
 	return ret;
+}
+
+BOOL canSetField(bing_request_t request, const char* field)
+{
+	bing_request* req;
+	bing_field_search* searchField;
+
+	if(request && field)
+	{
+		req = (bing_request*)request;
+		if(req->compositeUse != 0) //Only if the request is not set to any composite can any field be set
+		{
+			for(searchField = request_fields; searchField != NULL; searchField = searchField->next)
+			{
+				if(searchField->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS && //If it's a global field...
+						strcmp(searchField->field.name, field) == 0) //...and has the same name, don't allow it to continue.
+				{
+					return FALSE;
+				}
+			}
+		}
+		return TRUE;
+	}
+	return FALSE;
 }
 
 int bing_request_custom_get_32bit_int(bing_request_t request, const char* field, int* value)
@@ -749,17 +810,29 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
 
 int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, const int* value)
 {
-	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(int));
+	if(canSetField(request, field))
+	{
+		return hashtable_set_data(((bing_request*)request)->data, field, value, sizeof(int));
+	}
+	return FALSE;
 }
 
 int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value)
 {
-	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(long long));
+	if(canSetField(request, field))
+	{
+		return hashtable_set_data(((bing_request*)request)->data, field, value, sizeof(long long));
+	}
+	return FALSE;
 }
 
 int bing_request_custom_set_string(bing_request_t request, const char* field, const char* value)
 {
-	return hashtable_set_data(request ? ((bing_request*)request)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
+	if(canSetField(request, field))
+	{
+		return hashtable_set_data(((bing_request*)request)->data, field, value, value ? (strlen(value) + 1) : 0);
+	}
+	return FALSE;
 }
 
 int bing_request_custom_set_double(bing_request_t request, const char* field, const double* value)
@@ -770,6 +843,7 @@ int bing_request_custom_set_double(bing_request_t request, const char* field, co
 	return bing_request_custom_set_64bit_int(request, field, (long long*)value);
 }
 
+//TODO: Add composite request field
 int bing_request_create_custom_request(const char* source_type, bing_request_t* request, request_get_options_func get_options_func, request_finish_get_options_func get_options_done_func)
 {
 	bing_request* req;
