@@ -45,6 +45,7 @@ enum PARSER_ERROR
 
 	//Error callbacks
 	PE_ERROR_CALLBACK,
+	PE_FERROR_CALLBACK,
 	PE_SERROR_CALLBACK,
 
 	//parseResult
@@ -89,7 +90,21 @@ enum PARSER_ERROR
 	PE_PRESPONSE_ENTRY_NO_QNAME,
 
 	//getxmldata
-	PE_GETXMLDATA_CTX_CREATE_FAIL
+	PE_GETXMLDATA_CTX_CREATE_FAIL,
+
+	//"search functions"
+	PE_CURL_OK_HTTP_RESPONSE_NO_RESPONSE,
+	PE_CURL_OK_HTTP_RESPONSE_NOT_FOUND,
+	PE_CURL_OK_CONTEXT_NOT_OK,
+	PE_CURL_OK_HTTP_RESPONSE_CODE_FAIL
+};
+
+//Just some general codes
+enum HTTP_CODES
+{
+	HTTP_NO_RESPONSE = 0,
+
+	HTTP_NOT_FOUND = 404
 };
 
 typedef struct PARSER_STACK_S
@@ -98,11 +113,21 @@ typedef struct PARSER_STACK_S
 	struct PARSER_STACK_S* prev;
 } pstack;
 
+typedef struct PARSER_URL_PROCESS
+{
+	const char* url;
+	int index;
+	struct PARSER_URL_PROCESS* next;
+} p_url_process;
+
 typedef struct BING_PARSER_S
 {
 	//Freed on error
 	bing_response* response;
 	bing_response* current;
+
+	//Special processing
+	p_url_process* additionalUrlProcessing;
 
 	//State info
 	unsigned int bing;
@@ -913,13 +938,19 @@ void errorCallback(void *ctx, const char *msg, ...)
 	parser->parseError = PE_ERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
+void ferrorCallback(void *ctx, const char *msg, ...)
+{
+	bing_parser* parser = (bing_parser*)ctx;
+	parser->parseError = PE_FERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
+}
+
 void serrorCallback(void* userData, xmlErrorPtr error)
 {
 	bing_parser* parser = (bing_parser*)userData;
 	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
-static xmlSAXHandler parserHandler; //XXX
+static xmlSAXHandler parserHandler;
 
 void search_setup()
 {
@@ -940,9 +971,9 @@ void search_setup()
 
 		//Setup parser
 		xmlSAXVersion(&parserHandler, 2);
-		//parserHandler.error = errorCallback;
-		//parserHandler.fatalError = errorCallback;
-		//parserHandler.serror = serrorCallback;
+		parserHandler.error = errorCallback;
+		parserHandler.fatalError = ferrorCallback;
+		parserHandler.serror = serrorCallback;
 	}
 }
 
@@ -1020,7 +1051,7 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	else
 	{
 		//Create parser
-		parser->ctx = xmlCreatePushParserCtxt(/*(xmlSAXHandlerPtr)&parserHandler*/NULL, parser, ptr, atcsize, NULL);
+		parser->ctx = xmlCreatePushParserCtxt(/*(xmlSAXHandlerPtr)&parserHandler*/NULL, parser, ptr, atcsize, NULL); //XXX
 		parser->parseError = PE_NO_ERROR;
 		if(!parser->ctx)
 		{
@@ -1121,7 +1152,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 #endif
 	xmlFreeFunc xmlFreeF;
 
-	//TODO: Need to figure out how to get translation APIs to work when in a composite (will need to do two separate searches)
+	//TODO: Handle translation URL
 
 	if(check_for_connection() && url)
 	{
@@ -1146,14 +1177,46 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 #endif
 									curl_easy_perform(parser->curl)) == CURLE_OK)
 					{
-						//No errors
+						//No errors (so we hope)
+						if(parser->ctx)
+						{
+							//Finish parsing
+							xmlParseChunk(parser->ctx, NULL, 0, TRUE);
 
-						//Finish parsing
-						xmlParseChunk(parser->ctx, NULL, 0, TRUE);
-
-						//Parse document
-						parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
-
+							//Parse document
+							parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+						}
+						else
+						{
+#if defined(BING_DEBUG)
+							//Search finished, but didn't work. What happened?
+							curlCode = 0;
+							if(curl_easy_getinfo(parser->curl, CURLINFO_RESPONSE_CODE, &curlCode) == CURLE_OK)
+							{
+								switch(curlCode)
+								{
+									case HTTP_NO_RESPONSE:
+										//No response was received from server
+										parser->parseError = PE_CURL_OK_HTTP_RESPONSE_NO_RESPONSE;
+										break;
+									case HTTP_NOT_FOUND:
+										parser->parseError = PE_CURL_OK_HTTP_RESPONSE_NOT_FOUND;
+										break;
+									default:
+#endif
+										//Umm, a... what? How did this succeed?
+										parser->parseError = PE_CURL_OK_CONTEXT_NOT_OK;
+#if defined(BING_DEBUG)
+										break;
+								}
+							}
+							else
+							{
+								//cURL succeeded, but it didn't get any data. On top of that, we couldn't get the HTTP status code
+								parser->parseError = PE_CURL_OK_HTTP_RESPONSE_CODE_FAIL;
+							}
+#endif
+						}
 						//We check for an error, if none exists then we get the response
 						if(canContinue(parser))
 						{
@@ -1251,6 +1314,8 @@ void* async_search(void* ctx)
 	bing_parser* parser = (bing_parser*)ctx;
 	xmlFreeFunc xmlFreeF;
 
+	//TODO: Handle translation URL
+
 	if(check_for_connection())
 	{
 		//Get memory function
@@ -1264,13 +1329,45 @@ void* async_search(void* ctx)
 						curl_easy_perform(parser->curl)) == CURLE_OK)
 		{
 			//No errors
+			if(parser->ctx)
+			{
+				//Finish parsing
+				xmlParseChunk(parser->ctx, NULL, 0, TRUE);
 
-			//Finish parsing
-			xmlParseChunk(parser->ctx, NULL, 0, TRUE);
-
-			//Parse document
-			parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
-
+				//Parse document
+				parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+			}
+			else
+			{
+#if defined(BING_DEBUG)
+				//Search finished, but didn't work. What happened?
+				curlCode = 0;
+				if(curl_easy_getinfo(parser->curl, CURLINFO_RESPONSE_CODE, &curlCode) == CURLE_OK)
+				{
+					switch(curlCode)
+					{
+						case HTTP_NO_RESPONSE:
+							//No response was received from server
+							parser->parseError = PE_CURL_OK_HTTP_RESPONSE_NO_RESPONSE;
+							break;
+						case HTTP_NOT_FOUND:
+							parser->parseError = PE_CURL_OK_HTTP_RESPONSE_NOT_FOUND;
+							break;
+						default:
+#endif
+							//Umm, a... what? How did this succeed?
+							parser->parseError = PE_CURL_OK_CONTEXT_NOT_OK;
+#if defined(BING_DEBUG)
+							break;
+					}
+				}
+				else
+				{
+					//cURL succeeded, but it didn't get any data. On top of that, we couldn't get the HTTP status code
+					parser->parseError = PE_CURL_OK_HTTP_RESPONSE_CODE_FAIL;
+				}
+#endif
+			}
 			//We check for an error
 #if defined(BING_DEBUG)
 			if(!
@@ -1353,8 +1450,6 @@ int search_async_url_in(unsigned int bingID, const char* url, const void* user_d
 	bing_parser* parser;
 	pthread_attr_t thread_atts;
 	BOOL ret = FALSE;
-
-	//TODO: Need to figure out how to get translation APIs to work when in a composite (will need to do two separate searches)
 
 	if(check_for_connection() && url)
 	{

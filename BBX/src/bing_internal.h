@@ -121,7 +121,7 @@ typedef struct BING_FIELD_SUPPORT_S
 	const char* name;
 
 	int sourceTypeCount;
-	enum BING_SOURCE_TYPE supportedTypes[BING_SOURCETYPE_COUNT];
+	enum BING_SOURCE_TYPE supportedTypes[BING_SOURCETYPE_COMPOSITE_COUNT];
 } bing_field_support;
 
 #define BING_FIELD_SUPPORT_ALL_FIELDS -2

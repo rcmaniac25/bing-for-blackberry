@@ -279,7 +279,7 @@ static request_source_type request_source_types[] =
 		{BING_SOURCETYPE_IMAGE,				"Image",				"image",			DEFAULT_ELEMENT_COUNT + 1,	request_image_get_options,	&request_source_types[1]},
 		{BING_SOURCETYPE_NEWS,				"News",					"news",				DEFAULT_ELEMENT_COUNT + 3,	request_news_get_options,	&request_source_types[2]},
 		{BING_SOURCETYPE_RELATED_SEARCH,	"RelatedSearch",		"relatedsearch",	DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[3]},
-		{BING_SOURCETYPE_SPELL,				"SpellingSuggestion",	"spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[4]},
+		{BING_SOURCETYPE_SPELL,				"SpellingSuggestions",	"spell",			DEFAULT_ELEMENT_COUNT,		request_def_get_options,	&request_source_types[4]},
 		{BING_SOURCETYPE_VIDEO,				"Video",				"video",			DEFAULT_ELEMENT_COUNT + 2,	request_video_get_options,	&request_source_types[5]},
 		{BING_SOURCETYPE_WEB,				"Web",					"web",				DEFAULT_ELEMENT_COUNT + 2,	request_web_get_options,	NULL}
 };
@@ -292,7 +292,11 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 	if(request)
 	{
 		req = (bing_request*)request;
-		if(req->sourceType)
+		if(req->custom)
+		{
+			t = BING_SOURCETYPE_CUSTOM;
+		}
+		else if(req->sourceType)
 		{
 			for(type = request_source_types; type; type = type->next)
 			{
@@ -313,7 +317,9 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 
 const char* request_get_composite_sourcetype(bing_request_t composite)
 {
-	char buffer[256];
+#define BUFFER_SIZE 256
+
+	char buffer[BUFFER_SIZE];
 	char* result = bing_mem_calloc(1, sizeof(char));
 	size_t len = 1;
 	list* list = NULL;
@@ -328,7 +334,7 @@ const char* request_get_composite_sourcetype(bing_request_t composite)
 			//Go through elements and get data
 			for(i = 0; i < list->count; i++)
 			{
-				src = (char*)((bing_request*)LIST_ELEMENT(list, i, bing_request_t))->compositeSourceType;
+				src = (char*)LIST_ELEMENT(list, i, bing_request*)->compositeSourceType;
 				if(!src)
 				{
 					//We don't want composite types within composite types
@@ -337,12 +343,12 @@ const char* request_get_composite_sourcetype(bing_request_t composite)
 				//Get the source type in the proper format
 				if(i == 0)
 				{
-					strlcpy(buffer, src, 256);
+					strlcpy(buffer, src, BUFFER_SIZE);
 				}
 				else
 				{
-					snprintf(buffer, 256, "%%2b%s", src);
-					buffer[255] = '\0';
+					snprintf(buffer, BUFFER_SIZE, "%%2b%s", src);
+					buffer[BUFFER_SIZE - 1] = '\0';
 				}
 				//Get the length and resize the string
 				len += strlen(buffer);
@@ -357,6 +363,8 @@ const char* request_get_composite_sourcetype(bing_request_t composite)
 		}
 	}
 	return result;
+
+#undef BUFFER_SIZE
 }
 
 int request_create(const char* source_type, const char* composite_type, BOOL custom, bing_request_t* request, request_get_options_func get_options_func, int tableSize)
@@ -478,8 +486,8 @@ int bing_request_is_field_supported(bing_request_t request, enum BING_REQUEST_FI
 		req = (bing_request*)request;
 		key = find_field(request_fields, field, FIELD_TYPE_UNKNOWN, bing_request_get_source_type(request), FALSE);
 
-		//Determine if the key is within the result
-		ret = hashtable_key_exists(req->data, key);
+		//Determine if the key is supported
+		ret = bing_request_custom_is_field_supported(request, key);
 	}
 	return ret;
 }
@@ -611,7 +619,7 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 
 	if(request && request_to_add && //Make sure requests exist
 			request != request_to_add && //Make sure we aren't trying to add a request to itself
-			!((bing_request*)request_to_add)->sourceType) //Make sure we aren't trying to add a composite to another composite
+			((bing_request*)request_to_add)->sourceType) //Make sure we aren't trying to add a composite to another composite
 	{
 		req = (bing_request*)request;
 
@@ -629,11 +637,11 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 				if(list_v)
 				{
 					list_v->count = 0;
-					requestList = list_v->listElements = (bing_request_t*)bing_mem_calloc(11, sizeof(bing_request_t)); //XXX Give the 11 a meaning. I think it has to do with number of requests based on type
+					requestList = list_v->listElements = (bing_request_t*)bing_mem_calloc(BING_SOURCETYPE_COMPOSITE_COUNT, sizeof(bing_request_t));
 					if(list_v->listElements)
 					{
 						//Save the list
-						list_v->cap = 11;
+						list_v->cap = BING_SOURCETYPE_COMPOSITE_COUNT;
 						if(!hashtable_put_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, list_v, sizeof(list*)))
 						{
 							//List creation failed, cleanup
@@ -713,44 +721,112 @@ int bing_request_composite_count(bing_request_t request)
 	return -1;
 }
 
-void bing_request_free(bing_request_t request)
+int bing_request_free(bing_request_t request)
 {
+	BOOL ret = FALSE;
 	bing_request* req;
 	list* list;
 	unsigned int i;
 	if(request)
 	{
 		req = (bing_request*)request;
-
-		if(req->custom)
+		if(req->compositeUse == 0)
 		{
-			bing_mem_free((void*)req->sourceType);
-			bing_mem_free((void*)req->compositeSourceType);
-		}
-
-		if(req->data)
-		{
-			//Composite, make sure data is freed
-			if(!req->sourceType && hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list) > 0)
+			if(req->custom)
 			{
-				for(i = 0; i < list->count; i++)
-				{
-					bing_request_free(LIST_ELEMENT(list, i, bing_request_t));
-				}
-				bing_mem_free((void*)list->listElements);
-				bing_mem_free((void*)list);
+				bing_mem_free((void*)req->sourceType);
+				bing_mem_free((void*)req->compositeSourceType);
 			}
-			hashtable_free(req->data);
-		}
-		req->data = NULL;
 
-		bing_mem_free(req);
+			if(req->data)
+			{
+				//Composite, make sure data is freed
+				if(!req->sourceType && hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list) > 0)
+				{
+					for(i = 0; i < list->count; i++)
+					{
+						LIST_ELEMENT(list, i, bing_request*)->compositeUse--; //Deincrement composite use so it will be freed if this is the last composite request to use it
+						bing_request_free(LIST_ELEMENT(list, i, bing_request_t));
+					}
+					bing_mem_free((void*)list->listElements);
+					bing_mem_free((void*)list);
+				}
+				hashtable_free(req->data);
+			}
+			req->data = NULL;
+
+			bing_mem_free(req);
+
+			ret = TRUE;
+		}
 	}
+	return ret;
 }
 
 int bing_request_custom_is_field_supported(bing_request_t request, const char* field)
 {
-	//TODO
+	bing_field_search* searchField;
+	request_source_type* reqSourceType;
+	bing_request* req;
+	enum BING_SOURCE_TYPE stype = BING_SOURCETYPE_UNKNOWN;
+	int i;
+
+	if(request && field)
+	{
+		req = (bing_request*)request;
+		if(req->custom)
+		{
+			//Anything is possible with custom
+			return TRUE;
+		}
+
+		//Predetermined type, check field
+		for(searchField = request_fields; searchField != NULL; searchField = searchField->next)
+		{
+			//First check to see if this is a global field
+			if(searchField->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS && strcmp(searchField->field.name, field) == 0)
+			{
+				return TRUE;
+			}
+			else
+			{
+				//First we need to find the source type
+				if(req->sourceType == NULL)
+				{
+					stype = BING_SOURCETYPE_COMPOSITE;
+				}
+				else
+				{
+					for(reqSourceType = request_source_types; reqSourceType != NULL; reqSourceType = reqSourceType->next)
+					{
+						//For requests that are not custom, the source type is simply referenced. So we can just do a comparison instead of needing to strcmp the two types
+						if(reqSourceType->source_type == req->sourceType)
+						{
+							stype = reqSourceType->type;
+							break;
+						}
+					}
+				}
+
+				if(stype != BING_SOURCETYPE_UNKNOWN)
+				{
+					//Now we need to check types
+					for(i = 0; i < searchField->field.sourceTypeCount; i++)
+					{
+						if(searchField->field.supportedTypes[i] == stype)
+						{
+							//Type matches, now check name
+							if(strcmp(searchField->field.name, field) == 0)
+							{
+								return TRUE;
+							}
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
 	return FALSE;
 }
 

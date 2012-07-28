@@ -54,12 +54,6 @@ enum BING_SOURCE_TYPE
 {
 	BING_SOURCETYPE_UNKNOWN,
 
-	//A custom source type
-	BING_SOURCETYPE_CUSTOM,
-
-	//A composited source type (not used for result)
-	BING_SOURCETYPE_COMPOSITE,
-
 	//Standard source types
 	BING_SOURCETYPE_IMAGE,
 	BING_SOURCETYPE_NEWS,
@@ -69,10 +63,20 @@ enum BING_SOURCE_TYPE
 	BING_SOURCETYPE_VIDEO,
 	BING_SOURCETYPE_WEB,
 
+	//A custom source type
+	BING_SOURCETYPE_CUSTOM,
+
+	//Number of source types that can be added to a composite
+	BING_SOURCETYPE_COMPOSITE_COUNT,
+
+	//A composited source type (not used for result)
+	BING_SOURCETYPE_COMPOSITE,
+
 	//Result type
 	BING_RESULT_TYPE,
 
-	BING_SOURCETYPE_COUNT
+	//Total number of source types (set to BING_RESULT_TYPE so it is the equivalent of "count" - 1)
+	BING_SOURCETYPE_TOTAL_COUNT = BING_RESULT_TYPE
 };
 
 #define BING_RESULT_TYPE_FIELD "bb_result-type"
@@ -615,6 +619,9 @@ int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* reque
  * The @c bing_request_is_field_supported() functions allows developers to determine
  * if a field is supported.
  *
+ * If the specified request is custom, anything is supported because the developer
+ * is the one handling the options that the request supplies.
+ *
  * @param request The Bing request to check for a field.
  * @param field The field to check for.
  *
@@ -726,9 +733,12 @@ int bing_request_composite_count(bing_request_t request);
  *
  * @param request The Bing request to free.
  *
- * @return Nothing is returned.
+ * @return A boolean value which is non-zero if the the request has been freed
+ * 	successfully, otherwise zero on error, NULL request, or if the request is
+ * 	currently part of a composite request. Composite requests will free any
+ * 	child requests.
  */
-void bing_request_free(bing_request_t request);
+int bing_request_free(bing_request_t request);
 
 //Custom functions
 

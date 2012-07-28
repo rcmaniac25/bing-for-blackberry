@@ -448,7 +448,7 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 	bing_request* req = (bing_request*)request;
 	size_t urlSize = 26 + 1; //This is the length of the URL format and null char. We don't include '?' because when the size of sourceType is taken, it will include that
 
-	//TODO Modify to handle translation requests (cannot be in composite, at least this function won't allow it. Can modify search functions to do it)
+	//TODO: If the request is a translation request, convert to URL. If the request is composite, and contains a translation URL, convert both to URLs, then get the index of the translation request, specify it and space-seperate the URLs. So translation is 2nd request: "normal_url 1 translation_url"
 
 	if(request)
 	{
@@ -538,8 +538,8 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum BING_SOURCE_TYPE sourceType, BOOL checkType)
 {
 	int i;
-	//If the field actually has a value then we check it, otherwise skip it. We also don't want to do anything with custom types (since it will fail anyway)
-	if(fieldID && sourceType != BING_SOURCETYPE_CUSTOM)
+	//If the field actually has a value then we check it, otherwise skip it.
+	if(fieldID)
 	{
 		for(; searchFields; searchFields = searchFields->next)
 		{
@@ -547,18 +547,26 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 			if(searchFields->field.variableValue == fieldID &&
 					!(checkType && searchFields->field.type != type))
 			{
-				//Fields support certain types, see if the type matches
-				for(i = 0; i < searchFields->field.sourceTypeCount; i++)
+				if(sourceType == BING_SOURCETYPE_CUSTOM)
 				{
-					if(searchFields->field.supportedTypes[i] == sourceType)
-					{
-						return searchFields->field.name;
-					}
-				}
-				//If we want every field, then it is implicitly supported
-				if(searchFields->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS)
-				{
+					//If the type is custom, anything goes.
 					return searchFields->field.name;
+				}
+				else if(searchFields->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS)
+				{
+					//If every field type is supported, it's good.
+					return searchFields->field.name;
+				}
+				else
+				{
+					//Fields support certain types, see if the type matches
+					for(i = 0; i < searchFields->field.sourceTypeCount; i++)
+					{
+						if(searchFields->field.supportedTypes[i] == sourceType)
+						{
+							return searchFields->field.name;
+						}
+					}
 				}
 			}
 		}

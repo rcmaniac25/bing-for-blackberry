@@ -1,26 +1,30 @@
 TODO:
 -Rewrite to Azure
 --Test (good queries)
----BING_SOURCETYPE_SPELL
 ---composite
 --Figure out how xmlSAXHandler should be setup. I can use my own error functions, but get a segfault for some reason
 --Test (good and bad queries)
---Memory testing
 --Release
+--Memory testing
 --Implement other TODOs
---Determine invalid URL char. Use it as seperator for different search URLs.
 --Fix "hashtable_get_keys". It "works" but produces a lot of weird keys, with some correct ones
 --Give response a parent field
+--Combine async/sync parsers. This way sync simply calls "this" function, and async simply calls "this" function from a seperate thread.
+--Implement translation support (modify URL processor)
 --Abstract all the "get int/long/string" code to dedicated functions instead of repeating them a bunch for request, response, result
 --Add compression support
 --Determine how to handle error returns (we handle parsing errors, what if invalid parameters are passed to service?)
---Allow requests to have composite types (ignored initially do to lack of full error handling.)
+--Allow custom requests to have composite types (ignored initially do to lack of full error handling.)
 --Make type system extendable
+--Memory testing
 -Document public function saftey info (thread safe, interrupt safe, etc.)
 -Produce C++ version of library
 --Generic for first version
 --Add QString support
 --Add signal/slot support
+
+Note:
+If the error code is ever PE_CURL_OK_CONTEXT_NOT_OK, it usually means 404.
 
 Defines:
 BING_DEBUG - Some debug output, optional search error returns. If search error returns are enabled then if an error occurs it will return an object 
