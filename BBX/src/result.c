@@ -220,7 +220,7 @@ static bing_field_search result_fields[] =
 		{{BING_RESULT_FIELD_RUN_TIME_LENGTH,	FIELD_TYPE_INT,		"d:RunTime",				1,	{BING_SOURCETYPE_VIDEO}},							&result_fields[15]},
 
 		//Web
-		{{BING_RESULT_FIELD_DISPLAY_URL,		FIELD_TYPE_STRING,	"d:DisplayUrl",		3,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO,
+		{{BING_RESULT_FIELD_DISPLAY_URL,		FIELD_TYPE_STRING,	"d:DisplayUrl",				3,	{BING_SOURCETYPE_IMAGE, BING_SOURCETYPE_VIDEO,
 				BING_SOURCETYPE_WEB}},																													NULL},
 };
 

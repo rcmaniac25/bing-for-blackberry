@@ -1,7 +1,5 @@
 TODO:
 -Rewrite to Azure
---Test (good queries)
----composite
 --Figure out how xmlSAXHandler should be setup. I can use my own error functions, but get a segfault for some reason
 --Test (good and bad queries)
 --Release

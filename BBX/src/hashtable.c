@@ -219,6 +219,15 @@ BOOL hashtable_put_item(hashtable_t* table, const char* key, const void* data, s
 		{
 			*((size_t*)ud) = data_size;
 			memcpy(ud + sizeof(size_t), data, data_size);
+#if defined(BING_DEBUG)
+			if(memcmp(ud + sizeof(size_t), data, data_size) != 0)
+			{
+				bing_mem_free(ud);
+				ud = NULL;
+			}
+			else
+			{
+#endif
 
 			hash = (ht*)table;
 			if(hash->alloc <= xmlHashSize(hash->table))
@@ -236,6 +245,9 @@ BOOL hashtable_put_item(hashtable_t* table, const char* key, const void* data, s
 			{
 				bing_mem_free(ud);
 			}
+#if defined(BING_DEBUG)
+			}
+#endif
 		}
 	}
 	return ret;
@@ -254,6 +266,12 @@ size_t hashtable_get_item(hashtable_t* table, const char* name, void* data)
 			if(data)
 			{
 				memcpy(data, dat + sizeof(size_t), ret);
+#if defined(BING_DEBUG)
+				if(memcmp(data, dat + sizeof(size_t), ret) != 0)
+				{
+					ret = 0;
+				}
+#endif
 			}
 		}
 	}

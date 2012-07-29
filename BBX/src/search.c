@@ -81,7 +81,6 @@ enum PARSER_ERROR
 	PE_PRESPONSE_CREATE_CREATION_CALLBACK_FAIL,
 	PE_PRESPONSE_CREATE_FAIL,
 	PE_PRESPONSE_ENTRY_CHECK_NO_QNAME,
-	PE_PRESPONSE_ENTRY_COMPOSITE_FAIL,
 	PE_PRESPONSE_ENTRY_COMPOSITE_NOT_VALID,
 	PE_PRESPONSE_ENTRY_TYPE_MISSING,
 	PE_PRESPONSE_ENTRY_PROCESS_NO_QNAME,
@@ -93,6 +92,7 @@ enum PARSER_ERROR
 	PE_GETXMLDATA_CTX_CREATE_FAIL,
 
 	//"search functions"
+	PE_NO_RESPONSES,
 	PE_CURL_OK_HTTP_RESPONSE_NO_RESPONSE,
 	PE_CURL_OK_HTTP_RESPONSE_NOT_FOUND,
 	PE_CURL_OK_CONTEXT_NOT_OK,
@@ -753,7 +753,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 					//Should we do any extra processing on the response?
 					if(parser->response)
 					{
-						//Response already exists. If it is a composite then it is already added, otherwise we need to replace it
+						//Response already exists. If it is a composite then it is already added, otherwise we need to replace it. This shouldn't really be needed if response_create_raw did it's job correctly, this is backup.
 						if(parser->response->type != BING_SOURCETYPE_COMPOSITE)
 						{
 							//Save it temporarily
@@ -832,7 +832,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 									bing_mem_free((void*)nodeName);
 
 									//Get the inner text
-									xmlText = xmlNodeGetContent(node);
+									xmlText = xmlNodeGetContent(node2);
 									if(xmlText)
 									{
 										if(strcmp((char*)xmlText, PARSE_COMPOSITE_IDENT) == 0)
@@ -873,11 +873,15 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 												if(strcmp((char*)xmlText, "application/atom+xml;type=feed") == 0)
 												{
 													//Yep, this is a composite node (node2->children->children gets us straight to the internal response [as opposed to the "container" of the response])
-													if(!parseResponse(node2->children->children, TRUE, parser, xmlFree))
+													if(parseResponse(node2->children->children, TRUE, parser, xmlFree))
 													{
-														//Could not parse response for composite
-														parser->parseError = PE_PRESPONSE_ENTRY_COMPOSITE_FAIL;
+														//Remove "query" from response (it is "current", which hasn't been overwritten). It would be the "response ID" instead of the query.
+														if(parser->current)
+														{
+															hashtable_remove_item(parser->current->data, RESPONSE_QUERY_STR);
+														}
 													}
+													//The only reason the response would be null is if the response was empty, otherwise normal error handling operations would occur
 												}
 												else
 												{
@@ -1183,8 +1187,16 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 							//Finish parsing
 							xmlParseChunk(parser->ctx, NULL, 0, TRUE);
 
-							//Parse document
-							parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+							if(parser->ctx->myDoc->children)
+							{
+								//Parse document
+								parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+							}
+							else
+							{
+								//Somehow parsing completed successfully, but there are no children (responses) to process
+								parser->parseError = PE_NO_RESPONSES;
+							}
 						}
 						else
 						{
@@ -1334,8 +1346,16 @@ void* async_search(void* ctx)
 				//Finish parsing
 				xmlParseChunk(parser->ctx, NULL, 0, TRUE);
 
-				//Parse document
-				parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+				if(parser->ctx->myDoc->children)
+				{
+					//Parse document
+					parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+				}
+				else
+				{
+					//Somehow parsing completed successfully, but there are no children (responses) to process
+					parser->parseError = PE_NO_RESPONSES;
+				}
 			}
 			else
 			{

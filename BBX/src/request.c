@@ -315,7 +315,7 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 	return t;
 }
 
-const char* request_get_composite_sourcetype(bing_request_t composite)
+const char* request_get_composite_sourcetype(bing_request* composite)
 {
 #define BUFFER_SIZE 256
 
@@ -328,7 +328,7 @@ const char* request_get_composite_sourcetype(bing_request_t composite)
 	if(composite && result)
 	{
 		//Get the list
-		hashtable_get_item(((bing_request*)composite)->data, REQUEST_COMPOSITE_SUBREQ_STR, &list);
+		hashtable_get_item(composite->data, REQUEST_COMPOSITE_SUBREQ_STR, &list);
 		if(list && list->count > 0)
 		{
 			//Go through elements and get data
@@ -454,7 +454,7 @@ int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* reque
 			sourceT = NULL;
 			compositeT = NULL;
 			tableSize = DEFAULT_ELEMENT_COUNT + 1;
-			getOFun = request_get_composite_sourcetype;
+			getOFun = request_composite_get_options;
 		}
 		else
 		{
@@ -642,7 +642,7 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 					{
 						//Save the list
 						list_v->cap = BING_SOURCETYPE_COMPOSITE_COUNT;
-						if(!hashtable_put_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, list_v, sizeof(list*)))
+						if(!hashtable_put_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v, sizeof(list*)))
 						{
 							//List creation failed, cleanup
 							bing_mem_free(list_v);
@@ -662,7 +662,7 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 				//See if the request already exists in the list
 				for(i = 0; i < list_v->count; i++)
 				{
-					if(requestList[i] == request_to_add)
+					if(requestList[i] == request_to_add) //XXX Should thus check source type too?
 					{
 						break;
 					}

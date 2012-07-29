@@ -158,7 +158,7 @@ static bing_response_creator_search response_def_creator[]=
 		{{"Bing News Search",	"News",					response_def_create},		BING_SOURCETYPE_NEWS,				0,	&response_def_creator[4]},
 		{{"Bing Related Search","RelatedSearch",		response_def_create},		BING_SOURCETYPE_RELATED_SEARCH,		0,	&response_def_creator[5]},
 		{{"Bing Spell Search",	"SpellingSuggestions",	response_def_create},		BING_SOURCETYPE_SPELL,				0,	&response_def_creator[6]},
-		{{RESPONSE_COMPOSITE,	NULL,					response_def_create},		BING_SOURCETYPE_COMPOSITE,			0,	NULL},
+		{{"Bing Search API",	RESPONSE_COMPOSITE,		response_def_create},		BING_SOURCETYPE_COMPOSITE,			0,	NULL},
 };
 
 //Functions
@@ -515,12 +515,12 @@ BOOL response_add_to_composite(bing_response* response, bing_response* responseP
 		if(list_v)
 		{
 			list_v->count = 0;
-			responseList = list_v->listElements = (bing_response_t*)bing_mem_calloc(11, sizeof(bing_response_t));
+			responseList = list_v->listElements = (bing_response_t*)bing_mem_calloc(BING_SOURCETYPE_COMPOSITE_COUNT, sizeof(bing_response_t));
 			if(list_v->listElements)
 			{
 				//Save the list
-				list_v->cap = 11;
-				if(!hashtable_put_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, list_v, sizeof(list*)))
+				list_v->cap = BING_SOURCETYPE_COMPOSITE_COUNT;
+				if(!hashtable_put_item(responseParent->data, RESPONSE_COMPOSITE_SUBRES_STR, &list_v, sizeof(list*)))
 				{
 					//List creation failed, cleanup
 					bing_mem_free(list_v);

@@ -483,14 +483,14 @@ const char* bing_request_url(const char* query, const bing_request_t request)
 		else
 		{
 			//Get composite source type
-			sourceType = request_get_composite_sourcetype((bing_request_t)req);
+			sourceType = request_get_composite_sourcetype(req);
 
 			//Format for the URL
-			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 26); //Includes format, ?, and null char
+			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 27); //Includes format, ?, &, and null char
 			if(sourceTypeTmp)
 			{
 				//Format it so it is correct for a composite request
-				if(snprintf(sourceTypeTmp, strlen(sourceType) + 26, "Composite?Sources=%%27%s%%27", sourceType) < 0)
+				if(snprintf(sourceTypeTmp, strlen(sourceType) + 27, "Composite?Sources=%%27%s%%27&", sourceType) < 0)
 				{
 					bing_mem_free((void*)sourceTypeTmp);
 					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
