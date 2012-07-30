@@ -572,12 +572,27 @@ int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
 	return request_get_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
 }
 
-int bing_request_set_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const int* value)
+int bing_request_set_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, int value)
+{
+	return bing_request_set_p_32bit_int(request, field, &value);
+}
+
+int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long value)
+{
+	return bing_request_set_p_64bit_int(request, field, &value);
+}
+
+int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, double value)
+{
+	return bing_request_set_p_double(request, field, &value);
+}
+
+int bing_request_set_p_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const int* value)
 {
 	return request_set_data(request, field, FIELD_TYPE_INT, value, sizeof(int));
 }
 
-int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value)
+int bing_request_set_p_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value)
 {
 	return request_set_data(request, field, FIELD_TYPE_LONG, value, sizeof(long long));
 }
@@ -587,12 +602,9 @@ int bing_request_set_string(bing_request_t request, enum BING_REQUEST_FIELD fiel
 	return request_set_str_data(request, field, FIELD_TYPE_STRING, value);
 }
 
-int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value)
+int bing_request_set_p_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value)
 {
-#if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
-#error Double size is different than Long Long size
-#endif
-	return bing_request_set_64bit_int(request, field, (long long*)value);
+	return request_set_data(request, field, FIELD_TYPE_DOUBLE, value, sizeof(double));
 }
 
 void request_remove_parent_options(bing_request* request)
@@ -884,7 +896,22 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
 	return hashtable_get_data_key(request ? ((bing_request*)request)->data : NULL, field, value, sizeof(double));
 }
 
-int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, const int* value)
+int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, int value)
+{
+	return bing_request_custom_set_p_32bit_int(request, field, &value);
+}
+
+int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, long long value)
+{
+	return bing_request_custom_set_p_64bit_int(request, field, &value);
+}
+
+int bing_request_custom_set_double(bing_request_t request, const char* field, double value)
+{
+	return bing_request_custom_set_p_double(request, field, &value);
+}
+
+int bing_request_custom_set_p_32bit_int(bing_request_t request, const char* field, const int* value)
 {
 	if(canSetField(request, field))
 	{
@@ -893,7 +920,7 @@ int bing_request_custom_set_32bit_int(bing_request_t request, const char* field,
 	return FALSE;
 }
 
-int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value)
+int bing_request_custom_set_p_64bit_int(bing_request_t request, const char* field, const long long* value)
 {
 	if(canSetField(request, field))
 	{
@@ -911,12 +938,12 @@ int bing_request_custom_set_string(bing_request_t request, const char* field, co
 	return FALSE;
 }
 
-int bing_request_custom_set_double(bing_request_t request, const char* field, const double* value)
+int bing_request_custom_set_p_double(bing_request_t request, const char* field, const double* value)
 {
 #if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
 #error Double size is different than Long Long size
 #endif
-	return bing_request_custom_set_64bit_int(request, field, (long long*)value);
+	return bing_request_custom_set_p_64bit_int(request, field, (long long*)value);
 }
 
 //TODO: Add composite request field

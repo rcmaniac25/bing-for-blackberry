@@ -576,7 +576,9 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize)
 {
-	char buffer[256];
+#define BUFFER_SIZE 256
+
+	char buffer[BUFFER_SIZE];
 	char* rett;
 	size_t size;
 
@@ -597,8 +599,8 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 		{
 			hashtable_get_item(table, key, data[0]);
 
-			snprintf(buffer, 256, format, data[0]);
-			buffer[255] = '\0';
+			snprintf(buffer, BUFFER_SIZE, format, data[0]);
+			buffer[BUFFER_SIZE - 1] = '\0';
 
 			returnDataSize[0] += strlen(buffer);
 			rett = bing_mem_realloc(returnData[0], returnDataSize[0]);
@@ -609,6 +611,8 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 			}
 		}
 	}
+
+#undef BUFFER_SIZE
 }
 
 BOOL bing_set_memory_handlers(bing_malloc_handler bm, bing_calloc_handler bc, bing_realloc_handler br, bing_free_handler bf, bing_strdup_handler bs)

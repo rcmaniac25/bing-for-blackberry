@@ -933,12 +933,32 @@ int bing_response_custom_get_array(bing_response_t response, const char* field, 
 	return bing_response_custom_get_string(response, field, (char*)value);
 }
 
-int bing_response_custom_set_32bit_int(bing_response_t response, const char* field, const int* value)
+int bing_response_custom_set_32bit_int(bing_response_t response, const char* field, int value)
+{
+	return bing_response_custom_set_p_32bit_int(response, field, &value);
+}
+
+int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, long long value)
+{
+	return bing_response_custom_set_p_64bit_int(response, field, &value);
+}
+
+int bing_response_custom_set_double(bing_response_t response, const char* field, double value)
+{
+	return bing_response_custom_set_p_double(response, field, &value);
+}
+
+int bing_response_custom_set_boolean(bing_response_t response, const char* field, int value)
+{
+	return bing_response_custom_set_p_boolean(response, field, &value);
+}
+
+int bing_response_custom_set_p_32bit_int(bing_response_t response, const char* field, const int* value)
 {
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
 }
 
-int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, const long long* value)
+int bing_response_custom_set_p_64bit_int(bing_response_t response, const char* field, const long long* value)
 {
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(long long));
 }
@@ -948,15 +968,15 @@ int bing_response_custom_set_string(bing_response_t response, const char* field,
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, value ? (strlen(value) + 1) : 0);
 }
 
-int bing_response_custom_set_double(bing_response_t response, const char* field, const double* value)
+int bing_response_custom_set_p_double(bing_response_t response, const char* field, const double* value)
 {
 #if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
 #error Double size is different than Long Long size
 #endif
-	return bing_response_custom_set_64bit_int(response, field, (long long*)value);
+	return bing_response_custom_set_p_64bit_int(response, field, (long long*)value);
 }
 
-int bing_response_custom_set_boolean(bing_response_t response, const char* field, const int* value)
+int bing_response_custom_set_p_boolean(bing_response_t response, const char* field, const int* value)
 {
 	return hashtable_set_data(response ? ((bing_response*)response)->data : NULL, field, value, sizeof(int));
 }

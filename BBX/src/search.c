@@ -954,7 +954,48 @@ void serrorCallback(void* userData, xmlErrorPtr error)
 	parser->parseError = PE_SERROR_CALLBACK; //We simply mark this as error because on completion we can check this and it will automatically handle all cleanup and we can get if the search completed or not
 }
 
-static xmlSAXHandler parserHandler;
+/*
+ * Setup as if this was run:
+ * xmlSAXVersion(&parserHandler, 2);
+ * parserHandler.error = errorCallback;
+ * parserHandler.fatalError = ferrorCallback;
+ * parserHandler.serror = serrorCallback;
+ */
+static const xmlSAXHandler parserHandler=
+{
+		xmlSAX2InternalSubset,			//internalSubset
+		xmlSAX2IsStandalone,			//isStandalone
+		xmlSAX2HasInternalSubset,		//hasInternalSubset
+		xmlSAX2HasExternalSubset,		//hasExternalSubset
+		xmlSAX2ResolveEntity,			//resolveEntity
+		xmlSAX2GetEntity,				//getEntity
+		xmlSAX2EntityDecl,				//entityDecl
+		xmlSAX2NotationDecl,			//notationDecl
+        xmlSAX2AttributeDecl,			//attributeDecl
+        xmlSAX2ElementDecl,				//elementDecl
+        xmlSAX2UnparsedEntityDecl,		//unparsedEntityDecl
+        xmlSAX2SetDocumentLocator,		//setDocumentLocator
+        xmlSAX2StartDocument,			//startDocument
+        xmlSAX2EndDocument,				//endDocument
+        NULL,							//startElement
+        NULL,							//endElement
+        xmlSAX2Reference,				//reference
+        xmlSAX2Characters,				//characters
+        xmlSAX2Characters,				//ignorableWhitespace
+        xmlSAX2ProcessingInstruction,	//processingInstruction
+        xmlSAX2Comment,					//comment
+        xmlParserWarning,				//warning
+        errorCallback,					//error
+        ferrorCallback,					//fatalError
+        xmlSAX2GetParameterEntity,		//getParameterEntity
+        xmlSAX2CDataBlock,				//cdataBlock
+        xmlSAX2ExternalSubset,			//externalSubset
+        XML_SAX2_MAGIC,					//initialized
+        NULL,							//_private
+        xmlSAX2StartElementNs,			//startElementNs
+        xmlSAX2EndElementNs,			//endElementNs
+        serrorCallback					//serror
+};
 
 void search_setup()
 {
@@ -972,12 +1013,6 @@ void search_setup()
 
 		//Setup cURL
 		curl_global_init_mem(CURL_GLOBAL_ALL, bing_mem_malloc, bing_mem_free, bing_mem_realloc, bing_mem_strdup, bing_mem_calloc); //THIS IS NOT THREAD SAFE!!
-
-		//Setup parser
-		xmlSAXVersion(&parserHandler, 2);
-		parserHandler.error = errorCallback;
-		parserHandler.fatalError = ferrorCallback;
-		parserHandler.serror = serrorCallback;
 	}
 }
 

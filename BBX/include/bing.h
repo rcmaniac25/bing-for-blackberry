@@ -687,10 +687,14 @@ int bing_request_get_double(bing_request_t request, enum BING_REQUEST_FIELD fiel
  * 	otherwise zero on error.
  */
 
-int bing_request_set_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const int* value);
-int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value);
+int bing_request_set_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, int value);
+int bing_request_set_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, long long value);
 int bing_request_set_string(bing_request_t request, enum BING_REQUEST_FIELD field, const char* value);
-int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value);
+int bing_request_set_double(bing_request_t request, enum BING_REQUEST_FIELD field, double value);
+
+int bing_request_set_p_32bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const int* value);
+int bing_request_set_p_64bit_int(bing_request_t request, enum BING_REQUEST_FIELD field, const long long* value);
+int bing_request_set_p_double(bing_request_t request, enum BING_REQUEST_FIELD field, const double* value);
 
 /**
  * @brief Add a request to a composite request.
@@ -832,10 +836,14 @@ int bing_request_custom_get_double(bing_request_t request, const char* field, do
  * 	otherwise zero on error.
  */
 
-int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, const int* value);
-int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, const long long* value);
+int bing_request_custom_set_32bit_int(bing_request_t request, const char* field, int value);
+int bing_request_custom_set_64bit_int(bing_request_t request, const char* field, long long value);
 int bing_request_custom_set_string(bing_request_t request, const char* field, const char* value);
-int bing_request_custom_set_double(bing_request_t request, const char* field, const double* value);
+int bing_request_custom_set_double(bing_request_t request, const char* field, double value);
+
+int bing_request_custom_set_p_32bit_int(bing_request_t request, const char* field, const int* value);
+int bing_request_custom_set_p_64bit_int(bing_request_t request, const char* field, const long long* value);
+int bing_request_custom_set_p_double(bing_request_t request, const char* field, const double* value);
 
 /**
  * @brief Create a custom request.
@@ -1088,12 +1096,17 @@ int bing_response_custom_get_array(bing_response_t response, const char* field, 
  * 	otherwise zero on error.
  */
 
-int bing_response_custom_set_32bit_int(bing_response_t response, const char* field, const int* value);
-int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, const long long* value);
+int bing_response_custom_set_32bit_int(bing_response_t response, const char* field, int value);
+int bing_response_custom_set_64bit_int(bing_response_t response, const char* field, long long value);
 int bing_response_custom_set_string(bing_response_t response, const char* field, const char* value);
-int bing_response_custom_set_double(bing_response_t response, const char* field, const double* value);
-int bing_response_custom_set_boolean(bing_response_t response, const char* field, const int* value);
+int bing_response_custom_set_double(bing_response_t response, const char* field, double value);
+int bing_response_custom_set_boolean(bing_response_t response, const char* field, int value);
 int bing_response_custom_set_array(bing_response_t response, const char* field, const void* value, size_t size);
+
+int bing_response_custom_set_p_32bit_int(bing_response_t response, const char* field, const int* value);
+int bing_response_custom_set_p_64bit_int(bing_response_t response, const char* field, const long long* value);
+int bing_response_custom_set_p_double(bing_response_t response, const char* field, const double* value);
+int bing_response_custom_set_p_boolean(bing_response_t response, const char* field, const int* value);
 
 /**
  * @brief Allocate memory that will be freed when responses are freed.
@@ -1365,12 +1378,17 @@ int bing_result_custom_get_array(bing_result_t result, const char* field, void* 
  * 	otherwise zero on error.
  */
 
-int bing_result_custom_set_32bit_int(bing_result_t result, const char* field, const int* value);
-int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, const long long* value);
+int bing_result_custom_set_32bit_int(bing_result_t result, const char* field, int value);
+int bing_result_custom_set_64bit_int(bing_result_t result, const char* field, long long value);
 int bing_result_custom_set_string(bing_result_t result, const char* field, const char* value);
-int bing_result_custom_set_double(bing_result_t result, const char* field, const double* value);
-int bing_result_custom_set_boolean(bing_result_t result, const char* field, const int* value);
+int bing_result_custom_set_double(bing_result_t result, const char* field, double value);
+int bing_result_custom_set_boolean(bing_result_t result, const char* field, int value);
 int bing_result_custom_set_array(bing_result_t result, const char* field, const void* value, size_t size);
+
+int bing_result_custom_set_p_32bit_int(bing_result_t result, const char* field, const int* value);
+int bing_result_custom_set_p_64bit_int(bing_result_t result, const char* field, const long long* value);
+int bing_result_custom_set_p_double(bing_result_t result, const char* field, const double* value);
+int bing_result_custom_set_p_boolean(bing_result_t result, const char* field, const int* value);
 
 /**
  * @brief Allocate memory that will be freed when the parent response
