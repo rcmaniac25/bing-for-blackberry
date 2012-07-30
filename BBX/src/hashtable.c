@@ -9,6 +9,8 @@
 
 #include "bing_internal.h"
 
+#include <assert.h>
+
 #include <libxml/xmlstring.h>
 #include <libxml/hash.h>
 
@@ -27,7 +29,7 @@ hashtable_t* hashtable_create(int size)
 {
 	ht* hash;
 
-	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed
+	assert(sizeof(xmlChar) == sizeof(char)); //Purely for the sake that xmlChar could be a different size, which would mean a different method of string creation is needed. We do this at runtime since xmlChar is not a system type
 
 	hash = (ht*)bing_mem_malloc(sizeof(ht));
 	if(hash)
@@ -61,9 +63,9 @@ void hashtable_free(hashtable_t* table)
 	}
 }
 
-int hashtable_key_exists(hashtable_t* table, const char* key)
+BOOL hashtable_key_exists(hashtable_t* table, const char* key)
 {
-	int ret = -1;
+	BOOL ret = FALSE;
 	if(table && key)
 	{
 		ret = xmlHashLookup(((ht*)table)->table, (xmlChar*)key) != NULL;
@@ -161,9 +163,9 @@ BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable)
 	return ret;
 }
 
-int resizeHashTable(ht* hash)
+BOOL resizeHashTableSize(ht* hash, int nAlloc)
 {
-	int nAlloc = hash->alloc * 2;
+	//Create hashtable
 	xmlHashTablePtr nTable = xmlHashCreate(nAlloc);
 	if(!nTable)
 	{
@@ -183,9 +185,31 @@ int resizeHashTable(ht* hash)
 	return TRUE;
 }
 
-int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size)
+BOOL resizeHashTable(ht* hash)
 {
-	int ret = -1;
+	return resizeHashTableSize(hash, hash->alloc * 2);
+}
+
+BOOL hashtable_compact(hashtable_t* table)
+{
+	ht* hash;
+	if(table)
+	{
+		hash = (ht*)table;
+
+		//If the allocated size of the table is larger then the actual size, reduce it
+		if(hash->alloc > xmlHashSize(hash->table))
+		{
+			return resizeHashTableSize(hash, xmlHashSize(hash->table));
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size)
+{
+	BOOL ret = FALSE;
 	void* ud = NULL;
 	ht* hash;
 	if(table && key && data && data_size > 0)
@@ -195,6 +219,15 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 		{
 			*((size_t*)ud) = data_size;
 			memcpy(ud + sizeof(size_t), data, data_size);
+#if defined(BING_DEBUG)
+			if(memcmp(ud + sizeof(size_t), data, data_size) != 0)
+			{
+				bing_mem_free(ud);
+				ud = NULL;
+			}
+			else
+			{
+#endif
 
 			hash = (ht*)table;
 			if(hash->alloc <= xmlHashSize(hash->table))
@@ -207,11 +240,14 @@ int hashtable_put_item(hashtable_t* table, const char* key, const void* data, si
 				}
 			}
 
-			ret = xmlHashUpdateEntry(hash->table, (xmlChar*)key, ud, ht_data_deallocator);
-			if(ret == -1)
+			ret = xmlHashUpdateEntry(hash->table, (xmlChar*)key, ud, ht_data_deallocator) == 0;
+			if(!ret)
 			{
 				bing_mem_free(ud);
 			}
+#if defined(BING_DEBUG)
+			}
+#endif
 		}
 	}
 	return ret;
@@ -230,18 +266,24 @@ size_t hashtable_get_item(hashtable_t* table, const char* name, void* data)
 			if(data)
 			{
 				memcpy(data, dat + sizeof(size_t), ret);
+#if defined(BING_DEBUG)
+				if(memcmp(data, dat + sizeof(size_t), ret) != 0)
+				{
+					ret = 0;
+				}
+#endif
 			}
 		}
 	}
 	return ret;
 }
 
-int hashtable_remove_item(hashtable_t* table, const char* key)
+BOOL hashtable_remove_item(hashtable_t* table, const char* key)
 {
-	int ret = -1;
+	BOOL ret = FALSE;
 	if(table && key)
 	{
-		ret = xmlHashRemoveEntry(((ht*)table)->table, (xmlChar*)key, ht_data_deallocator);
+		ret = xmlHashRemoveEntry(((ht*)table)->table, (xmlChar*)key, ht_data_deallocator) == 0;
 	}
 	return ret;
 }
@@ -258,7 +300,7 @@ void ht_get_name(void* payload, void* data, xmlChar* name)
 		strlcpy(keys[index], (char*)name, size);
 	}
 
-	*((int*)data) = index + 1;
+	*((int*)data) = index - 1;
 }
 
 int hashtable_get_keys(hashtable_t* table, char** keys)
@@ -278,7 +320,7 @@ int hashtable_get_keys(hashtable_t* table, char** keys)
 			if(dat)
 			{
 				//Make a simple structure for data
-				*((int*)dat) = ret;
+				*((int*)dat) = ret - 1; //Index, so decrement by 1
 				*((char***)(dat + sizeof(int))) = keys;
 
 				//Get the names
@@ -337,10 +379,7 @@ BOOL hashtable_set_data(hashtable_t* table, const char* field, const void* value
 		}
 		else if(value)
 		{
-			if(hashtable_put_item(table, field, value, size) != -1)
-			{
-				ret =  TRUE;
-			}
+			ret = hashtable_put_item(table, field, value, size);
 		}
 	}
 	return ret;

@@ -57,7 +57,8 @@ int bing_shutdown()
 			//Free all the creator strings, then the creators themselves
 			while(bingSystem.bingResponseCreatorCount > 0)
 			{
-				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].name);
+				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].dedicatedName);
+				bing_mem_free((void*)bingSystem.bingResponseCreators[--bingSystem.bingResponseCreatorCount].compositeName);
 			}
 			while(bingSystem.bingResultCreatorCount > 0)
 			{
@@ -126,7 +127,7 @@ int findFreeIndex()
 	return -1;
 }
 
-unsigned int bing_create(const char* application_ID)
+unsigned int bing_create(const char* account_key)
 {
 	int ret = 0; //Zero is reserved for bad
 	int loc;
@@ -165,13 +166,13 @@ unsigned int bing_create(const char* application_ID)
 				memset(bingI, 0, sizeof(bing));
 
 				//Copy application ID
-				if(application_ID)
+				if(account_key)
 				{
-					if(bingI->appId)
+					if(bingI->accountKey)
 					{
-						bing_mem_free(bingI->appId);
+						bing_mem_free(bingI->accountKey);
 					}
-					bingI->appId = bing_mem_strdup(application_ID);
+					bingI->accountKey = bing_mem_strdup(account_key);
 					//If an error occurs, it's up to the developer to make sure that the app ID was copied
 				}
 #if defined(BING_DEBUG)
@@ -251,7 +252,7 @@ void bing_free(unsigned int bingID)
 			}
 			bing_mem_free(bingI->responses);
 
-			bing_mem_free(bingI->appId);
+			bing_mem_free(bingI->accountKey);
 
 			pthread_mutex_destroy(&bingI->mutex);
 
@@ -321,7 +322,7 @@ int bing_get_error_return(unsigned int bingID)
 
 #endif
 
-int bing_get_app_ID(unsigned int bingID, char* buffer)
+int bing_get_account_key(unsigned int bingID, char* buffer)
 {
 	bing* bingI = retrieveBing(bingID);
 	int ret = -1;
@@ -330,11 +331,11 @@ int bing_get_app_ID(unsigned int bingID, char* buffer)
 	{
 		pthread_mutex_lock(&bingI->mutex);
 
-		ret = strlen(bingI->appId) + 1;
+		ret = strlen(bingI->accountKey) + 1;
 
 		if(buffer)
 		{
-			strlcpy(buffer, bingI->appId, ret);
+			strlcpy(buffer, bingI->accountKey, ret);
 			buffer[ret - 1] = '\0';
 		}
 
@@ -344,14 +345,14 @@ int bing_get_app_ID(unsigned int bingID, char* buffer)
 	return ret;
 }
 
-int bing_set_app_ID(unsigned int bingID, const char* appId)
+int bing_set_account_key(unsigned int bingID, const char* account_key)
 {
 	bing* bingI;
 	int size;
 	int res = FALSE;
-	char* preApp;
+	char* preKey;
 
-	if(appId && (size = strlen(appId) + 1) > 1)
+	if(account_key && (size = strlen(account_key) + 1) > 1)
 	{
 		bingI= retrieveBing(bingID);
 
@@ -359,21 +360,21 @@ int bing_set_app_ID(unsigned int bingID, const char* appId)
 		{
 			pthread_mutex_lock(&bingI->mutex);
 
-			preApp = bingI->appId;
+			preKey = bingI->accountKey;
 
-			bingI->appId = (char*)bing_mem_malloc(size);
-			if(bingI->appId)
+			bingI->accountKey = (char*)bing_mem_malloc(size);
+			if(bingI->accountKey)
 			{
-				strlcpy(bingI->appId, appId, size);
-				bingI->appId[size - 1] = '\0';
+				strlcpy(bingI->accountKey, account_key, size);
+				bingI->accountKey[size - 1] = '\0';
 
-				bing_mem_free(preApp);
+				bing_mem_free(preKey);
 
 				res = TRUE;
 			}
 			else
 			{
-				bingI->appId = preApp;
+				bingI->accountKey = preKey;
 			}
 
 			pthread_mutex_unlock(&bingI->mutex);
@@ -385,7 +386,7 @@ int bing_set_app_ID(unsigned int bingID, const char* appId)
 
 //Utility functions
 
-const char BING_URL[] = "http://api.bing.net/xml.aspx?";
+const char BING_URL[] = "https://api.datamarket.azure.com/Bing/Search/";
 const char URL_UNRESERVED[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
 const char HEX[] = "0123456789ABCDEF";
 
@@ -393,16 +394,16 @@ const char HEX[] = "0123456789ABCDEF";
 const char* encodeUrl(const char* url)
 {
 	unsigned char* bytes = (unsigned char*)url;
-	char* ret = "";
+	char* ret = NULL;
 	char* find;
 	size_t size;
 	size_t pos;
 	unsigned char b;
-	if(bytes != NULL)
+	if(bytes)
 	{
 		size = strlen(url) + 1;
 		ret = (char*)bing_mem_malloc(size * 3); //We don't know how many of these bytes we will need, better to be safe then sorry
-		if(ret != NULL)
+		if(ret)
 		{
 			memset(ret, 0, size * 3);
 			pos = 0;
@@ -427,27 +428,28 @@ const char* encodeUrl(const char* url)
 			}
 			ret[pos] = 0; //Null char
 		}
-		else
-		{
-			//Error, back to original
-			ret = "";
-		}
+	}
+	if(!ret)
+	{
+		ret = (char*)bing_mem_calloc(1, sizeof(char));
 	}
 	return ret;
 }
 
-const char* bing_request_url(unsigned int bingID, const char* query, const bing_request_t request)
+const char* bing_request_url(const char* query, const bing_request_t request)
 {
-	bing* bingI = retrieveBing(bingID);
 	char* ret = NULL;
 	const char* queryStr;
 	const char* appIdStr;
 	const char* requestOptions;
 	const char* sourceType;
+	char* sourceTypeTmp;
 	bing_request* req = (bing_request*)request;
-	size_t urlSize = 46 + 1; //This is the length of the URL format and null char
+	size_t urlSize = 26 + 1; //This is the length of the URL format and null char. We don't include '?' because when the size of sourceType is taken, it will include that
 
-	if(bingI && request)
+	//TODO: If the request is a translation request, convert to URL. If the request is composite, and contains a translation URL, convert both to URLs, then get the index of the translation request, specify it and space-seperate the URLs. So translation is 2nd request: "normal_url 1 translation_url"
+
+	if(request)
 	{
 		//Size of URL (it's constant but it could change so we don't want to hard code the size)
 		urlSize += sizeof(BING_URL);
@@ -458,53 +460,75 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 
 		//Get the source type
 		sourceType = req->sourceType;
-		if(!sourceType)
+		if(sourceType)
 		{
-			//Get bundle source type
-			sourceType = request_get_bundle_sourcetype(req);
-		}
-
-		//Size of the request source type
-		urlSize += strlen(sourceType);
-
-		//Get the request options and types and size
-		requestOptions = req->getOptions(request);
-		urlSize += strlen(requestOptions);
-
-		//We want to lock it now before we use the application ID (since it can be changed)
-		pthread_mutex_lock(&bingI->mutex);
-
-		//Application ID and size
-		appIdStr = bingI->appId;
-		if(!appIdStr)
-		{
-			appIdStr = "";
-		}
-		urlSize += strlen(appIdStr);
-
-		//Allocate the url data
-		ret = (char*)bing_mem_calloc(urlSize, sizeof(char));
-		if(ret)
-		{
-			//Now actually create the URL
-			if(snprintf(ret, urlSize, "%sxmltype=attributebased&AppId=%s&Query=%s&Sources=%s%s", BING_URL, appIdStr, queryStr, sourceType, requestOptions) < 0)
+			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 2); //Includes the ? and null char
+			if(sourceTypeTmp)
 			{
-				//Error
-				bing_mem_free(ret);
-				ret = NULL;
+				//We need to add ? so it is a valid URL
+				if(snprintf(sourceTypeTmp, strlen(sourceType) + 2, "%s?", sourceType) < 0)
+				{
+					bing_mem_free((void*)sourceTypeTmp);
+					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
+				}
+				sourceType = sourceTypeTmp;
+			}
+			else
+			{
+				//Prevent from running if we can't make source type string
+				sourceType = NULL;
+			}
+		}
+		else
+		{
+			//Get composite source type
+			sourceType = request_get_composite_sourcetype(req);
+
+			//Format for the URL
+			sourceTypeTmp = bing_mem_malloc(strlen(sourceType) + 27); //Includes format, ?, &, and null char
+			if(sourceTypeTmp)
+			{
+				//Format it so it is correct for a composite request
+				if(snprintf(sourceTypeTmp, strlen(sourceType) + 27, "Composite?Sources=%%27%s%%27&", sourceType) < 0)
+				{
+					bing_mem_free((void*)sourceTypeTmp);
+					sourceTypeTmp = NULL; //Error (this will set sourceType to NULL, which will prevent it from executing)
+				}
+				sourceType = sourceTypeTmp;
+			}
+			else
+			{
+				//Prevent from running if we can't make source type string
+				sourceType = NULL;
 			}
 		}
 
-		//Let the Bing element go back to normal execution
-		pthread_mutex_unlock(&bingI->mutex);
-
-		//Free the strings
-		if(!req->sourceType)
+		if(sourceType)
 		{
-			//Need to free source type for bundle
+			//Size of the request source type
+			urlSize += strlen(sourceType);
+
+			//Get the request options and types and size
+			requestOptions = req->getOptions(request);
+			urlSize += strlen(requestOptions);
+
+			//Allocate the url data
+			ret = (char*)bing_mem_calloc(urlSize, sizeof(char));
+			if(ret)
+			{
+				//Now actually create the URL
+				if(snprintf(ret, urlSize, "%s%sQuery=%%27%s%%27&$format=ATOM%s", BING_URL, sourceType, queryStr, requestOptions) < 0)
+				{
+					//Error
+					bing_mem_free(ret);
+					ret = NULL;
+				}
+			}
+
+			//Free the strings
+			bing_mem_free((void*)requestOptions);
 			bing_mem_free((void*)sourceType);
 		}
-		bing_mem_free((void*)requestOptions);
 		bing_mem_free((void*)queryStr);
 	}
 	return ret;
@@ -513,27 +537,35 @@ const char* bing_request_url(unsigned int bingID, const char* query, const bing_
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum BING_SOURCE_TYPE sourceType, BOOL checkType)
 {
 	int i;
-	//If the field actually has a value then we check it, otherwise skip it. We also don't want to do anything with custom types (since it will fail anyway)
-	if(fieldID && sourceType != BING_SOURCETYPE_CUSTOM)
+	//If the field actually has a value then we check it, otherwise skip it.
+	if(fieldID)
 	{
-		for(; searchFields; searchFields = searchFields->next)
+		for(; searchFields != NULL; searchFields = searchFields->next)
 		{
 			//Make sure the variable and type match (we don't want to return a String for something that needs to be a long or double)
 			if(searchFields->field.variableValue == fieldID &&
 					!(checkType && searchFields->field.type != type))
 			{
-				//Fields support certain types, see if the type matches
-				for(i = 0; i < searchFields->field.sourceTypeCount; i++)
+				if(sourceType == BING_SOURCETYPE_CUSTOM)
 				{
-					if(searchFields->field.supportedTypes[i] == sourceType)
-					{
-						return searchFields->field.name;
-					}
-				}
-				//If we want every field, then it is implicitly supported
-				if(searchFields->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS)
-				{
+					//If the type is custom, anything goes.
 					return searchFields->field.name;
+				}
+				else if(searchFields->field.sourceTypeCount == BING_FIELD_SUPPORT_ALL_FIELDS)
+				{
+					//If every field type is supported, it's good.
+					return searchFields->field.name;
+				}
+				else
+				{
+					//Fields support certain types, see if the type matches
+					for(i = 0; i < searchFields->field.sourceTypeCount; i++)
+					{
+						if(searchFields->field.supportedTypes[i] == sourceType)
+						{
+							return searchFields->field.name;
+						}
+					}
 				}
 			}
 		}
@@ -543,7 +575,9 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize)
 {
-	char buffer[256];
+#define BUFFER_SIZE 256
+
+	char buffer[BUFFER_SIZE];
 	char* rett;
 	size_t size;
 
@@ -564,8 +598,8 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 		{
 			hashtable_get_item(table, key, data[0]);
 
-			snprintf(buffer, 256, format, data[0]);
-			buffer[255] = '\0';
+			snprintf(buffer, BUFFER_SIZE, format, data[0]);
+			buffer[BUFFER_SIZE - 1] = '\0';
 
 			returnDataSize[0] += strlen(buffer);
 			rett = bing_mem_realloc(returnData[0], returnDataSize[0]);
@@ -576,54 +610,8 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 			}
 		}
 	}
-}
 
-BOOL replace_string_with_longlong(hashtable_t* table, const char* field)
-{
-	BOOL ret = TRUE; //We want to return true by default as the field might not exist
-	char* str;
-	long long ll;
-	int strLen = hashtable_get_string(table, field, NULL);
-	if(strLen > 0)
-	{
-		str = bing_mem_malloc(strLen);
-		if(str)
-		{
-			hashtable_get_string(table, field, str);
-			ll = atoll(str);
-			ret = hashtable_set_data(table, field, &ll, sizeof(long long));
-			bing_mem_free(str);
-		}
-		else
-		{
-			ret = FALSE;
-		}
-	}
-	return ret;
-}
-
-BOOL replace_string_with_double(hashtable_t* table, const char* field)
-{
-	BOOL ret = TRUE; //We want to return true by default as the field might not exist
-	char* str;
-	double d;
-	int strLen = hashtable_get_string(table, field, NULL);
-	if(strLen > 0)
-	{
-		str = bing_mem_malloc(strLen);
-		if(str)
-		{
-			hashtable_get_string(table, field, str);
-			d = atof(str);
-			ret = hashtable_set_data(table, field, &d, sizeof(double));
-			bing_mem_free(str);
-		}
-		else
-		{
-			ret = FALSE;
-		}
-	}
-	return ret;
+#undef BUFFER_SIZE
 }
 
 BOOL bing_set_memory_handlers(bing_malloc_handler bm, bing_calloc_handler bc, bing_realloc_handler br, bing_free_handler bf, bing_strdup_handler bs)

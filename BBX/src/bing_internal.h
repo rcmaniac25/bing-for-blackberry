@@ -15,8 +15,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <assert.h>
 #include <atomic.h>
+
+#include <libxml/tree.h>
+#include <libxml/xmlmemory.h>
 
 /*
  * Defines
@@ -24,6 +26,7 @@
 
 __BEGIN_DECLS
 
+//Defines for processing and setup
 #if !defined(BOOL)
 #define BOOL int
 
@@ -39,17 +42,26 @@ __BEGIN_DECLS
 #define DEFAULT_ERROR_RET TRUE
 #define RESULT_CREATE_DEFAULT_INTERNAL FALSE
 
+//Helper macros
 #define BOOL_TO_CPP_BOOL(x) (x) != FALSE
 #define CPP_BOOL_TO_BOOL(x) (x) ? TRUE : FALSE
 
-#define REQUEST_BUNDLE_SUBBUNDLES_STR "bb_req_bundle_sub-bundles"
-#define RESPONSE_BUNDLE_SUBBUNDLES_STR "bb_res_bundle_sub-bundles"
+//Internal keys
+#define REQUEST_COMPOSITE_SUBREQ_STR "bb_req_composite_sub-requests"
+#define RESPONSE_COMPOSITE_SUBRES_STR "bb_res_composite_sub-responses"
 
-#define RESPONSE_TOTAL_STR "bb_res_total"
+#define RESPONSE_MAX_TOTAL_STR "bb_res_max_total"
 #define RESPONSE_OFFSET_STR "bb_res_offset"
 #define RESPONSE_QUERY_STR "bb_res_query"
-#define RESPONSE_ALTERED_QUERY_STR "bb_res_alt_query"
-#define RESPONSE_ALTERATIONS_OVER_QUERY_STR "bb_res_alt_over_query"
+
+//Composite define
+#define RESPONSE_COMPOSITE "composite"
+
+//Parsing defines
+#define PARSE_LINK_NEXT_KEY "#nextLink"
+#define PARSE_NAME_TITLE "title"
+
+#define PARSE_COMPOSITE_IDENT "ExpandableSearchResult"
 
 /**
  * The print out function to use for messages.
@@ -94,6 +106,7 @@ enum FIELD_TYPE
 {
 	FIELD_TYPE_UNKNOWN,
 	FIELD_TYPE_LONG,
+	FIELD_TYPE_INT,
 	FIELD_TYPE_STRING,
 	FIELD_TYPE_DOUBLE,
 	FIELD_TYPE_BOOLEAN,
@@ -108,7 +121,7 @@ typedef struct BING_FIELD_SUPPORT_S
 	const char* name;
 
 	int sourceTypeCount;
-	enum BING_SOURCE_TYPE supportedTypes[15]; //BING_SOURCETYPE_COUNT
+	enum BING_SOURCE_TYPE supportedTypes[BING_SOURCETYPE_COMPOSITE_COUNT];
 } bing_field_support;
 
 #define BING_FIELD_SUPPORT_ALL_FIELDS -2
@@ -124,8 +137,13 @@ typedef struct hashtable_s hashtable_t;
 typedef struct BING_REQUEST_S
 {
 	const char* sourceType;
+	const char* compositeSourceType;
+	BOOL custom;
 	request_get_options_func uGetOptions;
 	request_finish_get_options_func uFinishGetOptions;
+
+	//This is a counter that allows us to determine if it has been added to a composite, while still allowing it to be added to multiple composite types
+	int compositeUse;
 
 	//These will never be NULL
 	request_get_options_func getOptions;
@@ -135,7 +153,6 @@ typedef struct BING_REQUEST_S
 typedef struct BING_RESULT_S
 {
 	enum BING_SOURCE_TYPE type;
-	BOOL array;
 
 	//These will never be NULL
 	struct BING_RESPONSE_S* parent;
@@ -151,8 +168,9 @@ typedef struct BING_RESPONSE_S
 
 	//These will never be NULL
 	response_creation_func creation;
-	response_additional_data_func additionalData;
 	hashtable_t* data;
+
+	const char* nextUrl;
 
 	unsigned int resultCount;
 	bing_result_t* results;
@@ -168,7 +186,7 @@ typedef struct BING_S
 {
 	pthread_mutex_t mutex;
 
-	char* appId;
+	char* accountKey;
 #if defined(BING_DEBUG)
 	BOOL errorRet;
 #endif
@@ -179,16 +197,15 @@ typedef struct BING_S
 
 typedef struct BING_RESPONSE_CREATOR_S
 {
-	const char* name;
+	const char* dedicatedName;
+	const char* compositeName;
 	response_creation_func creation;
-	response_additional_data_func additionalData;
 } bing_response_creator;
 
 typedef struct BING_RESULT_CREATOR_S
 {
 	const char* name;
-	BOOL array;
-	BOOL common;
+	BOOL type;
 	result_creation_func creation;
 	result_additional_result_func additionalResult;
 } bing_result_creator;
@@ -234,16 +251,18 @@ static int lastErrorCode = 0;
 
 const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_TYPE type, enum BING_SOURCE_TYPE sourceType, BOOL checkType);
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize);
+const char* xmlGetQualifiedName(xmlNodePtr node);
 
 //Dictionary functions
 hashtable_t* hashtable_create(int size);
 void hashtable_free(hashtable_t* table);
 BOOL hashtable_copy(hashtable_t* dstTable, const hashtable_t* srcTable);
-int hashtable_key_exists(hashtable_t* table, const char* key);
-int hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
+BOOL hashtable_compact(hashtable_t* table);
+BOOL hashtable_key_exists(hashtable_t* table, const char* key);
+BOOL hashtable_put_item(hashtable_t* table, const char* key, const void* data, size_t data_size);
 size_t hashtable_get_item(hashtable_t* table, const char* name, void* data);
-int hashtable_remove_item(hashtable_t* table, const char* key);
-int hashtable_get_keys(hashtable_t* table, char** keys);
+BOOL hashtable_remove_item(hashtable_t* table, const char* key);
+int hashtable_get_keys(hashtable_t* table, char** keys); //Returns the number of keys
 //-Helper dictionary functions
 BOOL hashtable_get_data_key(hashtable_t* table, const char* key, void* value, size_t size);
 int hashtable_get_string(hashtable_t* table, const char* field, char* value);
@@ -252,8 +271,18 @@ BOOL hashtable_set_data(hashtable_t* table, const char* field, const void* value
 //Bing functions
 bing* retrieveBing(unsigned int bingID);
 
+//Type functions
+BOOL isComplex(const char* name);
+enum FIELD_TYPE getParsedTypeByType(const char* type);
+enum FIELD_TYPE getParsedTypeByName(xmlNodePtr node);
+void* parseByType(const char* type, xmlNodePtr node, xmlFreeFunc xmlFree);
+void* parseByName(xmlNodePtr node, xmlFreeFunc xmlFree);
+BOOL parseToHashtableByType(const char* type, xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree);
+BOOL parseToHashtableByName(xmlNodePtr node, hashtable_t* table, xmlFreeFunc xmlFree);
+long long parseTime(const char* stime);
+
 //Request functions
-const char* request_get_bundle_sourcetype(bing_request* bundle);
+const char* request_get_composite_sourcetype(bing_request* composite);
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary);
 BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
 BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal);
@@ -262,13 +291,8 @@ BOOL response_swap_result(bing_response* response, bing_result* result, BOOL int
 BOOL response_swap_response(bing_response* response, bing_response* responseParent);
 
 //Result functions
-BOOL result_is_common(const char* type);
 BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);
 void free_result(bing_result* result);
-
-//Helper functions (primarily for creating/updating results/responses)
-BOOL replace_string_with_longlong(hashtable_t* table, const char* field);
-BOOL replace_string_with_double(hashtable_t* table, const char* field);
 
 //Memory functions
 void* allocateMemory(size_t size, bing_response* response);

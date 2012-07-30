@@ -57,7 +57,7 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 * The @cpp bing_service() constructor allows developers to allocate a Bing service object to
 		 * perform search operations using Microsoft's Bing services.
 		 *
-		 * @param bingService Another instance of a Bing service element in which to copy the App ID from.
+		 * @param bingService Another instance of a Bing service element in which to copy the account key from.
 		 */
 		bing_service(const bing_service& bingService);
 
@@ -67,11 +67,11 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 * The @cpp bing_service() constructor allows developers to allocate a Bing service object to
 		 * perform search operations using Microsoft's Bing services.
 		 *
-		 * @param application_ID The application ID which allows a developer to access
+		 * @param account_key The account key which allows a developer to access
 		 * 	Microsoft Bing services. If this string is not NULL, it is copied for use by
 		 * 	the service. So the developer can free the memory when he is done.
 		 */
-		bing_service(const char* application_ID);
+		bing_service(const char* account_key);
 
 		//TODO: QString constructor (don't forget reference constructor)
 
@@ -115,34 +115,33 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 #endif
 
 		/**
-		 * @brief Get a Bing service's application ID.
+		 * @brief Get a Bing service's account key.
 		 *
-		 * The @cpp app_ID() function allows developers to get the service's current
-		 * application ID.
+		 * The @cpp get_account_key() function allows developers to get the service's current
+		 * account key.
 		 *
-		 * @param buffer The buffer to copy the application ID to. If this is NULL, then
-		 * 	the application ID length (plus NULL char) is returned.
+		 * @param buffer The buffer to copy the account key to. If this is NULL, then
+		 * 	the account key length (plus NULL char) is returned.
 		 *
-		 * @return The length of the application ID, or -1 if an error occurred.
+		 * @return The length of the account key, or -1 if an error occurred.
 		 */
-		int get_app_ID(char* buffer) const;
+		int get_account_key(char* buffer) const;
 
 		/**
-		 * @brief Set a Bing service's application ID.
+		 * @brief Set a Bing service's account key.
 		 *
-		 * The @cpp app_ID() function allows developers to set the service's
-		 * application ID. Allowing for different IDs to be used for different
-		 * searches.
+		 * The @cpp set_account_key() function allows developers to set the service's
+		 * account key. Allowing for account keys to be used for different searches.
 		 *
-		 * @param appId The application ID to set. Only if this is not NULL and
-		 * 	has a non-zero length (not including NULL char) will the app ID be
+		 * @param appId The account key to set. Only if this is not NULL and
+		 * 	has a non-zero length (not including NULL char) will the account key be
 		 * 	copied to the Bing service. If an error occurs with copying then the
-		 * 	original app ID remains unchanged. The ID is copied so the developer
+		 * 	original account key remains unchanged. The key is copied so the developer
 		 * 	can free the data when the function returns.
 		 *
 		 * @return A boolean value specifying if the function completed successfully.
 		 */
-		bool set_app_ID(const char* appId);
+		bool set_account_key(const char* account_key);
 
 		//TODO: QString get/set_app_ID (don't forget reference functions)
 
