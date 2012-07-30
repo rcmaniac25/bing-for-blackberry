@@ -145,7 +145,7 @@ const char* request_composite_get_options(bing_request_t request)
 	}
 	if(!ret)
 	{
-		ret = bing_mem_calloc(1, sizeof(char));
+		ret = (char*)bing_mem_calloc(1, sizeof(char));
 	}
 	return ret;
 }
@@ -298,7 +298,7 @@ enum BING_SOURCE_TYPE bing_request_get_source_type(bing_request_t request)
 		}
 		else if(req->sourceType)
 		{
-			for(type = request_source_types; type; type = type->next)
+			for(type = request_source_types; type != NULL; type = type->next)
 			{
 				if(strcmp(type->source_type, req->sourceType) == 0)
 				{
@@ -458,7 +458,7 @@ int bing_request_create(enum BING_SOURCE_TYPE source_type, bing_request_t* reque
 		}
 		else
 		{
-			for(type = request_source_types; type; type = type->next)
+			for(type = request_source_types; type != NULL; type = type->next)
 			{
 				if(type->type == source_type)
 				{
@@ -960,7 +960,7 @@ int bing_request_create_custom_request(const char* source_type, bing_request_t* 
 	//Only do the comparison if a source type exists, otherwise it will fail regardless when request creation occurs.
 	if(source_type)
 	{
-		for(type = request_source_types; type; type = type->next)
+		for(type = request_source_types; type != NULL; type = type->next)
 		{
 			if(stricmp(source_type, type->source_type) == 0)
 			{

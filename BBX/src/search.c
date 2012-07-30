@@ -92,6 +92,8 @@ enum PARSER_ERROR
 	PE_GETXMLDATA_CTX_CREATE_FAIL,
 
 	//"search functions"
+	PE_COMPOSITE_NO_INTERNAL_RESPONSES,
+	PE_SEARCH_OK_NO_RESPONSE,
 	PE_NO_RESPONSES,
 	PE_CURL_OK_HTTP_RESPONSE_NO_RESPONSE,
 	PE_CURL_OK_HTTP_RESPONSE_NOT_FOUND,
@@ -242,7 +244,7 @@ BOOL canContinue(bing_parser* parser)
 		//Error, cleanup everything
 
 		//Now free the response (no stacks will exist if a response doesn't exist. Allocated memory, internal responses, and all results are associated with the parent response. Freeing the response will free everything.)
-		bing_response_free(parser->current);
+		bing_response_free(parser->response);
 
 		//Mark everything as NULL to prevent errors later
 		parser->response = NULL;
@@ -1225,7 +1227,20 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 							if(parser->ctx->myDoc->children)
 							{
 								//Parse document
-								parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+								if(parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF))
+								{
+									if(parser->response && parser->response->type == BING_SOURCETYPE_COMPOSITE)
+									{
+										if(hashtable_get_item(parser->response->data, RESPONSE_COMPOSITE_SUBRES_STR, NULL) == 0)
+										{
+											parser->parseError = PE_COMPOSITE_NO_INTERNAL_RESPONSES;
+										}
+									}
+								}
+								else
+								{
+									parser->parseError = PE_SEARCH_OK_NO_RESPONSE;
+								}
 							}
 							else
 							{
@@ -1384,7 +1399,20 @@ void* async_search(void* ctx)
 				if(parser->ctx->myDoc->children)
 				{
 					//Parse document
-					parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF);
+					if(parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF))
+					{
+						if(parser->response && parser->response->type == BING_SOURCETYPE_COMPOSITE)
+						{
+							if(hashtable_get_item(parser->response->data, RESPONSE_COMPOSITE_SUBRES_STR, NULL) == 0)
+							{
+								parser->parseError = PE_COMPOSITE_NO_INTERNAL_RESPONSES;
+							}
+						}
+					}
+					else
+					{
+						parser->parseError = PE_SEARCH_OK_NO_RESPONSE;
+					}
 				}
 				else
 				{

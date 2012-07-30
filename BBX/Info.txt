@@ -1,9 +1,5 @@
 TODO:
 -Rewrite to Azure
---Test (good and bad queries)
----Bad "options"
----Empty query
----Composite, no queires
 --Release
 --Rework how append_data handles arguments, that way it writes non-string data correctly (double doesn't work, haven't tried int or long long)
 --Figure out how xmlSAXHandler should be setup. I can use my own error functions, but get a segfault for some reason

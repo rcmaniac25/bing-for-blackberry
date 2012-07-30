@@ -394,16 +394,16 @@ const char HEX[] = "0123456789ABCDEF";
 const char* encodeUrl(const char* url)
 {
 	unsigned char* bytes = (unsigned char*)url;
-	char* ret = "";
+	char* ret = NULL;
 	char* find;
 	size_t size;
 	size_t pos;
 	unsigned char b;
-	if(bytes != NULL)
+	if(bytes)
 	{
 		size = strlen(url) + 1;
 		ret = (char*)bing_mem_malloc(size * 3); //We don't know how many of these bytes we will need, better to be safe then sorry
-		if(ret != NULL)
+		if(ret)
 		{
 			memset(ret, 0, size * 3);
 			pos = 0;
@@ -428,11 +428,10 @@ const char* encodeUrl(const char* url)
 			}
 			ret[pos] = 0; //Null char
 		}
-		else
-		{
-			//Error, back to original
-			ret = "";
-		}
+	}
+	if(!ret)
+	{
+		ret = (char*)bing_mem_calloc(1, sizeof(char));
 	}
 	return ret;
 }
@@ -541,7 +540,7 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 	//If the field actually has a value then we check it, otherwise skip it.
 	if(fieldID)
 	{
-		for(; searchFields; searchFields = searchFields->next)
+		for(; searchFields != NULL; searchFields = searchFields->next)
 		{
 			//Make sure the variable and type match (we don't want to return a String for something that needs to be a long or double)
 			if(searchFields->field.variableValue == fieldID &&
