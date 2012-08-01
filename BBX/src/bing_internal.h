@@ -279,12 +279,16 @@ long long parseTime(const char* stime);
 
 //Request functions
 const char* request_get_composite_sourcetype(bing_request* composite);
+
+//Response functions
 BOOL response_def_create_standard_responses(bing_response_t response, data_dictionary_t dictionary);
 BOOL response_create_raw(const char* type, bing_response_t* response, unsigned int bing, bing_response* responseParent);
 BOOL response_add_result(bing_response* response, bing_result* result, BOOL internal);
 BOOL response_remove_result(bing_response* response, bing_result* result, BOOL internal, BOOL freeResult);
 BOOL response_swap_result(bing_response* response, bing_result* result, BOOL internal);
 BOOL response_swap_response(bing_response* response, bing_response* responseParent);
+#define RESPONSE_INSERT_ADD_TO_END -1
+BOOL response_insert_response(bing_response* response, bing_response* responseToInsert, int index);
 
 //Result functions
 BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);

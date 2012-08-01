@@ -496,7 +496,7 @@ BOOL response_remove_from_bing(bing_response* res, BOOL composite_free)
 	return ret;
 }
 
-BOOL response_add_to_composite(bing_response* response, bing_response* responseParent)
+BOOL response_insert_response(bing_response* response, bing_response* responseParent, int index)
 {
 	BOOL ret = FALSE;
 	list* list_v = NULL;
@@ -553,8 +553,20 @@ BOOL response_add_to_composite(bing_response* response, bing_response* responseP
 		}
 		if(responseList)
 		{
-			//Add the response to list
-			responseList[list_v->count++] = response;
+			if(index < 0 || index == list_v->count)
+			{
+				//Add the response to list
+				responseList[list_v->count++] = response;
+			}
+			else
+			{
+				//Need to move some responses before adding response
+				memmove(responseList + (index + 1), responseList + index, sizeof(bing_response_t) * (list_v->count - index));
+
+				//Now we can add response
+				responseList[index] = response;
+				list_v->count++;
+			}
 			response->bing = 0;
 			ret = TRUE;
 		}
@@ -640,7 +652,7 @@ BOOL response_create(enum BING_SOURCE_TYPE type, bing_response_t* response, unsi
 				else
 				{
 					//Add response to composite
-					ret = response_add_to_composite(res, responseParent);
+					ret = response_insert_response(res, responseParent, RESPONSE_INSERT_ADD_TO_END);
 				}
 				//Check if we succeeded or failed
 				if(ret)
@@ -799,13 +811,13 @@ BOOL response_swap_response(bing_response* response, bing_response* responsePare
 			if(!ret)
 			{
 				//Error adding to Bing, revert to composite
-				response_add_to_composite(response, responseParent);
+				response_insert_response(response, responseParent, RESPONSE_INSERT_ADD_TO_END);
 			}
 		}
 		else if(response_remove_from_bing(response, FALSE)) //Remove from Bing
 		{
 			//Add to composite
-			ret = response_add_to_composite(response, responseParent);
+			ret = response_insert_response(response, responseParent, RESPONSE_INSERT_ADD_TO_END);
 			if(!ret)
 			{
 				//Error adding to composite, revert to Bing
