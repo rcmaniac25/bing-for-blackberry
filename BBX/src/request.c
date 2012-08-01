@@ -712,6 +712,90 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
 	return ret;
 }
 
+int bing_request_composite_remove_request(bing_request_t request, bing_request_t request_to_remove)
+{
+	BOOL ret = FALSE;
+	bing_request* req;
+	list* list_v = NULL;
+	int i;
+	if(request && request_to_remove && ((bing_request*)request_to_remove)->compositeUse > 0)
+	{
+		req = (bing_request*)request;
+		if(!req->sourceType && hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v) > 0)
+		{
+			//Find the request...
+			for(i = 0; i < list_v->count; i++)
+			{
+				if(LIST_ELEMENT(list_v, i, bing_request_t) == request_to_remove)
+				{
+					//...then use an already existing function to remove it. It duplicates some code, but makes up for the rest of it
+					ret = bing_request_composite_remove_request_at_index(request, i) != NULL;
+					break;
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+bing_request_t bing_request_composite_remove_request_at_index(bing_request_t request, int index)
+{
+	bing_request_t ret = NULL;
+	bing_request* req;
+	bing_request_t* requestList;
+	list* list_v = NULL;
+	if(request)
+	{
+		req = (bing_request*)request;
+		if(!req->sourceType &&
+				hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v) > 0 &&
+				(index >= 0 && index < list_v->count))
+		{
+			//Get the list
+			requestList = LIST_ELEMENTS(list_v, bing_request_t);
+
+			//Get the request
+			LIST_ELEMENT(list_v, index, bing_request*)->compositeUse--;
+			ret = LIST_ELEMENT(list_v, index, bing_request_t);
+
+			//Move the previous results
+			memmove(requestList + index, requestList + (index + 1), (list_v->count - index - 1) * sizeof(bing_request_t));
+
+			//Reset moved area of list
+			LIST_ELEMENT(list_v, --list_v->count, bing_request_t) = NULL;
+		}
+	}
+	return ret;
+}
+
+int bing_request_get_composite_requests(bing_request_t request, bing_request_t* requests)
+{
+	int ret = -1;
+	bing_request* req;
+	bing_request_t* requestList;
+	list* list_v = NULL;
+	if(request)
+	{
+		req = (bing_request*)request;
+		if(!req->sourceType)
+		{
+			if(hashtable_get_item(req->data, REQUEST_COMPOSITE_SUBREQ_STR, &list_v) > 0)
+			{
+				ret = list_v->count;
+				if(requests)
+				{
+					//Get the list
+					requestList = LIST_ELEMENTS(list_v, bing_request_t);
+
+					//Copy the data
+					memcpy(requestList, requests, ret * sizeof(bing_request_t));
+				}
+			}
+		}
+	}
+	return ret;
+}
+
 int bing_request_composite_count(bing_request_t request)
 {
 	bing_request* req;
@@ -731,6 +815,15 @@ int bing_request_composite_count(bing_request_t request)
 		}
 	}
 	return -1;
+}
+
+int bing_request_is_part_of_composite(bing_request_t request)
+{
+	if(request)
+	{
+		return ((bing_request*)request)->compositeUse != 0;
+	}
+	return FALSE;
 }
 
 int bing_request_free(bing_request_t request)

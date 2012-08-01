@@ -347,7 +347,7 @@ BOOL response_remove_result(bing_response* response, bing_result* result, BOOL i
 				if(resultList) //Need to recreate array in order to resize it
 				{
 					memcpy(resultList, *resultListSrc, i * sizeof(bing_result_t));
-					memcpy(resultList + i, (*resultListSrc) + i + 1, ((*c) - i - 1) * sizeof(bing_result_t));
+					memcpy(resultList + i, (*resultListSrc) + (i + 1), ((*c) - i - 1) * sizeof(bing_result_t));
 					bing_mem_free(*resultListSrc);
 					*resultListSrc = resultList;
 					(*c)--;
@@ -469,7 +469,7 @@ BOOL response_remove_from_bing(bing_response* res, BOOL composite_free)
 						if(t)
 						{
 							memcpy(t, bing->responses, pos * sizeof(bing_response*));
-							memcpy(t + pos, bing->responses + pos + 1, (bing->responseCount - pos - 1) * sizeof(bing_response*));
+							memcpy(t + pos, bing->responses + (pos + 1), (bing->responseCount - pos - 1) * sizeof(bing_response*));
 
 							bing_mem_free(bing->responses);
 							bing->responses = t;
@@ -561,7 +561,7 @@ BOOL response_insert_response(bing_response* response, bing_response* responsePa
 			else
 			{
 				//Need to move some responses before adding response
-				memmove(responseList + (index + 1), responseList + index, sizeof(bing_response_t) * (list_v->count - index));
+				memmove(responseList + (index + 1), responseList + index, (list_v->count - index) * sizeof(bing_response_t));
 
 				//Now we can add response
 				responseList[index] = response;
@@ -595,7 +595,7 @@ BOOL response_remove_from_composite(bing_response* response, bing_response* resp
 				//Found, move the results to cover it up
 				if(list_v->count > 1)
 				{
-					memmove(responseList + i, responseList + i + 1, (list_v->count - i - 1) * sizeof(bing_response_t));
+					memmove(responseList + i, responseList + (i + 1), (list_v->count - i - 1) * sizeof(bing_response_t));
 					LIST_ELEMENT(list_v, --list_v->count, bing_response_t) = NULL;
 				}
 				else

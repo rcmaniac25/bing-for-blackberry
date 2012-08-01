@@ -713,11 +713,53 @@ int bing_request_set_p_double(bing_request_t request, enum BING_REQUEST_FIELD fi
  */
 int bing_request_composite_add_request(bing_request_t request, bing_request_t request_to_add);
 
-int bing_request_composite_remove_request(bing_request_t request, bing_request_t request_to_remove); //TODO
+/**
+ * @brief Remove a request from a composite request.
+ *
+ * The @c bing_request_composite_remove_request() function allows developers to
+ * remove a request from a composite Bing request.
+ *
+ * This does NOT free the request.
+ *
+ * @param request The Bing request to remove a request from.
+ * @param request_to_remove The Bing request to remove.
+ *
+ * @return A boolean value which is non-zero if the request has been removed.
+ * 	Otherwise zero on error, NULL request, NULL request_to_remove, request is
+ * 	not a composite, request does not contain any requests, or the request_to_remove
+ * 	does not exist in the specified request.
+ */
+int bing_request_composite_remove_request(bing_request_t request, bing_request_t request_to_remove);
 
-int bing_request_composite_remove_request_at_index(bing_request_t request, int index); //TODO
+/**
+ * @brief Remove a request from a composite request by index.
+ *
+ * The @c bing_request_composite_remove_request_at_index() function allows developers to
+ * remove a request from a composite Bing request using the index of the request.
+ *
+ * This does NOT free the request.
+ *
+ * @param request The Bing request to remove a request from.
+ * @param index The zero-based index of the request to remove.
+ *
+ * @return The request that has been removed. Otherwise NULL on error, NULL request,
+ * 	request not a composite, request does not contain any requests, or index out of range.
+ */
+bing_request_t bing_request_composite_remove_request_at_index(bing_request_t request, int index);
 
-int bing_request_composite_get_requests(bing_request_t request, bing_request_t* requests); //TODO
+/**
+ * @brief Get the requests from a Bing composite request.
+ *
+ * The @c bing_response_get_composite_responses() function allows developers to
+ * get the composited Bing requests.
+ *
+ * @param request The Bing request to get the requests of.
+ * @param requests The array of requests to copy into.
+ *
+ * @return The Bing request "requests" count, or -1 if an error
+ * 	occurred or if the request is not a composite type.
+ */
+int bing_request_get_composite_requests(bing_request_t request, bing_request_t* requests);
 
 /**
  * @brief Get the number of internal requests within a composite request.
@@ -732,7 +774,18 @@ int bing_request_composite_get_requests(bing_request_t request, bing_request_t* 
  */
 int bing_request_composite_count(bing_request_t request);
 
-int bing_request_is_part_of_composite(bing_request_t request); //TODO
+/**
+ * @brief Determine if a request is part of a composite request.
+ *
+ * The @c bing_request_is_part_of_composite() functions allows developers to determine
+ * if the specified request is part of a composite request.
+ *
+ * @param request The Bing request to check.
+ *
+ * @return A boolean value which is non-zero if the the request is part of a composite,
+ * 	otherwise zero NULL request or if the request is not part of a composite.
+ */
+int bing_request_is_part_of_composite(bing_request_t request);
 
 /**
  * @brief Free a Bing request from memory.
@@ -1017,7 +1070,7 @@ void bing_response_free(bing_response_t response); //TODO: Modify to return a bo
  */
 int bing_response_get_composite_responses(bing_response_t response, bing_response_t* responses);
 
-//TODO: Add function to determine if a response is a child of another response
+int bing_response_is_composite_child_response(bing_response_t response); //TODO
 
 //Custom functions
 
