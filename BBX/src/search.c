@@ -77,7 +77,7 @@ enum PARSER_ERROR
 	PE_PRESPONSE_NODE_LINK_NO_REL_PROP,
 	PE_PRESPONSE_NODE_PBN_FAIL,
 	PE_PRESPONSE_NODE_NO_QNAME,
-	PE_PRESPONSE_CREATE_BUNDLE_FAIL,
+	PE_PRESPONSE_CREATE_COMPOSITE_FAIL,
 	PE_PRESPONSE_CREATE_CREATION_CALLBACK_FAIL,
 	PE_PRESPONSE_CREATE_FAIL,
 	PE_PRESPONSE_ENTRY_CHECK_NO_QNAME,
@@ -140,9 +140,6 @@ typedef struct BING_PARSER_S
 	const void* userData;
 	int bpsChannel;
 	enum PARSER_ERROR parseError;
-#if defined(BING_DEBUG)
-	BOOL errorRet;
-#endif
 } bing_parser;
 
 xmlAttrPtr nsXmlHasPropFind(xmlNodePtr node, const char* prefix, const char* name)
@@ -774,7 +771,7 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 								//Darn it, that failed
 								bing_response_free(parser->current);
 								parser->current = NULL;
-								parser->parseError = PE_PRESPONSE_CREATE_BUNDLE_FAIL;
+								parser->parseError = PE_PRESPONSE_CREATE_COMPOSITE_FAIL;
 							}
 						}
 					}
@@ -787,12 +784,6 @@ bing_response* parseResponse(xmlNodePtr responseNode, BOOL composite, bing_parse
 				else
 				{
 					//Darn it, that failed
-					if(!(parser->response != NULL && parser->response->type == BING_SOURCETYPE_COMPOSITE))
-					{
-						//This wasn't a composited response, just free it (otherwise it will never get freed)
-						bing_response_free(parser->current);
-						parser->current = NULL;
-					}
 					parser->parseError = PE_PRESPONSE_CREATE_CREATION_CALLBACK_FAIL;
 				}
 			}
@@ -1110,9 +1101,11 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	return atcsize;
 }
 
-CURL* setupCurl(bing* bingI, const char* url, bing_parser* parser)
+CURL* setupCurl(unsigned int bingID, const char* url, bing_parser* parser)
 {
-	CURL* ret;
+	CURL* ret = NULL;
+	bing* bingI = retrieveBing(bingID);
+
 	if(bingI)
 	{
 		pthread_mutex_lock(&bingI->mutex);
@@ -1149,28 +1142,11 @@ CURL* setupCurl(bing* bingI, const char* url, bing_parser* parser)
 
 BOOL setupParser(bing_parser* parser, unsigned int bingID, const char* url)
 {
-	BOOL ret = FALSE;
-	bing* bingI = retrieveBing(bingID);
-	if(bingI)
-	{
-		memset(parser, 0, sizeof(bing_parser));
+	memset(parser, 0, sizeof(bing_parser));
 
-		parser->bing = bingID;
-		parser->curl = setupCurl(bingI, url, parser);
-		if(parser->curl)
-		{
-#if defined(BING_DEBUG)
-			pthread_mutex_lock(&bingI->mutex);
-
-			parser->errorRet = bingI->errorRet;
-
-			pthread_mutex_unlock(&bingI->mutex);
-#endif
-			ret = TRUE;
-		}
-	}
-
-	return ret;
+	parser->bing = bingID;
+	parser->curl = setupCurl(bingID, url, parser);
+	return parser->curl != NULL;
 }
 
 BOOL check_for_connection()
@@ -1285,14 +1261,14 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 							ret = parser->response;
 						}
 #if defined(BING_DEBUG)
-						else if(parser->errorRet)
+						else
 						{
 							BING_MSG_PRINTOUT("Parser error\n");
 						}
 #endif
 					}
 #if defined(BING_DEBUG)
-					else if(parser->errorRet)
+					else
 					{
 						BING_MSG_PRINTOUT("Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
 					}
@@ -1305,17 +1281,14 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 			else
 			{
 #if defined(BING_DEBUG)
-				if(bing_get_error_return(bingID))
-				{
-					BING_MSG_PRINTOUT("Could not setup parser\n");
-				}
+				BING_MSG_PRINTOUT("Could not setup parser\n");
 #endif
 				//Couldn't setup parser
 				bing_mem_free(parser);
 			}
 		}
 #if defined(BING_DEBUG)
-		else if(bing_get_error_return(bingID))
+		else
 		{
 			BING_MSG_PRINTOUT("Could not parser\n");
 		}
@@ -1342,7 +1315,7 @@ bing_response_t bing_search_sync(unsigned int bingID, const char* query, const b
 			bing_mem_free((void*)url);
 		}
 #if defined(BING_DEBUG)
-		else if(bing_get_error_return(bingID))
+		else
 		{
 			BING_MSG_PRINTOUT("Could not create URL\n");
 		}
@@ -1471,7 +1444,7 @@ void* async_search(void* ctx)
 			userData = parser->userData;
 		}
 #if defined(BING_DEBUG)
-		else if(parser->errorRet)
+		else
 		{
 			BING_MSG_PRINTOUT("ASYNC: Error invoking cURL: %s\n", curl_easy_strerror(curlCode));
 		}
@@ -1484,8 +1457,12 @@ void* async_search(void* ctx)
 	{
 		responseFunc(response, userData);
 	}
+	else
+	{
+		bing_response_free(response);
+	}
 
-	//Cleanup
+	//Cleanup, must be done after in order to prevent a memory leak when doing an async (event) search
 	search_cleanup(parser);
 
 	return NULL;
@@ -1563,17 +1540,14 @@ int search_async_url_in(unsigned int bingID, const char* url, const void* user_d
 			else
 			{
 #if defined(BING_DEBUG)
-				if(bing_get_error_return(bingID))
-				{
-					BING_MSG_PRINTOUT("Could not setup parser\n");
-				}
+				BING_MSG_PRINTOUT("Could not setup parser\n");
 #endif
 				//Couldn't setup parser
 				bing_mem_free(parser);
 			}
 		}
 #if defined(BING_DEBUG)
-		else if(bing_get_error_return(bingID))
+		else
 		{
 			BING_MSG_PRINTOUT("Could not parser\n");
 		}
@@ -1600,7 +1574,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 			bing_mem_free((void*)url);
 		}
 #if defined(BING_DEBUG)
-		else if(bing_get_error_return(bingID))
+		else
 		{
 			BING_MSG_PRINTOUT("Could not create URL\n");
 		}

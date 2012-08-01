@@ -214,63 +214,61 @@ void bing_free(unsigned int bing);
 #if defined(BING_DEBUG)
 
 /**
- * @brief Set if the internal parser should return search errors.
- *
- * The @c bing_set_error_return() function allows a developer to explicitly handle errors
- * that might show up from the service. Examples of such are bad Application IDs,
- * unsupported search requests, etc.
- *
- * If this is set to a non-zero value (true), then it will return a special response
- * that specifies error information. If it is a zero value (false) and an error
- * occurs, it will simply stop execution and clean up the IO connections.
- *
- * In addition, if the library was compiled in debug mode and this is set, it
- * acts like a verbose option and returns where it failed.
- *
- * @param bing The unique Bing ID for each application ID.
- * @param error A boolean integer indicating if error cases should be returned.
- * 	Zero is false, non-zero is true.
- *
- * @return A boolean integer indicating if the value was set or not. Zero is false,
- * 	non-zero is true.
- */
-int bing_set_error_return(unsigned int bing, int error); //XXX Reword if no error type is returned
-
-/**
- * @brief Get if the internal parser should return search errors.
- *
- * If this is set to a non-zero value (true), then it will return a special response
- * that specifies error information. If it is a zero value (false) and an error
- * occurs, it will simply stop execution and clean up the IO connections.
- *
- * @param bing The unique Bing ID for each application ID.
- *
- * @return A boolean integer indicating if error cases should be returned. Zero is false,
- * non-zero is true.
- */
-int bing_get_error_return(unsigned int bing); //XXX Reword if no error type is returned
-
-/**
  * @brief A non-threadsafe way to find the last error that occurred, if one happened at all.
  *
  * Possible error values
  * 00. No error
  * 01. Default error callback (LibXML2)
- * 02. Default structured error callback (LibXML2)
- * 03. Name duplication failed (internal structure for parsing response requires duplicating the Bing result's name)
- * 04. Stack allocation failed (internal structure for parsing response requires creating a stack. This failed for the Bing result name)
- * 05. Stack allocation failed (internal structure for parsing response requires creating a stack. This failed for the Bing result itself)
- * 06. Could not create the internal table to store query information (start of element)
- * 07. Could not create a response for a bundle (start of element)
- * 08. Could not run creation callback for a newly created response (start of element)
- * 09. Could not create a response (start of element)
- * 10. Could not create a qualified name (start of element)
- * 11. Could not create a qualified name (end of element)
- * 12. Could not create a LibXML2 context (read network data)
+ * 02. Default Fatal error callback (LibXML2)
+ * 03. Default structured error callback (LibXML2)
+ * 04. Out of memory (internal result parsing, generic result data, result title)
+ * 05. Type parsing failed (internal result parsing, generic result data, parse-by-type)
+ * 06. Attempt to get type of data failed even though data exists (internal result parsing, generic result data)
+ * 07. Type parsing failed (internal result parsing, Bing-specific result data, parse-by-type)
+ * 08. Attempt to get type of data failed even though data exists (internal result parsing, Bing-specific result data)
+ * 09. Attempt to save next search URL failed (internal result parsing)
+ * 10. Attempt to save self-referential search URL failed (internal result parsing)
+ * 11. Unknown link search property (internal result parsing)
+ * 12. No relative link property (internal result parsing)
+ * 13. Type parsing failed (internal result parsing, generic result data, parse-by-name)
+ * 14. Qualified node name could not be created (internal result parsing)
+ * 15. Could not save complex type on processing stack (internal result parsing)
+ * 16. Type parsing failed (internal result parsing, content, parse-by-type)
+ * 17. Type parsing failed (internal result parsing, content, parse-by-name)
+ * 18. Could not prevent result from being public (internal result parsing)
+ * 19. Attempt to get type of data failed even though data exists (internal result parsing, result creation)
+ * 20. Parsed complex type, could not create qualified name for type (internal result parsing)
+ * 21. Could not parse complex type (internal result parsing)
+ * 22. Type parsing failed (internal response parsing, generic response data, parse-by-type)
+ * 23. Attempt to get type of data failed even though data exists (internal response parsing, generic response data)
+ * 24. Attempt to save next search URL failed (internal response parsing)
+ * 25. Attempt to save self-referential search URL failed (internal response parsing)
+ * 26. Unknown link search property (internal response parsing)
+ * 27. No relative link property (internal response parsing)
+ * 28. Type parsing failed (internal response parsing, generic result data, parse-by-name)
+ * 29. Qualified node name could not be created (internal response parsing)
+ * 30. Backup composite response creation failed (internal response parsing)
+ * 31. Response created, but callback functions failed (internal response parsing)
+ * 32. Could not create response (internal response parsing)
+ * 33. Might have a composite response, but can't create the qualified name needed to determine it (internal response parsing)
+ * 34. Composite response isn't the proper type. Could still be parsable but we don't know (internal response parsing)
+ * 35. Cannot get type to determine if internal composite response is parsable (internal response parsing)
+ * 36. Cannot create qualified name needed to find inner composite response node (internal response parsing)
+ * 37. Result parsing succeeded, but failed to return a result... so it failed (internal response parsing)
+ * 38. Invalid node for a result, cannot parse (internal response parsing)
+ * 39. Cannot produce qualified name to determine node for result's type (internal response parsing)
+ * 40. Could not create a LibXML2 context (read network data)
+ * 41. Search completed for a composite response, but no internal responses exist (post-search response check)
+ * 42. Search completed successfully but no response was created, usually a result if no results exist for the search (post-parse)
+ * 43. Search completed successfully but no data exists to parse (search)
+ * 44. Server did not respond (networking)
+ * 45. Classic 404 error, usually results in a URL issue. Should not get (networking)
+ * 46. Some other server response that resulted in the query not being able to complete successfully (networking)
+ * 47. Everything broke. We made a search, but the search failed and didn't return any data. Then when we went to find the error, that failed too (everything...)
  *
  * @return A integer defining the last error code to have occurred after a search.
  */
-int bing_get_last_error_code(); //XXX Will need to be updated once search is finished
+int bing_get_last_error_code();
 
 #endif
 
@@ -715,7 +713,11 @@ int bing_request_set_p_double(bing_request_t request, enum BING_REQUEST_FIELD fi
  */
 int bing_request_composite_add_request(bing_request_t request, bing_request_t request_to_add);
 
-//TODO: Add ability to get composite requests, remove composite requests, is part of composite
+int bing_request_composite_remove_request(bing_request_t request, bing_request_t request_to_remove); //TODO
+
+int bing_request_composite_remove_request_at_index(bing_request_t request, int index); //TODO
+
+int bing_request_composite_get_requests(bing_request_t request, bing_request_t* requests); //TODO
 
 /**
  * @brief Get the number of internal requests within a composite request.
@@ -729,6 +731,8 @@ int bing_request_composite_add_request(bing_request_t request, bing_request_t re
  * 	-1 if the Bing request is not a composite type.
  */
 int bing_request_composite_count(bing_request_t request);
+
+int bing_request_is_part_of_composite(bing_request_t request); //TODO
 
 /**
  * @brief Free a Bing request from memory.

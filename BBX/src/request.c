@@ -77,8 +77,8 @@ const char* request_def_get_options(bing_request_t request)
 	{
 		req = (bing_request*)request;
 
-		APPEND("&$top=%d",				REQ_MAX_TOTAL)
-		APPEND("&$skip=%d",				REQ_OFFSET)
+		APPEND("&$top=%lld",			REQ_MAX_TOTAL)
+		APPEND("&$skip=%lld",			REQ_OFFSET)
 
 		APPEND("&Market=%%27%s%%27",	REQ_MARKET)
 		APPEND("&Adult=%%27%s%%27",		REQ_ADULT)

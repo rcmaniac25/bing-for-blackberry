@@ -82,38 +82,6 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 */
 		~bing_service();
 
-#if defined(BING_DEBUG)
-
-		/**
-		 * @brief Set if the internal parser should return on search errors.
-		 *
-		 * The @cpp set_error_return() function allows a developer to explicitly handle errors
-		 * that might show up from the service. Examples of such are bad Application IDs,
-		 * unsupported search requests, etc.
-		 *
-		 * If this is set to a non-zero value (true), then it will return a special response
-		 * that specifies error information. If it is a zero value (false) and an error
-		 * occurs, it will simply stop execution and clean up the IO connections.
-		 *
-		 * @param error A boolean indicating if error cases should be returned.
-		 *
-		 * @return A boolean indicating if the value was set or not.
-		 */
-		bool error_return(bool error);
-
-		/**
-		 * @brief Get if the internal parser should return on search errors.
-		 *
-		 * If this is set to a non-zero value (true), then it will return a special response
-		 * that specifies error information. If it is a zero value (false) and an error
-		 * occurs, it will simply stop execution and clean up the IO connections.
-		 *
-		 * @return A boolean indicating if error cases should be returned.
-		 */
-		bool error_return() const;
-
-#endif
-
 		/**
 		 * @brief Get a Bing service's account key.
 		 *

@@ -39,7 +39,6 @@ __BEGIN_DECLS
 #endif
 #endif
 
-#define DEFAULT_ERROR_RET TRUE
 #define RESULT_CREATE_DEFAULT_INTERNAL FALSE
 
 //Helper macros
@@ -187,9 +186,6 @@ typedef struct BING_S
 	pthread_mutex_t mutex;
 
 	char* accountKey;
-#if defined(BING_DEBUG)
-	BOOL errorRet;
-#endif
 
 	unsigned int responseCount;
 	bing_response** responses;

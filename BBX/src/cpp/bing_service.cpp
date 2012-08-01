@@ -40,11 +40,6 @@ bing_service::bing_service(const bing_service& bingService)
 	{
 		ID = bing_create(NULL);
 	}
-
-#if defined(BING_DEBUG)
-	//Copy the error_return value
-	bing_set_error_return(ID, bing_get_error_return(bingService.ID));
-#endif
 }
 
 bing_service::bing_service(const char* account_key)
@@ -57,20 +52,6 @@ bing_service::~bing_service()
 	bing_free(ID);
 	ID = 0;
 }
-
-#if defined(BING_DEBUG)
-
-bool bing_service::error_return(bool error)
-{
-	return BOOL_TO_CPP_BOOL(bing_set_error_return(ID, CPP_BOOL_TO_BOOL(error)));
-}
-
-bool bing_service::error_return() const
-{
-	return BOOL_TO_CPP_BOOL(bing_get_error_return(ID));
-}
-
-#endif
 
 int bing_service::get_account_key(char* buffer) const
 {

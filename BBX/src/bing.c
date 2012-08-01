@@ -8,6 +8,7 @@
  */
 
 #include "bing_internal.h"
+#include <ctype.h>
 
 static volatile BOOL bing_initialized = FALSE;
 
@@ -175,9 +176,6 @@ unsigned int bing_create(const char* account_key)
 					bingI->accountKey = bing_mem_strdup(account_key);
 					//If an error occurs, it's up to the developer to make sure that the app ID was copied
 				}
-#if defined(BING_DEBUG)
-				bingI->errorRet = DEFAULT_ERROR_RET;
-#endif
 
 				pthread_mutex_init(&bingI->mutex, NULL);
 
@@ -283,44 +281,6 @@ bing* retrieveBing(unsigned int bingID)
 
 	return bingI;
 }
-
-#if defined(BING_DEBUG)
-
-int bing_set_error_return(unsigned int bingID, int error)
-{
-	bing* bingI = retrieveBing(bingID);
-
-	if(bingI)
-	{
-		pthread_mutex_lock(&bingI->mutex);
-
-		bingI->errorRet = error;
-
-		pthread_mutex_unlock(&bingI->mutex);
-
-		return TRUE;
-	}
-	return FALSE;
-}
-
-int bing_get_error_return(unsigned int bingID)
-{
-	int res = FALSE;
-	bing* bingI = retrieveBing(bingID);
-
-	if(bingI)
-	{
-		pthread_mutex_lock(&bingI->mutex);
-
-		res = bingI->errorRet;
-
-		pthread_mutex_unlock(&bingI->mutex);
-	}
-
-	return res;
-}
-
-#endif
 
 int bing_get_account_key(unsigned int bingID, char* buffer)
 {
@@ -573,6 +533,75 @@ const char* find_field(bing_field_search* searchFields, int fieldID, enum FIELD_
 	return NULL;
 }
 
+#define SNPRINTF_CAST(x) snprintf(buffer, BUFFER_SIZE, format, *((x*)data[0]))
+#define SNPRINTF_NO_CAST snprintf(buffer, BUFFER_SIZE, format, data[0])
+
+char getFormatComp(const char* format, BOOL getLength)
+{
+	char* c = (char*)format;
+	char* tmp;
+	while(*c)
+	{
+		//First find the format
+		tmp = strchr(c, '%');
+		if(!tmp)
+		{
+			//If format isn't found, stop
+			break;
+		}
+
+		//If the format is %%, move one up
+		if(*(tmp + 1) == '%')
+		{
+			tmp++;
+		}
+		else
+		{
+			//Go to the next char after format indicator
+			tmp++;
+
+			//Find the format (we ignore all chars but letters)
+			while(*tmp)
+			{
+				if(isalpha(*tmp))
+				{
+					//We found letters, they might be length chars
+					if(*tmp == 'h' || *tmp == 'l' || *tmp == 'L' || *tmp == 'j' || *tmp == 't' || *tmp == 'z')
+					{
+						if(getLength)
+						{
+							break;
+						}
+					}
+					else if(!getLength)
+					{
+						break;
+					}
+				}
+				else if(isspace(*tmp))
+				{
+					//Found whitespace, means we went past the format
+					return '\0';
+				}
+				tmp++;
+			}
+
+			//Did we get to the end of the string? If so, then reset so that the "master loop" will end
+			if(*tmp == '\0')
+			{
+				tmp--;
+			}
+			else
+			{
+				//Found the format, end
+				return *tmp;
+			}
+		}
+		c = tmp + 1;
+	}
+	return '\0';
+}
+
 void append_data(hashtable_t* table, const char* format, const char* key, void** data, size_t* curDataSize, char** returnData, size_t* returnDataSize)
 {
 #define BUFFER_SIZE 256
@@ -598,7 +627,41 @@ void append_data(hashtable_t* table, const char* format, const char* key, void**
 		{
 			hashtable_get_item(table, key, data[0]);
 
-			snprintf(buffer, BUFFER_SIZE, format, data[0]);
+			//A relatively terrible way to format the data, but it allows us to have a generic method of getting data and formatting it, at least from outside the function
+			switch(getFormatComp(format, FALSE))
+			{
+				case 'c':
+					SNPRINTF_CAST(unsigned char);
+					break;
+				case 'd':
+				case 'i':
+				case 'o':
+				case 'u':
+				case 'x':
+				case 'X':
+					if(getFormatComp(format, TRUE) == 'l')
+					{
+						SNPRINTF_CAST(long long);
+					}
+					else
+					{
+						SNPRINTF_CAST(int);
+					}
+					break;
+				case 'a':
+				case 'A':
+				case 'e':
+				case 'E':
+				case 'f':
+				case 'F':
+				case 'g':
+				case 'G':
+					SNPRINTF_CAST(double);
+					break;
+				default:
+					SNPRINTF_NO_CAST;
+					break;
+			}
 			buffer[BUFFER_SIZE - 1] = '\0';
 
 			returnDataSize[0] += strlen(buffer);
