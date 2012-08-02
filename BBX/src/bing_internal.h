@@ -288,7 +288,7 @@ BOOL response_remove_result(bing_response* response, bing_result* result, BOOL i
 BOOL response_swap_result(bing_response* response, bing_result* result, BOOL internal);
 BOOL response_swap_response(bing_response* response, bing_response* responseParent);
 #define RESPONSE_INSERT_ADD_TO_END -1
-BOOL response_insert_response(bing_response* response, bing_response* responseToInsert, int index);
+BOOL response_insert_to_composite(bing_response* response, bing_response* responseToInsert, int index);
 
 //Result functions
 BOOL result_create_raw(const char* type, bing_result_t* result, bing_response* responseParent);

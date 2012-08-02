@@ -2,7 +2,6 @@ TODO:
 -Rewrite to Azure
 --Figure out how xmlSAXHandler should be setup. I can use my own error functions, but get a segfault for some reason
 --Memory testing
---Give response a parent field
 --Implement other TODOs
 --Make simple functions (like set/get values from request/response/result) inline
 --Fix "hashtable_get_keys". It "works" but produces a lot of weird keys, with some correct ones

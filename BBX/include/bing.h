@@ -1052,7 +1052,7 @@ int bing_response_get_results(bing_response_t response, bing_result_t* results);
  *
  * @return Nothing is returned.
  */
-void bing_response_free(bing_response_t response); //TODO: Modify to return a boolean which indicates if freed or not
+void bing_response_free(bing_response_t response); //TODO: Modify to return a boolean which indicates if freed or not (when >bing is set, there is no parent. When >bing is not set, there is a parent)
 
 //Specific functions
 
