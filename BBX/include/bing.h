@@ -1050,9 +1050,12 @@ int bing_response_get_results(bing_response_t response, bing_result_t* results);
  *
  * @param response The Bing response to free.
  *
- * @return Nothing is returned.
+ * @return A boolean value which is non-zero if the the response has been freed
+ * 	successfully, otherwise zero on error, NULL response, or if the response is
+ * 	currently part of a composite response. Composite responses will free any
+ * 	child responses.
  */
-void bing_response_free(bing_response_t response); //TODO: Modify to return a boolean which indicates if freed or not (when >bing is set, there is no parent. When >bing is not set, there is a parent)
+int bing_response_free(bing_response_t response);
 
 //Specific functions
 
@@ -1070,7 +1073,19 @@ void bing_response_free(bing_response_t response); //TODO: Modify to return a bo
  */
 int bing_response_get_composite_responses(bing_response_t response, bing_response_t* responses);
 
-int bing_response_is_composite_child_response(bing_response_t response); //TODO
+/**
+ * @brief Determine if a response is a child to a composite response.
+ *
+ * The @c bing_response_is_composite_child_response() function allows developers to
+ * determine if a specified response is part of another, composite response.
+ *
+ * @param response The Bing response to check.
+ *
+ * @return A boolean value which is non-zero if the the response is part of a
+ * 	composite response, otherwise zero if the response is NULL or the response
+ * 	is independent.
+ */
+int bing_response_is_composite_child_response(bing_response_t response);
 
 //Custom functions
 

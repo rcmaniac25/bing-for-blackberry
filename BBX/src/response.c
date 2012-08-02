@@ -733,8 +733,9 @@ BOOL response_create_raw(const char* type, bing_response_t* response, unsigned i
 	return ret;
 }
 
-void free_response_in(bing_response_t response, BOOL composite_free)
+BOOL free_response_in(bing_response_t response, BOOL composite_free)
 {
+	BOOL ret = FALSE;
 	bing_response* res;
 	list* list;
 	unsigned int i;
@@ -742,61 +743,69 @@ void free_response_in(bing_response_t response, BOOL composite_free)
 	{
 		res = (bing_response*)response;
 
-		//Remove response from Bing
-		response_remove_from_bing(res, composite_free);
-
-		//Free "next" URL if one exists
-		bing_mem_free((void*)res->nextUrl);
-
-		//Free allocated memory (allocated by response and result)
-		for(i = 0; i < res->allocatedMemoryCount; i++)
+		//Make sure a response is freed only when the correct processing procedure is followed
+		if((res->bing != 0 && !composite_free) || //Normal response
+				(res->bing == 0 && composite_free)) //Composite response
 		{
-			bing_mem_free(res->allocatedMemory[i]);
-		}
-		bing_mem_free(res->allocatedMemory);
-		res->allocatedMemory = NULL;
-		res->allocatedMemoryCount = 0;
+			//Remove response from Bing
+			response_remove_from_bing(res, composite_free);
 
-		//Free data
-		if(res->data)
-		{
-			if(hashtable_get_item(res->data, RESPONSE_COMPOSITE_SUBRES_STR, &list) > 0)
+			//Free "next" URL if one exists
+			bing_mem_free((void*)res->nextUrl);
+
+			//Free allocated memory (allocated by response and result)
+			for(i = 0; i < res->allocatedMemoryCount; i++)
 			{
-				for(i = 0; i < list->count; i++)
-				{
-					free_response_in(LIST_ELEMENT(list, i, bing_response_t), TRUE);
-				}
-				bing_mem_free((void*)list->listElements);
-				bing_mem_free((void*)list);
+				bing_mem_free(res->allocatedMemory[i]);
 			}
+			bing_mem_free(res->allocatedMemory);
+			res->allocatedMemory = NULL;
+			res->allocatedMemoryCount = 0;
 
-			hashtable_free(res->data);
+			//Free data
+			if(res->data)
+			{
+				if(hashtable_get_item(res->data, RESPONSE_COMPOSITE_SUBRES_STR, &list) > 0)
+				{
+					for(i = 0; i < list->count; i++)
+					{
+						free_response_in(LIST_ELEMENT(list, i, bing_response_t), TRUE);
+					}
+					bing_mem_free((void*)list->listElements);
+					bing_mem_free((void*)list);
+				}
+
+				hashtable_free(res->data);
+			}
+			res->data = NULL;
+
+			//Free results
+			while(res->resultCount > 0)
+			{
+				free_result((bing_result*)res->results[--res->resultCount]);
+			}
+			bing_mem_free(res->results);
+			res->results = NULL;
+
+			//Free internal results
+			while(res->internalResultCount > 0)
+			{
+				free_result((bing_result*)res->internalResults[--res->internalResultCount]);
+			}
+			bing_mem_free(res->internalResults);
+			res->internalResults = NULL;
+
+			bing_mem_free(res);
+
+			ret = TRUE;
 		}
-		res->data = NULL;
-
-		//Free results
-		while(res->resultCount > 0)
-		{
-			free_result((bing_result*)res->results[--res->resultCount]);
-		}
-		bing_mem_free(res->results);
-		res->results = NULL;
-
-		//Free internal results
-		while(res->internalResultCount > 0)
-		{
-			free_result((bing_result*)res->internalResults[--res->internalResultCount]);
-		}
-		bing_mem_free(res->internalResults);
-		res->internalResults = NULL;
-
-		bing_mem_free(res);
 	}
+	return ret;
 }
 
-void bing_response_free(bing_response_t response)
+int bing_response_free(bing_response_t response)
 {
-	free_response_in(response, FALSE);
+	return free_response_in(response, FALSE);
 }
 
 BOOL response_swap_response(bing_response* response, bing_response* responseParent)
@@ -899,6 +908,15 @@ int bing_response_get_composite_responses(bing_response_t response, bing_respons
 		}
 	}
 	return ret;
+}
+
+int bing_response_is_composite_child_response(bing_response_t response)
+{
+	if(response)
+	{
+		return ((bing_response*)response)->bing == 0;
+	}
+	return FALSE;
 }
 
 int bing_response_custom_is_field_supported(bing_response_t response, const char* field)
