@@ -24,22 +24,22 @@ import bing.responses.*;
  */
 public class Bing
 {
-	private static String BING_URL = "http://api.bing.net/xml.aspx?";
+	private static String BING_URL = "https://api.datamarket.azure.com/Bing/Search/";
 	
 	private net.rim.device.api.i18n.ResourceBundle _resources;
 	
-	private String appId;
+	private String accountKey;
 //#ifdef BING_DEBUG
 	private boolean errorRet;
 //#endif
 	
 	/**
-	 * Initialize a Bing service object. To obtain a Bing Application ID visit http://www.bing.com/developers
-	 * @param application_ID A valid Bing Application ID
+	 * Initialize a Bing service object. To obtain a Bing Account Key visit https://datamarket.azure.com/dataset/bing/search
+	 * @param account_key A valid Bing Account Key
 	 */
-	public Bing(final String application_ID)
+	public Bing(final String account_key)
 	{
-		this.appId = application_ID;
+		this.accountKey = account_key;
 		this._resources = net.rim.device.api.i18n.ResourceBundle.getBundle(BingResource.BUNDLE_ID, BingResource.BUNDLE_NAME);
 	}
 	
@@ -64,22 +64,21 @@ public class Bing
 //#endif
 	
 	/**
-	 * Get the Bing Application ID
-	 * @return The Bing Application ID
+	 * Get the Bing Account Key
+	 * @return The Bing Account Key
 	 */
-	public synchronized String getAppID()
+	public synchronized String getAccountKey()
 	{
-		//return new String(this.appId); //Don't use, it's not recommended, somewhat poor code, and since String is immutable it is pointless to copy the String if it can't be changed anyway.
-		return this.appId;
+		return this.accountKey;
 	}
 	
 	/**
-	 * Set the Bing Application ID. To obtain a Bing Application ID visit http://www.bing.com/developers
-	 * @param appId The Bing Application ID to use.
+	 * Set the Bing Account Key. To obtain a Bing Account Key visit https://datamarket.azure.com/dataset/bing/search
+	 * @param accountKey The Bing Account Key to use.
 	 */
-	public synchronized void setAppID(String appId)
+	public synchronized void setAccountKey(String accountKey)
 	{
-		this.appId = appId;
+		this.accountKey = accountKey;
 	}
 	
 	/**
@@ -181,12 +180,10 @@ public class Bing
 	 * @param request A BingRequest object
 	 * @return A string representing the URL to use in querying the Bing API
 	 */
-	public synchronized String requestUrl(final String query, BingRequest request)
+	public static String requestUrl(final String query, BingRequest request)
 	{
-		StringBuffer requestURL = new StringBuffer(format("{0}xmltype=attributebased&AppId={1}&Query={2}&Sources={3}", 
-				new Object[]{ BING_URL, this.appId, encodeUrl(query), request.sourceType() }));
-		
-		//replace(query, " ", "%20")
+		StringBuffer requestURL = new StringBuffer(format("{0}{1}Query=%27{2}%27&$format=ATOM", 
+				new Object[]{ BING_URL, request.sourceType(), encodeUrl(query) }));
 		
 		String requestOptions = request.requestOptions();
 		if (requestOptions != null)
@@ -203,7 +200,7 @@ public class Bing
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
 	
 	//requestUrl formats the URL, this encodes it so it is formatted in a manner that can be interpreted properly
-	private String encodeUrl(String url)
+	private static String encodeUrl(String url)
 	{
 		byte[] bytes = null;
 		try
@@ -224,14 +221,7 @@ public class Bing
 			for(int i = 2; i < len; i++)
 			{
 				byte b = bytes[i];
-				/*
-				if(b == '%')
-				{
-					buf.append((char)b);
-					buf.append((char)bytes[i++]);
-					buf.append((char)bytes[i++]);
-				}
-				else*/if(URL_UNRESERVED.indexOf(b) >= 0)
+				if(URL_UNRESERVED.indexOf(b) >= 0)
 				{
 					buf.append((char)b);
 				}
@@ -245,41 +235,20 @@ public class Bing
 		return "";
 	}
 	
-	/*
-	private static String replace(String source, String oldValue, String newValue)
-	{
-		StringBuffer buffer = new StringBuffer();
-		
-		int len = source.length();
-		for(int i = 0; i < len; i++)
-		{
-			char c = source.charAt(i);
-			if(c == oldValue.charAt(0))
-			{
-				if(source.startsWith(oldValue, i))
-				{
-					buffer.append(newValue);
-					i += oldValue.length() - 1;
-					continue;
-				}
-			}
-			buffer.append(c);
-		}
-		
-		return buffer.toString();
-	}
-	*/
-	
 	public int hashCode()
 	{
-		return this.appId.hashCode();
+		return this.accountKey.hashCode();
 	}
 	
 	public boolean equals(Object obj)
 	{
 		if((obj != null) && (obj instanceof Bing))
 		{
-			return this.appId.equals(((Bing)obj).appId);
+			if(this.accountKey == null)
+			{
+				return ((Bing)obj).accountKey == null;
+			}
+			return this.accountKey.equals(((Bing)obj).accountKey);
 		}
 		return false;
 	}
