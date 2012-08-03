@@ -292,7 +292,7 @@ void ht_get_name(void* payload, void* data, xmlChar* name)
 {
 	int index = *((int*)data);
 	char** keys = *((char***)(data + sizeof(int)));
-	int size = strlen((char*)name);
+	int size = strlen((char*)name) + 1;
 
 	keys[index] = (char*)bing_mem_calloc(size, sizeof(char));
 	if(keys[index])

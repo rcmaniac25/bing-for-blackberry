@@ -1033,9 +1033,6 @@ int bing_request_custom_set_string(bing_request_t request, const char* field, co
 
 int bing_request_custom_set_p_double(bing_request_t request, const char* field, const double* value)
 {
-#if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
-#error Double size is different than Long Long size
-#endif
 	return bing_request_custom_set_p_64bit_int(request, field, (long long*)value);
 }
 

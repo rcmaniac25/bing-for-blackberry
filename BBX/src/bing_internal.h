@@ -26,6 +26,15 @@
 
 __BEGIN_DECLS
 
+//Sanity checks
+#if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
+#error Double size is different than Long Long size
+#endif
+
+#if __SIZEOF_LONG_LONG__ != 8
+#error Long Long size not equal to 8
+#endif
+
 //Defines for processing and setup
 #if !defined(BOOL)
 #define BOOL int

@@ -30,7 +30,7 @@ __BEGIN_DECLS
  */
 
 #define BBING_VERSION 2.0
-#define BBING_BUILD 0
+#define BBING_BUILD 1
 
 /*
  * Structures

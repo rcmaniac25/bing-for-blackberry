@@ -127,9 +127,6 @@ void* parseByType(const char* type, xmlNodePtr node, xmlFreeFunc xmlFree)
 			if(text)
 			{
 				//Parse the long long
-#if __SIZEOF_LONG_LONG__ != 8
-#error Long Long size not equal to 8
-#endif
 #if __SIZEOF_POINTER__ == 8
 				//We can simply parse, a pointer is the size of a long long
 				tmp = (void*)atoll((char*)text);
@@ -220,10 +217,6 @@ BOOL handleParsedData(xmlNodePtr node, const void* parsedData, enum FIELD_TYPE t
 
 	if(type != FIELD_TYPE_UNKNOWN)
 	{
-#if __SIZEOF_LONG_LONG__ != 8
-#error Long Long size not equal to 8
-#endif
-
 //If the data is the size of a pointer, we will take it since the parsed int/long value of zero will be a NULL pointer anyway
 #if __SIZEOF_POINTER__ == 8
 		if(parsedData || type == FIELD_TYPE_INT || type == FIELD_TYPE_LONG)

@@ -1371,7 +1371,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 #if defined(BING_DEBUG)
 						else
 						{
-							BING_MSG_PRINTOUT("Parser error\n");
+							BING_MSG_PRINTOUT("SYNC: Parser error\n");
 						}
 #endif
 					}
@@ -1389,7 +1389,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 			else
 			{
 #if defined(BING_DEBUG)
-				BING_MSG_PRINTOUT("Could not setup parser\n");
+				BING_MSG_PRINTOUT("SYNC: Could not setup parser\n");
 #endif
 				//Couldn't setup parser
 				bing_mem_free(parser);
@@ -1398,7 +1398,7 @@ bing_response_t bing_search_url_sync(unsigned int bingID, const char* url)
 #if defined(BING_DEBUG)
 		else
 		{
-			BING_MSG_PRINTOUT("Could not create parser\n");
+			BING_MSG_PRINTOUT("SYNC: Could not create parser\n");
 		}
 #endif
 	}
@@ -1425,7 +1425,7 @@ bing_response_t bing_search_sync(unsigned int bingID, const char* query, const b
 #if defined(BING_DEBUG)
 		else
 		{
-			BING_MSG_PRINTOUT("Could not create URL\n");
+			BING_MSG_PRINTOUT("SYNC: Could not create URL\n");
 		}
 #endif
 	}
@@ -1581,7 +1581,7 @@ int search_async_url_in(unsigned int bingID, const char* url, const void* user_d
 			else
 			{
 #if defined(BING_DEBUG)
-				BING_MSG_PRINTOUT("Could not setup parser\n");
+				BING_MSG_PRINTOUT("ASYNC: Could not setup parser\n");
 #endif
 				//Couldn't setup parser
 				bing_mem_free(parser);
@@ -1590,7 +1590,7 @@ int search_async_url_in(unsigned int bingID, const char* url, const void* user_d
 #if defined(BING_DEBUG)
 		else
 		{
-			BING_MSG_PRINTOUT("Could not create parser\n");
+			BING_MSG_PRINTOUT("ASYNC: Could not create parser\n");
 		}
 #endif
 	}
@@ -1617,7 +1617,7 @@ int search_async_in(unsigned int bingID, const char* query, const bing_request_t
 #if defined(BING_DEBUG)
 		else
 		{
-			BING_MSG_PRINTOUT("Could not create URL\n");
+			BING_MSG_PRINTOUT("ASYNC: Could not create URL\n");
 		}
 #endif
 	}

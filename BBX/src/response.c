@@ -948,9 +948,6 @@ int bing_response_custom_get_string(bing_response_t response, const char* field,
 
 int bing_response_custom_get_double(bing_response_t response, const char* field, double* value)
 {
-#if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
-#error Double size is different than Long Long size
-#endif
 	return bing_response_custom_get_64bit_int(response, field, (long long*)value);
 }
 
@@ -1001,9 +998,6 @@ int bing_response_custom_set_string(bing_response_t response, const char* field,
 
 int bing_response_custom_set_p_double(bing_response_t response, const char* field, const double* value)
 {
-#if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
-#error Double size is different than Long Long size
-#endif
 	return bing_response_custom_set_p_64bit_int(response, field, (long long*)value);
 }
 
