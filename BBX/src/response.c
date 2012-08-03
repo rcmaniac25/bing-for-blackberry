@@ -903,7 +903,7 @@ int bing_response_get_composite_responses(bing_response_t response, bing_respons
 				responseList = LIST_ELEMENTS(list_v, bing_response_t);
 
 				//Copy the data
-				memcpy(responseList, responses, ret * sizeof(bing_response_t));
+				memcpy(responses, responseList, ret * sizeof(bing_response_t));
 			}
 		}
 	}

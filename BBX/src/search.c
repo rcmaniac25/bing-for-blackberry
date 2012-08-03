@@ -98,7 +98,8 @@ enum PARSER_ERROR
 	PE_CURL_OK_HTTP_RESPONSE_NO_RESPONSE,
 	PE_CURL_OK_HTTP_RESPONSE_NOT_FOUND,
 	PE_CURL_OK_CONTEXT_NOT_OK,
-	PE_CURL_OK_HTTP_RESPONSE_CODE_FAIL
+	PE_CURL_OK_HTTP_RESPONSE_CODE_FAIL,
+	PE_CURL_URL_PROC_RESET_FAIL
 };
 
 //Just some general codes
@@ -118,7 +119,6 @@ typedef struct PARSER_STACK_S
 typedef struct PARSER_URL_PROCESS
 {
 	const char* url;
-	int index;
 	struct PARSER_URL_PROCESS* next;
 } p_url_process;
 
@@ -1110,40 +1110,49 @@ size_t getxmldata(char* ptr, size_t size, size_t nmemb, void* userdata)
 	return atcsize;
 }
 
-CURL* setupCurl(unsigned int bingID, const char* url, bing_parser* parser)
+BOOL setCurl(unsigned int bingID, const char* url, CURL* curl, bing_parser* parser)
 {
-	CURL* ret = NULL;
+	BOOL ret = FALSE;
 	bing* bingI = retrieveBing(bingID);
 
-	if(bingI)
+	if(bingI && curl)
 	{
+		curl_easy_reset(curl);
+
 		pthread_mutex_lock(&bingI->mutex);
 
 		if(bingI->accountKey)
 		{
-			ret = curl_easy_init();
-
-			if(ret)
+			//Set the URL
+			if(curl_easy_setopt(curl, CURLOPT_URL, url) == CURLE_OK &&							//The URL, required
+					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, getxmldata) == CURLE_OK &&		//The function to handle the data, required
+					curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)parser) == CURLE_OK &&		//The "userdata" to be passed into the write function, required
+					curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, CURL_FALSE) == CURLE_OK &&	//We don't have a SSL cert for verification, so skip it
+					curl_easy_setopt(curl, CURLOPT_USERNAME, CURL_EMPTY_STRING) == CURLE_OK &&	//For basic HTTP authentication, this is the "user ID", which is ignored right now
+					curl_easy_setopt(curl, CURLOPT_PASSWORD, bingI->accountKey) == CURLE_OK)		//For basic HTTP authentication, this is the "account key"
 			{
-				//Set the URL
-				if(curl_easy_setopt(ret, CURLOPT_URL, url) == CURLE_OK &&							//The URL, required
-						curl_easy_setopt(ret, CURLOPT_WRITEFUNCTION, getxmldata) == CURLE_OK &&		//The function to handle the data, required
-						curl_easy_setopt(ret, CURLOPT_WRITEDATA, (void*)parser) == CURLE_OK &&		//The "userdata" to be passed into the write function, required
-						curl_easy_setopt(ret, CURLOPT_SSL_VERIFYPEER, CURL_FALSE) == CURLE_OK &&	//We don't have a SSL cert for verification, so skip it
-						curl_easy_setopt(ret, CURLOPT_USERNAME, CURL_EMPTY_STRING) == CURLE_OK &&	//For basic HTTP authentication, this is the "user ID", which is ignored right now
-						curl_easy_setopt(ret, CURLOPT_PASSWORD, bingI->accountKey) == CURLE_OK)		//For basic HTTP authentication, this is the "account key"
-				{
-					//We don't want any progress meters
-					curl_easy_setopt(ret, CURLOPT_NOPROGRESS, CURL_TRUE);
-				}
-				else
-				{
-					curl_easy_cleanup(ret);
-					ret = NULL;
-				}
+				//We don't want any progress meters
+				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, CURL_TRUE);
+
+				ret = TRUE;
 			}
 		}
 		pthread_mutex_unlock(&bingI->mutex);
+	}
+	return ret;
+}
+
+CURL* setupCurl(unsigned int bingID, const char* url, bing_parser* parser)
+{
+	CURL* ret = curl_easy_init();
+
+	if(ret)
+	{
+		if(!setCurl(bingID, url, ret, parser))
+		{
+			curl_easy_cleanup(ret);
+			ret = NULL;
+		}
 	}
 
 	return ret;
@@ -1151,9 +1160,55 @@ CURL* setupCurl(unsigned int bingID, const char* url, bing_parser* parser)
 
 BOOL setupParser(bing_parser* parser, unsigned int bingID, const char* url)
 {
+	char* addUrl;
+	char* turl;
+	p_url_process* urlProc;
+
 	memset(parser, 0, sizeof(bing_parser));
 
-	//TODO: Handle URL so it sets up multiple parsers
+	//See if we have additional URLs to process
+	addUrl = strchr(url, ' ');
+	if(addUrl)
+	{
+		//Terminate the original URL, get the next URL
+		*(addUrl++) = '\0';
+
+		//Run until all URLs are processed
+		while(addUrl)
+		{
+			//Get the start of the next URL
+			turl = strchr(addUrl, ' ');
+			if(turl)
+			{
+				//Terminate it, if it exists
+				*turl = '\0';
+			}
+
+			//Create a new process structure
+			urlProc = bing_mem_malloc(sizeof(p_url_process));
+			if(urlProc)
+			{
+				//Set data
+				urlProc->next = parser->additionalUrlProcessing;
+				urlProc->url = bing_mem_strdup(addUrl);
+				parser->additionalUrlProcessing = urlProc;
+			}
+			else
+			{
+				//Error, need to cleanup
+				while((urlProc = parser->additionalUrlProcessing))
+				{
+					bing_mem_free((void*)urlProc->url);
+					parser->additionalUrlProcessing = urlProc->next;
+					bing_mem_free((void*)urlProc);
+				}
+				return FALSE;
+			}
+
+			//Make sure the next URL is the new URL
+			addUrl = ++turl;
+		}
+	}
 
 	parser->bing = bingID;
 	parser->curl = setupCurl(bingID, url, parser);
@@ -1162,23 +1217,21 @@ BOOL setupParser(bing_parser* parser, unsigned int bingID, const char* url)
 
 BOOL check_for_connection()
 {
+#if defined(BING_IGNORE_CONNECTION_STATUS)
+	return TRUE;
+#else
 	bool av;
 	if(netstatus_get_availability(&av) == BPS_SUCCESS)
 	{
 		return CPP_BOOL_TO_BOOL(av);
 	}
 	return FALSE; //Return false as a precaution because if we can't get netstatus, well, we might not be able to use the network in general.
+#endif
 }
 
-int search_in(bing_parser* parser)
+int single_search_in(bing_parser* parser, xmlFreeFunc xmlFree)
 {
 	int curlCode;
-	xmlFreeFunc xmlFreeF;
-
-	//Get memory function
-	xmlGcMemGet(&xmlFreeF, NULL, NULL, NULL, NULL);
-
-	//TODO: Handle translation URL (run main parse, then run each additional parse operation)
 
 	//Invoke cURL
 	if((curlCode = curl_easy_perform(parser->curl)) == CURLE_OK)
@@ -1192,7 +1245,7 @@ int search_in(bing_parser* parser)
 			if(parser->ctx->myDoc->children)
 			{
 				//Parse document
-				if(parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFreeF))
+				if(parseResponse(parser->ctx->myDoc->children, FALSE, parser, xmlFree))
 				{
 					if(parser->response && parser->response->type == BING_SOURCETYPE_COMPOSITE)
 					{
@@ -1247,6 +1300,37 @@ int search_in(bing_parser* parser)
 		}
 	}
 
+	return curlCode;
+}
+
+int search_in(bing_parser* parser)
+{
+	int curlCode;
+	p_url_process* urlProcess;
+	xmlFreeFunc xmlFreeF;
+
+	//Get memory function
+	xmlGcMemGet(&xmlFreeF, NULL, NULL, NULL, NULL);
+
+	//Run main search
+	curlCode = single_search_in(parser, xmlFreeF);
+
+	//Handle additional parsing operations
+	urlProcess = parser->additionalUrlProcessing;
+	while(urlProcess && curlCode == CURLE_OK && canContinue(parser)) //Only run if everything else was successful
+	{
+		//Modify cURL for the new URL
+		if(setCurl(parser->bing, urlProcess->url, parser->curl, parser))
+		{
+			curlCode = single_search_in(parser, xmlFreeF);
+			urlProcess = urlProcess->next;
+		}
+		else
+		{
+			//Resetting the URL failed
+			parser->parseError = PE_CURL_URL_PROC_RESET_FAIL;
+		}
+	}
 	return curlCode;
 }
 

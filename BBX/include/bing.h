@@ -265,6 +265,7 @@ void bing_free(unsigned int bing);
  * 45. Classic 404 error, usually results in a URL issue. Should not get (networking)
  * 46. Some other server response that resulted in the query not being able to complete successfully (networking)
  * 47. Everything broke. We made a search, but the search failed and didn't return any data. Then when we went to find the error, that failed too (everything...)
+ * 48. When attempting to setup to perform additional parsing operations, such as translation, the setup process failed.
  *
  * @return A integer defining the last error code to have occurred after a search.
  */
