@@ -49,31 +49,44 @@ public class BingBundleRequest extends BingRequest
 	 */
 	public void addRequest(BingRequest request)
 	{
-		request.removeParentOptions();
+		request.lockStandardOptions();
 		this.requests.addElement(request);
 	}
 	
+	//TODO: Add ability to remove request
+	
 	public String sourceType()
 	{
-		StringBuffer sources = new StringBuffer();
+		StringBuffer sources = new StringBuffer("Composite?Sources=%27");
 		
 		boolean first = true;
 		Enumeration en = this.requests.elements();
 		while(en.hasMoreElements())
 		{
-			BingRequest request = (BingRequest)en.nextElement();
+			String source = ((BingRequest)en.nextElement()).sourceTypeComposite();
+			if(source == null)
+			{
+				continue;
+			}
 			if(first)
 			{
-				sources.append(request.sourceType());
+				sources.append(source);
 				first = false;
 			}
 			else
 			{
-				sources.append(bing.Bing.format("+{0}", new Object[]{ request.sourceType() }));
+				sources.append(bing.Bing.format("%2b{0}", new Object[]{ source }));
 			}
 		}
 		
+		sources.append("%27&");
+		
 		return sources.toString();
+	}
+	
+	public String sourceTypeComposite()
+	{
+		return null;
 	}
 	
 	public String requestOptions()
@@ -84,8 +97,11 @@ public class BingBundleRequest extends BingRequest
 		while(en.hasMoreElements())
 		{
 			BingRequest request = (BingRequest)en.nextElement();
-			String requestOptions = request.requestOptions();
-			options.append(requestOptions);
+			if(request.sourceTypeComposite() == null)
+			{
+				continue;
+			}
+			options.append(request.requestOptions());
 		}
 		
 		return options.toString();

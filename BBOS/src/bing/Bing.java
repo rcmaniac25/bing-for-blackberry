@@ -89,7 +89,7 @@ public class Bing
 	 */
 	public synchronized BingResponse search(final String query, BingRequest request)
 	{
-		String requestURL = this.requestUrl(query, request);
+		String requestURL = Bing.requestUrl(query, request);
 		
 //#ifdef BING_DEBUG
 		System.out.println(format(_resources.getString(BingResource.SEARCH_SYNC), new Object[]{ requestURL }));
@@ -142,7 +142,7 @@ public class Bing
 	 */
 	public synchronized void search(final String query, BingRequest request, BingAsyncRequestNotification delegate)
 	{
-		String requestURL = this.requestUrl(query, request);
+		String requestURL = Bing.requestUrl(query, request);
 		try
 		{
 			HttpConnection urlRequest = (HttpConnection)Connector.open(requestURL, Connector.READ_WRITE);
@@ -172,6 +172,11 @@ public class Bing
 		async.setCon(con);
 		
 		asyncDown.start();
+	}
+	
+	public static boolean isValidURL(final String url)
+	{
+		return url.startsWith("https://api.datamarket.azure.com/");
 	}
 	
 	/**

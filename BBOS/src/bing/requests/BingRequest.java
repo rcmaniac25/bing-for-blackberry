@@ -20,9 +20,6 @@ import java.util.Hashtable;
  */ 
 public abstract class BingRequest
 {
-	public static String DEFAULT_SEARCH_MARKET = "en-US";
-	public static String DEFAULT_API_VERSION = "2.2";
-	
 	public static String OPTION_SEPERATOR = "+";
 	
 	public static String ADULT_OPTIONS_OFF = "Off";
@@ -33,16 +30,17 @@ public abstract class BingRequest
 	public static String SEARCH_OPTIONS_DISABLE_LOCATION_DETECTION = "DisableLocationDetection";
 	public static String SEARCH_OPTIONS_ENABLE_HIGHLIGHTING = "EnableHighlighting";
 	
-	private static String DOUBLE_FORMAT = ",number";
+	private static String NUMBER_FORMAT = ",number";
+	
+	private int compositeCounter;
 	
 	protected Hashtable attrDict;
 	
 	protected BingRequest()
 	{
 		this.attrDict = new Hashtable();
-		//Set up default values
-		this.attrDict.put("version", DEFAULT_API_VERSION);
-		this.attrDict.put("market", DEFAULT_SEARCH_MARKET);
+		
+		this.compositeCounter = 0;
 	}
 	
 	/**
@@ -52,6 +50,12 @@ public abstract class BingRequest
 	public abstract String sourceType();
 	
 	/**
+	 * Specifies the source type of the current request object when used for a composite type.
+	 * @return A string representing the source type of the current object for a composite type.
+	 */
+	public abstract String sourceTypeComposite();
+	
+	/**
 	 * Specifies request specific options to be passed to the API
 	 * @return A string representing the various set API parameters
 	 */
@@ -59,44 +63,42 @@ public abstract class BingRequest
 	{
 		StringBuffer options = new StringBuffer();
 		
-		if(this.attrDict.containsKey("version"))
+		if(this.compositeCounter == 0)
 		{
-			options.append(bing.Bing.format("&Version={0}", new Object[]{this.attrDict.get("version")}));
-		}
-		
-		if(this.attrDict.containsKey("market"))
-		{
-			options.append(bing.Bing.format("&Market={0}", new Object[]{this.attrDict.get("market")}));
-		}
-		
-		if(this.attrDict.containsKey("adult"))
-		{
-			options.append(bing.Bing.format("&Adult={0}", new Object[]{this.attrDict.get("adult")}));
-		}
-		
-		if(this.attrDict.containsKey("options"))
-		{
-			options.append(bing.Bing.format("&Options={0}", new Object[]{this.attrDict.get("options")}));
-		}
-		
-		if(this.attrDict.containsKey("latitude"))
-		{
-			options.append(bing.Bing.format("&Latitude={0" + DOUBLE_FORMAT + "}", new Object[]{this.attrDict.get("latitude")}));
-		}
-		
-		if(this.attrDict.containsKey("longitude"))
-		{
-			options.append(bing.Bing.format("&Longitude={0" + DOUBLE_FORMAT + "}", new Object[]{this.attrDict.get("longitude")}));
-		}
-		
-		if(this.attrDict.containsKey("language"))
-		{
-			options.append(bing.Bing.format("&UILanguage={0}", new Object[]{this.attrDict.get("language")}));
-		}
-		
-		if(this.attrDict.containsKey("radius"))
-		{
-			options.append(bing.Bing.format("&Radius={0" + DOUBLE_FORMAT + "}", new Object[]{this.attrDict.get("radius")}));
+			if(this.attrDict.containsKey("maxTotal"))
+			{
+				options.append(bing.Bing.format("&$top={0" + NUMBER_FORMAT + "}", new Object[]{this.attrDict.get("maxTotal")}));
+			}
+			
+			if(this.attrDict.containsKey("offset"))
+			{
+				options.append(bing.Bing.format("&$skip={0" + NUMBER_FORMAT + "}", new Object[]{this.attrDict.get("offset")}));
+			}
+			
+			if(this.attrDict.containsKey("market"))
+			{
+				options.append(bing.Bing.format("&Market=%27{0}%27", new Object[]{this.attrDict.get("market")}));
+			}
+			
+			if(this.attrDict.containsKey("adult"))
+			{
+				options.append(bing.Bing.format("&Adult=%27{0}%27", new Object[]{this.attrDict.get("adult")}));
+			}
+			
+			if(this.attrDict.containsKey("options"))
+			{
+				options.append(bing.Bing.format("&Options=%27{0}%27", new Object[]{this.attrDict.get("options")}));
+			}
+			
+			if(this.attrDict.containsKey("latitude"))
+			{
+				options.append(bing.Bing.format("&Latitude={0" + NUMBER_FORMAT + "}", new Object[]{this.attrDict.get("latitude")}));
+			}
+			
+			if(this.attrDict.containsKey("longitude"))
+			{
+				options.append(bing.Bing.format("&Longitude={0" + NUMBER_FORMAT + "}", new Object[]{this.attrDict.get("longitude")}));
+			}
 		}
 		
 		return options.toString();
@@ -107,9 +109,13 @@ public abstract class BingRequest
 		this.attrDict.put("market", market);
 	}
 	
-	public void setVersion(String version)
+	public String getMarket()
 	{
-		this.attrDict.put("version", version);
+		if(this.attrDict.containsKey("market"))
+		{
+			return (String)this.attrDict.get("market");
+		}
+		return null;
 	}
 	
 	/**
@@ -120,6 +126,15 @@ public abstract class BingRequest
 		this.attrDict.put("adult", adult);
 	}
 	
+	public String getAdult()
+	{
+		if(this.attrDict.containsKey("adult"))
+		{
+			return (String)this.attrDict.get("adult");
+		}
+		return null;
+	}
+	
 	/**
 	 * @param options One or more combinations of the <code>SEARCH_OPTIONS_<code> options separated by <code>SEARCH_OPTIONS_SEPERATOR<code>.
 	 */
@@ -128,9 +143,27 @@ public abstract class BingRequest
 		this.attrDict.put("options", options);
 	}
 	
+	public String getOptions()
+	{
+		if(this.attrDict.containsKey("options"))
+		{
+			return (String)this.attrDict.get("options");
+		}
+		return null;
+	}
+	
 	public void setLatitude(double latitude)
 	{
 		this.attrDict.put("latitude", new Double(latitude));
+	}
+	
+	public double getLatitude()
+	{
+		if(this.attrDict.containsKey("latitude"))
+		{
+			return ((Double)this.attrDict.get("latitude")).doubleValue();
+		}
+		return Double.NaN;
 	}
 	
 	public void setLongitude(double longitude)
@@ -138,26 +171,67 @@ public abstract class BingRequest
 		this.attrDict.put("longitude", new Double(longitude));
 	}
 	
-	public void setLanguage(String language)
+	public double getLongitude()
 	{
-		this.attrDict.put("language", language);
+		if(this.attrDict.containsKey("longitude"))
+		{
+			return ((Double)this.attrDict.get("longitude")).doubleValue();
+		}
+		return Double.NaN;
 	}
 	
-	public void setRadius(double radius)
+	public void setMaxTotal(long maxTotal)
 	{
-		this.attrDict.put("radius", new Double(radius));
+		this.attrDict.put("maxTotal", new Long(maxTotal));
 	}
 	
-	public void removeParentOptions()
+	public long getMaxTotal()
 	{
-		this.attrDict.remove("market");
-		this.attrDict.remove("version");
-		this.attrDict.remove("adult");
-		this.attrDict.remove("options");
-		this.attrDict.remove("latitude");
-		this.attrDict.remove("longitude");
-		this.attrDict.remove("language");
-		this.attrDict.remove("radius");
+		if(this.attrDict.containsKey("maxTotal"))
+		{
+			return ((Long)this.attrDict.get("maxTotal")).longValue();
+		}
+		return -1;
+	}
+	
+	public void setOffset(long offset)
+	{
+		this.attrDict.put("offset", new Long(offset));
+	}
+	
+	public long getOffset()
+	{
+		if(this.attrDict.containsKey("offset"))
+		{
+			return ((Long)this.attrDict.get("offset")).longValue();
+		}
+		return -1;
+	}
+	
+	/**
+	 * Prevent the request from using it's own "standard" options.
+	 */
+	public void lockStandardOptions()
+	{
+		if(compositeCounter < 0x7FFFFFFF)
+		{
+			compositeCounter++;
+		}
+	}
+	
+	/**
+	 * Allow the request to use it's own "standard" options.
+	 * 
+	 * @return A boolean stating if it's options will be used, otherwise it is still locked by some composite request.S
+	 */
+	public boolean unlockStandardOptions()
+	{
+		if(compositeCounter == 0)
+		{
+			//It's unlocked
+			return true;
+		}
+		return compositeCounter-- == 1;
 	}
 	
 	public String toString()

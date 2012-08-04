@@ -7,8 +7,10 @@
  */
 package bing.responses;
 
+import java.util.Calendar;
 import java.util.Vector;
 
+import bing.Bing;
 import bing.results.*;
 
 /**
@@ -18,18 +20,19 @@ import bing.results.*;
  */
 public abstract class BingResponse
 {
-	protected long total, offset;
+	protected long maxTotal, offset;
+	protected Calendar updated;
 	protected Vector results;
-	protected String query, alteredQuery, alterationOverrideQuery;
+	protected String query, nextUrl;
 	
-	public synchronized long getTotal()
+	public synchronized long getMaxTotal()
 	{
-		return this.total;
+		return this.maxTotal;
 	}
 	
-	public synchronized void setTotal(long total)
+	public synchronized void setMaxTotal(long maxTotal)
 	{
-		this.total = total;
+		this.maxTotal = maxTotal;
 	}
 	
 	public synchronized long getOffset()
@@ -42,6 +45,29 @@ public abstract class BingResponse
 		this.offset = offset;
 	}
 	
+	public synchronized Calendar getUpdated()
+	{
+		return this.updated;
+	}
+	
+	public synchronized void setUpdated(Calendar updated)
+	{
+		this.updated = updated;
+	}
+	
+	public synchronized boolean hasNextURL()
+	{
+		return this.nextUrl != null;
+	}
+	
+	public synchronized void setNextURL(String nextUrl)
+	{
+		if(nextUrl == null || Bing.isValidURL(nextUrl))
+		{
+			this.nextUrl = nextUrl;
+		}
+	}
+	
 	public synchronized String getQuery()
 	{
 		//return new String(this.query); //Same reasons as Bing.getAppID()
@@ -51,28 +77,6 @@ public abstract class BingResponse
 	public synchronized void setQuery(String query)
 	{
 		this.query = query;
-	}
-	
-	public synchronized String getAlteredQuery()
-	{
-		//return new String(this.alteredQuery); //Same reasons as Bing.getAppID()
-		return this.alteredQuery;
-	}
-	
-	public synchronized void setAlteredQuery(String alteredQuery)
-	{
-		this.alteredQuery = alteredQuery;
-	}
-	
-	public synchronized String getAlterationOverrideQuery()
-	{
-		//return new String(this.alterationOverrideQuery); //Same reasons as Bing.getAppID()
-		return this.alterationOverrideQuery;
-	}
-	
-	public synchronized void setAlterationOverrideQuery(String alterationOverrideQuery)
-	{
-		this.alterationOverrideQuery = alterationOverrideQuery;
 	}
 	
 	protected BingResponse()
@@ -98,13 +102,6 @@ public abstract class BingResponse
 		BingResult[] res = new BingResult[this.results.size()];
 		this.results.copyInto(res);
 		return res;
-	}
-	
-	/**
-	 * Some Bing responses can contain extra data then what is normally processed, process that data here if supported.
-	 */
-	public void handleElements(java.util.Hashtable table)
-	{
 	}
 	
 	public int hashCode()
