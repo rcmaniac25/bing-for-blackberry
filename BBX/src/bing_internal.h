@@ -20,10 +20,6 @@
 #include <libxml/tree.h>
 #include <libxml/xmlmemory.h>
 
-#if BPS_VERSION >= 3001002 //Since we will get a compile error if we try to use bbndk.h before it was added
-#include <bbndk.h>
-#endif
-
 /*
  * Defines
  */

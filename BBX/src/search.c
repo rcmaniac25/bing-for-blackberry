@@ -1220,26 +1220,11 @@ BOOL check_for_connection()
 #if defined(BING_IGNORE_CONNECTION_STATUS)
 	return TRUE;
 #else
-#ifdef BBNDK_VERSION_AT_LEAST
-#if BBNDK_VERSION_AT_LEAST(10,2,0)
-#define NETSTAT_TENTWO //netstatus_get_availability was depreciated in 10.2.0
-#endif
-#endif
 	bool av;
-#ifdef NETSTAT_TENTWO
-	netstatus_info_t* netinfo;
-	if(netstatus_get_info(&netinfo) == BPS_SUCCESS)
-	{
-		av = netstatus_info_get_availability(netinfo);
-		netstatus_free_info(&netinfo);
-		return CPP_BOOL_TO_BOOL(av);
-	}
-#else
 	if(netstatus_get_availability(&av) == BPS_SUCCESS)
 	{
 		return CPP_BOOL_TO_BOOL(av);
 	}
-#endif
 	return FALSE; //Return false as a precaution because if we can't get netstatus, well, we might not be able to use the network in general.
 #endif
 }
