@@ -69,7 +69,7 @@ namespace bing_cpp //Not really the greatest name, but getting errors compiling 
 		 *
 		 * @param account_key The account key which allows a developer to access
 		 * 	Microsoft Bing services. If this string is not NULL, it is copied for use by
-		 * 	the service. So the developer can free the memory when he is done.
+		 * 	the service. So the developer can free the memory when they are done.
 		 */
 		bing_service(const char* account_key);
 

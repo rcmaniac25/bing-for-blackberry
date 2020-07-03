@@ -586,7 +586,7 @@ char getFormatComp(const char* format, BOOL getLength)
 				tmp++;
 			}
 
-			//Did we get to the end of the string? If so, then reset so that the "master loop" will end
+			//Did we get to the end of the string? If so, then reset so that the "main loop" will end
 			if(*tmp == '\0')
 			{
 				tmp--;

@@ -192,7 +192,7 @@ int bing_shutdown();
  *
  * @param account_key The account key which allows a developer to access
  * 	Microsoft Bing services. If this string is not NULL, it is copied for use by
- * 	the service. So the developer can free the memory when he is done.
+ * 	the service. So the developer can free the memory when they are done.
  *
  * @return A unique Bing service ID that is used to perform searches. If this value is
  * 	zero then an error has occurred and no service has been allocated.

@@ -30,7 +30,7 @@
 
 __BEGIN_DECLS
 
-//Sanity checks
+//Coherence checks
 #if __SIZEOF_DOUBLE__ != __SIZEOF_LONG_LONG__
 #error Double size is different than Long Long size
 #endif
