@@ -1,0 +1,16 @@
+#ignore file for Eclipse
+
+# ignore files
+.hg
+.locale_interfaces
+.preprocessed
+.settings
+bin
+Bing_ObjectiveC_SDK
+deliverables
+doc
+iPhoneBingImagesDemo
+copy.bat
+*.so
+*.o
+*Device
